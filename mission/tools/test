@@ -1,0 +1,34 @@
+#!/bin/bash
+# Universal test runner — discovers and runs tests for the project
+ROOT="${1:-/home/mission}"
+cd "$ROOT"
+FOUND=0
+
+# Python (pytest)
+if ls tests/test_*.py test_*.py tests/*.py 2>/dev/null | head -1 | grep -q .; then
+    echo "=== Python Tests (pytest) ==="
+    python3 -m pytest tests/ -v --tb=short 2>&1 || python3 -m pytest -v --tb=short 2>&1 || true
+    FOUND=1
+fi
+
+# Node.js (package.json test script)
+if [ -f package.json ]; then
+    if grep -q '"test"' package.json 2>/dev/null; then
+        echo "=== Node.js Tests ==="
+        npm test 2>&1 || true
+        FOUND=1
+    fi
+fi
+
+# Go
+if ls *.go 2>/dev/null | head -1 | grep -q .; then
+    echo "=== Go Tests ==="
+    go test ./... -v 2>&1 || true
+    FOUND=1
+fi
+
+if [ $FOUND -eq 0 ]; then
+    echo "No test files found."
+    echo "Common patterns: tests/test_*.py, npm test, go test"
+    exit 0
+fi

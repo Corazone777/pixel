@@ -3,52 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Full Screen Isometric Factory</title>
+    <title>IBEX Factory Floor</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
     <style>
-        /* CSS updated for true full screen */
+        /* CSS reset and full screen setup */
         body { 
-            margin: 0; padding: 0; overflow: hidden; /* Prevent scrolling */
-            background-color: #1e1e24; color: white; 
-            font-family: 'Courier New', monospace; 
+            margin: 0; padding: 0; overflow: hidden; 
+            background-color: #121214; color: #e0e0e0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
         }
-        /* Float the UI panel over the canvas */
+        
+        /* Upgraded sleek Glassmorphism UI panel */
         #ui-panel { 
             position: absolute; top: 20px; left: 20px; 
-            background: rgba(40, 40, 50, 0.85); padding: 15px 25px; 
-            border-radius: 8px; font-size: 16px; font-weight: bold;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            pointer-events: none; /* Lets clicks pass through to the canvas */
+            background: rgba(30, 30, 36, 0.85); padding: 15px 25px; 
+            border-radius: 12px; font-size: 14px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            pointer-events: none;
             z-index: 10;
+            backdrop-filter: blur(8px);
         }
+        .panel-title { 
+            font-size: 11px; text-transform: uppercase; 
+            letter-spacing: 1.5px; color: #aaa; margin-bottom: 6px; 
+        }
+        .panel-data { 
+            font-size: 22px; font-weight: bold; 
+            color: #4CAF50; font-family: 'Courier New', Courier, monospace;
+        }
+        
         canvas { display: block; }
     </style>
 </head>
 <body>
 
-<div id="ui-panel">Active Worker<br>Grid X: -- | Grid Y: --</div>
+<div id="ui-panel">
+    <div class="panel-title">Active Entity Position</div>
+    <div class="panel-data" id="coords-display">X: -- | Y: --</div>
+</div>
 
 <script>
     // 1. Initialize Full-Screen Application
     const app = new PIXI.Application({ 
-        resizeTo: window, // Automatically fills the browser window
-        backgroundColor: 0x222228 
+        resizeTo: window, 
+        backgroundColor: 0x121214 
     });
-    // Append directly to the body instead of a container div
     document.body.appendChild(app.view);
 
     // 2. Scene Layers
+    const backgroundLayer = new PIXI.Container();
     const gridLayer = new PIXI.Container();
     const entityLayer = new PIXI.Container();
+    
+    app.stage.addChild(backgroundLayer);
     app.stage.addChild(gridLayer);
     app.stage.addChild(entityLayer);
 
-    // 3. Isometric Math Engine
-    const TILE_W = 64; 
-    const TILE_H = 32; 
-    // Center the origin based on the full screen width
-    const ORIGIN_X = window.innerWidth / 2; 
-    const ORIGIN_Y = window.innerHeight * 0.2; // Start grid 20% down from the top
+    // --- 3. BACKGROUND SETUP ---
+    const bgSprite = PIXI.Sprite.from('gemini_background.png'); 
+    bgSprite.anchor.set(0.5, 0.5); 
+    
+    function resizeBackground() {
+        bgSprite.x = app.screen.width / 2;
+        bgSprite.y = app.screen.height / 2;
+        
+        const scaleX = app.screen.width / (bgSprite.texture.width || 1);
+        const scaleY = app.screen.height / (bgSprite.texture.height || 1);
+        const scale = Math.max(scaleX, scaleY);
+        
+        bgSprite.scale.set(scale); 
+    }
+
+    bgSprite.texture.baseTexture.on('loaded', resizeBackground);
+    window.addEventListener('resize', resizeBackground);
+    backgroundLayer.addChild(bgSprite);
+
+    // --- 4. ISOMETRIC MATH ENGINE ---
+    let TILE_W = 128; 
+    let TILE_H = 64;  
+    let ORIGIN_X = app.screen.width / 2; 
+    let ORIGIN_Y = app.screen.height * 0.3; 
+
+    window.addEventListener('resize', () => {
+        ORIGIN_X = app.screen.width / 2;
+        ORIGIN_Y = app.screen.height * 0.3; 
+    });
 
     function toIso(cartX, cartY) {
         return {
@@ -65,23 +105,7 @@
         return { x: cartX, y: cartY };
     }
 
-    // 4. Draw Background Grid (Expanded to 15x15 for the larger screen)
-    function drawGrid() {
-        const grid = new PIXI.Graphics();
-        grid.lineStyle(1, 0x444455, 0.4);
-        for(let i = 0; i <= 15; i++) {
-            let pt1 = toIso(i, 0); let pt2 = toIso(i, 15);
-            grid.moveTo(pt1.x, pt1.y); grid.lineTo(pt2.x, pt2.y);
-            let pt3 = toIso(0, i); let pt4 = toIso(15, i);
-            grid.moveTo(pt3.x, pt3.y); grid.lineTo(pt4.x, pt4.y);
-        }
-        gridLayer.addChild(grid);
-    }
-    drawGrid();
-
     // --- 5. ASSET LOADING & ANIMATION ---
-    
-    // Define both paths based on your folder structure
     const swPaths = [
         'animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png',
         'animations/Breathing_Idle-c1b5dcec/south-west/frame_001.png',
@@ -96,86 +120,97 @@
         'animations/Breathing_Idle-c1b5dcec/north-east/frame_003.png'
     ];
 
-    // Load ALL paths at once
-    PIXI.Assets.load([...swPaths, ...nePaths]).then((textures) => {
-        
-        // Separate the loaded textures into two distinct animation frame arrays
+    const robotSEPaths = [
+        'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png',
+        'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_001.png',
+        'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_002.png',
+        'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_003.png',
+    ];
+
+    PIXI.Assets.load([...swPaths, ...nePaths, ...robotSEPaths]).then((textures) => {
         const framesSW = swPaths.map(path => textures[path]);
         const framesNE = nePaths.map(path => textures[path]);
+        const framesRobotSE = robotSEPaths.map(path => textures[path]);
 
-        // Updated createWorker to accept the specific frame array as an argument
-        function createWorker(framesArray, gridX, gridY) {
+        function createEntity(framesArray, gridX, gridY) {
+            const entity = new PIXI.AnimatedSprite(framesArray);
             
-            const worker = new PIXI.AnimatedSprite(framesArray);
-            
-            // Add a tiny bit of random speed so they don't all breathe perfectly in sync
-            worker.animationSpeed = 0.08 + (Math.random() * 0.04); 
-            worker.play();
+            // Randomize animation slightly
+            entity.animationSpeed = 0.08 + (Math.random() * 0.04); 
+            entity.play();
 
-            // Anchor feet
-            worker.anchor.set(0.5, 1); 
+            entity.anchor.set(0.5, 1); 
+            entity.scale.set(3); // Keep scaling consistent
 
-            // Initial positioning
-            worker.gridX = gridX;
-            worker.gridY = gridY;
+            // Positioning
+            entity.gridX = gridX;
+            entity.gridY = gridY;
             let pos = toIso(gridX, gridY);
-            worker.x = pos.x;
-            worker.y = pos.y;
+            entity.x = pos.x;
+            entity.y = pos.y;
             
-            entityLayer.addChild(worker);
+            entityLayer.addChild(entity);
 
-            // Drag Interactivity
-            worker.interactive = true;
-            worker.cursor = 'grab';
+            // Drag Interactions
+            entity.interactive = true;
+            entity.cursor = 'grab';
             
             let dragging = false;
             let dragOffset = { x: 0, y: 0 };
 
-            worker.on('pointerdown', (e) => {
+            entity.on('pointerdown', (e) => {
                 dragging = true;
-                worker.cursor = 'grabbing';
-                // Bring hovered worker slightly forward visually while dragging
-                worker.alpha = 0.8;
-                dragOffset.x = worker.x - e.data.global.x;
-                dragOffset.y = worker.y - e.data.global.y;
+                entity.cursor = 'grabbing';
+                entity.alpha = 0.85;
+                
+                // Pop to front
+                entityLayer.setChildIndex(entity, entityLayer.children.length - 1);
+                
+                dragOffset.x = entity.x - e.data.global.x;
+                dragOffset.y = entity.y - e.data.global.y;
             });
 
-            worker.on('pointerup', () => { dragging = false; worker.cursor = 'grab'; worker.alpha = 1; });
-            worker.on('pointerupoutside', () => { dragging = false; worker.cursor = 'grab'; worker.alpha = 1; });
+            const resetDrag = () => { dragging = false; entity.cursor = 'grab'; entity.alpha = 1; };
+            entity.on('pointerup', resetDrag);
+            entity.on('pointerupoutside', resetDrag);
 
-            worker.on('pointermove', (e) => {
+            entity.on('pointermove', (e) => {
                 if (dragging) {
-                    worker.x = e.data.global.x + dragOffset.x;
-                    worker.y = e.data.global.y + dragOffset.y;
+                    entity.x = e.data.global.x + dragOffset.x;
+                    entity.y = e.data.global.y + dragOffset.y;
                     
-                    let newGrid = toCart(worker.x, worker.y);
-                    worker.gridX = newGrid.x;
-                    worker.gridY = newGrid.y;
+                    let newGrid = toCart(entity.x, entity.y);
+                    entity.gridX = newGrid.x;
+                    entity.gridY = newGrid.y;
                     
-                    // Update UI panel with the currently dragged worker's position
-                    document.getElementById('ui-panel').innerHTML = `Active Worker<br>Grid X: ${worker.gridX.toFixed(2)} | Grid Y: ${worker.gridY.toFixed(2)}`;
+                    document.getElementById('coords-display').innerHTML = `X: ${entity.gridX.toFixed(1)} | Y: ${entity.gridY.toFixed(1)}`;
                 }
             });
             
-            return worker;
+            return entity;
         }
 
-        // --- SPAWN MULTIPLE WORKERS ---
-        // Facing South-West
-        createWorker(framesSW, 5, 5);
-        createWorker(framesSW, 8, 3);
-        createWorker(framesSW, 3, 10);
+        // Spawn Human Workers (South-West)
+        createEntity(framesSW, -1.4, 2.6);
+        createEntity(framesSW, 4.6, 3.0);
+        createEntity(framesSW, 11.3, 3.8);
+        
+        // Spawn Human Workers (North-East)
+        createEntity(framesNE, 0.0, 8.0);
+        createEntity(framesNE, 6.8, 8.1);
+        createEntity(framesNE, 12.2, 8.2);
 
-        // Facing North-East
-        createWorker(framesNE, 6, 6);
-        createWorker(framesNE, 4, 8);
-        createWorker(framesNE, 10, 5);
+        // Spawn Robots (South-East)
+        createEntity(framesRobotSE, -1.7, 4.5);
+        createEntity(framesRobotSE, 0.5, 4.7);
+        createEntity(framesRobotSE, 3.9, 4.8);
+        createEntity(framesRobotSE, 8.5, 4.7);
 
     }).catch((err) => {
-        console.error("Error loading the animation frames. Check your folder paths!", err);
+        console.error("Asset Load Error. Check your animation folder paths!", err);
     });
 
-    // 6. Dynamic Depth Sorting Loop (Handles Z-indexing for all workers)
+    // --- 7. DEPTH SORTING ---
     app.ticker.add(() => {
         entityLayer.children.sort((a, b) => a.y - b.y);
     });

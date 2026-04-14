@@ -1,0 +1,50 @@
+#!/bin/bash
+# Multi-language lint tool — checks all code files for syntax errors
+set -e
+ROOT="${1:-/home/mission}"
+ERRORS=0
+CHECKED=0
+
+# Python
+for f in $(find "$ROOT" -name '*.py' -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/tools/*' 2>/dev/null); do
+    CHECKED=$((CHECKED + 1))
+    if ! python3 -m py_compile "$f" 2>/tmp/_lint_err; then
+        echo "FAIL: $f"
+        cat /tmp/_lint_err
+        ERRORS=$((ERRORS + 1))
+    fi
+done
+
+# JavaScript/TypeScript
+for f in $(find "$ROOT" -name '*.js' -o -name '*.mjs' -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/tools/*' 2>/dev/null); do
+    CHECKED=$((CHECKED + 1))
+    if ! node --check "$f" 2>/tmp/_lint_err; then
+        echo "FAIL: $f"
+        cat /tmp/_lint_err
+        ERRORS=$((ERRORS + 1))
+    fi
+done
+
+# JSON
+for f in $(find "$ROOT" -name '*.json' -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/tools/*' 2>/dev/null); do
+    CHECKED=$((CHECKED + 1))
+    if ! python3 -c "import json; json.load(open('$f'))" 2>/tmp/_lint_err; then
+        echo "FAIL: $f"
+        cat /tmp/_lint_err
+        ERRORS=$((ERRORS + 1))
+    fi
+done
+
+# Shell
+for f in $(find "$ROOT" -name '*.sh' -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/tools/*' 2>/dev/null); do
+    CHECKED=$((CHECKED + 1))
+    if ! bash -n "$f" 2>/tmp/_lint_err; then
+        echo "FAIL: $f"
+        cat /tmp/_lint_err
+        ERRORS=$((ERRORS + 1))
+    fi
+done
+
+echo ""
+echo "Checked $CHECKED files, $ERRORS errors"
+[ $ERRORS -eq 0 ] && echo "ALL CLEAN" || exit 1

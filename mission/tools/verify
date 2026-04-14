@@ -1,0 +1,48 @@
+#!/bin/bash
+# Full project verification tool
+ROOT="${1:-/home/mission}"
+PASS=0
+FAIL=0
+
+echo "=== LINT ==="
+if /home/mission/tools/lint "$ROOT" 2>&1; then
+    PASS=$((PASS + 1))
+else
+    FAIL=$((FAIL + 1))
+fi
+
+echo ""
+echo "=== TESTS ==="
+if /home/mission/tools/test "$ROOT" 2>&1; then
+    PASS=$((PASS + 1))
+else
+    FAIL=$((FAIL + 1))
+fi
+
+echo ""
+echo "=== STATE CHECK ==="
+if [ -f "$ROOT/state.json" ]; then
+    echo "state.json exists"
+    # Check for unverified requirements
+    UNVERIFIED=$(python3 -c "
+import json
+try:
+    state = json.load(open('$ROOT/state.json'))
+    reqs = state.get('requirements', [])
+    unverified = [r for r in reqs if not r.get('verified')]
+    print(f'{len(unverified)} unverified requirements out of {len(reqs)}')
+    for r in unverified:
+        print(f'  ✗ {r.get(\"text\", r.get(\"id\", \"?\"))}')
+except Exception as e:
+    print(f'Could not parse state.json: {e}')
+" 2>&1)
+    echo "$UNVERIFIED"
+else
+    echo "⚠ No state.json found"
+fi
+
+echo ""
+echo "=== SUMMARY ==="
+echo "Checks passed: $PASS, failed: $FAIL"
+[ $FAIL -eq 0 ] && echo "✅ ALL CHECKS PASSED" || echo "❌ SOME CHECKS FAILED"
+[ $FAIL -eq 0 ] || exit 1

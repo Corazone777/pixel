@@ -1,0 +1,45 @@
+{
+  "character": {
+    "id": "d24b5cfd-a24b-46ae-acdd-bf1134f43e35",
+    "name": "pixelated robot generator ",
+    "prompt": "pixelated robot generator ",
+    "size": {
+      "width": 68,
+      "height": 68
+    },
+    "template_id": "mannequin",
+    "directions": 8,
+    "view": "low top-down",
+    "created_at": "2026-04-14T10:05:54.287363+00:00"
+  },
+  "frames": {
+    "rotations": {
+      "south": "rotations/south.png",
+      "south-east": "rotations/south-east.png",
+      "east": "rotations/east.png",
+      "north-east": "rotations/north-east.png",
+      "north": "rotations/north.png",
+      "north-west": "rotations/north-west.png",
+      "west": "rotations/west.png",
+      "south-west": "rotations/south-west.png"
+    },
+    "animations": {
+      "Breathing_Idle-c693fd1f": {
+        "south": [
+          "animations/Breathing_Idle-c693fd1f/south/frame_000.png",
+          "animations/Breathing_Idle-c693fd1f/south/frame_001.png",
+          "animations/Breathing_Idle-c693fd1f/south/frame_002.png",
+          "animations/Breathing_Idle-c693fd1f/south/frame_003.png"
+        ],
+        "south-east": [
+          "animations/Breathing_Idle-c693fd1f/south-east/frame_000.png",
+          "animations/Breathing_Idle-c693fd1f/south-east/frame_001.png",
+          "animations/Breathing_Idle-c693fd1f/south-east/frame_002.png",
+          "animations/Breathing_Idle-c693fd1f/south-east/frame_003.png"
+        ]
+      }
+    }
+  },
+  "export_version": "2.0",
+  "export_date": "2026-04-14T13:09:56.650480"
+}
