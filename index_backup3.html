@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IBEX Factory Floor - Ultimate Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    <style>
+        /* --- 1. GLOBAL & UI STYLES --- */
+        body { 
+            margin: 0; padding: 0; overflow: hidden; 
+            background-color: #0b0c10; color: #e0e0e0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        
+        #ui-panel { 
+            position: absolute; top: 20px; left: 20px; 
+            background: rgba(11, 12, 16, 0.85); padding: 15px 25px; 
+            border-radius: 8px; font-size: 14px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            border: 1px solid rgba(76, 175, 80, 0.2);
+            pointer-events: none;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .panel-title { 
+            font-size: 11px; text-transform: uppercase; 
+            letter-spacing: 1.5px; color: #81C784; margin-bottom: 6px; 
+        }
+        .panel-data { 
+            font-size: 22px; font-weight: bold; 
+            color: #4CAF50; font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* --- 2. MODERN MONITOR OVERLAYS --- */
+        .monitor-overlay {
+            position: absolute;
+            background: rgba(11, 15, 12, 0.85); 
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(76, 175, 80, 0.3); 
+            border-top: 2px solid rgba(76, 175, 80, 0.8); 
+            border-radius: 6px;
+            color: #69f0ae; 
+            font-family: 'Courier New', Courier, monospace;
+            box-sizing: border-box;
+            overflow: hidden;
+            pointer-events: auto; 
+            z-index: 50; 
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(76, 175, 80, 0.05);
+            /* Smooth transitions for expansion, font scaling, and 3D tilts */
+            transition: left 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                        top 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                        width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                        height 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+                        transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+                        font-size 0.5s ease, background 0.3s ease;
+            transform-origin: center center;
+        }
+
+        /* The Black Cover Screen for Iframe */
+        .monitor-cover {
+            position: absolute;
+            inset: 0;
+            background: #000;
+            z-index: 60;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5em;
+            font-weight: bold;
+            letter-spacing: 10px;
+            color: #4CAF50;
+            text-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+        }
+
+        /* Hide borders/chrome when docked for the Iframe screen */
+        .is-iframe-monitor:not(.is-centered) {
+            border: none; background: transparent; box-shadow: none;
+            backdrop-filter: none; -webkit-backdrop-filter: none;
+        }
+        .is-iframe-monitor:not(.is-centered) .monitor-header { display: none; }
+        .is-iframe-monitor:not(.is-centered) .monitor-body { padding: 0; }
+
+        .monitor-header {
+            background: rgba(0, 0, 0, 0.4);
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: rgba(105, 240, 174, 0.8);
+            user-select: none;
+            flex-shrink: 0;
+            border-bottom: 1px solid rgba(76, 175, 80, 0.2);
+        }
+
+        .close-btn {
+            display: none; 
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 16px; font-weight: bold; cursor: pointer;
+            font-family: sans-serif; padding: 0 5px;
+        }
+        .close-btn:hover { color: #ff5252; transform: scale(1.2); }
+
+        .monitor-body {
+            flex-grow: 1; padding: 12px; position: relative;
+            overflow: hidden; display: flex; flex-direction: column;
+        }
+
+        /* Shield prevents accidental clicks on inner elements when docked */
+        .glass-shield { position: absolute; inset: 0; z-index: 70; cursor: pointer; }
+
+        /* --- 3. WIDGET STYLES --- */
+        .term-input {
+            width: 100%; background: transparent; color: #69f0ae;
+            border: none; outline: none; font-family: inherit;
+            margin-top: 5px; font-size: inherit;
+        }
+        .term-log { flex-grow: 1; overflow-y: auto; word-wrap: break-word; }
+        .term-log::-webkit-scrollbar { display: none; }
+        .monitor-iframe { 
+            width: 100%; height: 100%; border: none; background: #fff; 
+            border-radius: 4px; display: block; opacity: 1;
+        }
+        
+        canvas { display: block; transition: filter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    </style>
+</head>
+<body>
+
+<div id="ui-panel">
+    <div class="panel-title">Active Entity Position</div>
+    <div class="panel-data" id="coords-display">X: -- | Y: --</div>
+</div>
+
+<script>
+    // --- 1. PIXI INITIALIZATION ---
+    const app = new PIXI.Application({ resizeTo: window, backgroundColor: 0x121214 });
+    document.body.appendChild(app.view);
+
+    const backgroundLayer = new PIXI.Container();
+    const entityLayer = new PIXI.Container();
+    entityLayer.sortableChildren = true; // Crucial for z-index sorting animations
+
+    app.stage.addChild(backgroundLayer);
+    app.stage.addChild(entityLayer);
+
+    // --- 2. BACKGROUND & RESIZING ---
+    const bgSprite = PIXI.Sprite.from('gemini_background.png'); 
+    bgSprite.anchor.set(0.5, 0.5); 
+    
+    function resizeBackground() {
+        bgSprite.x = app.screen.width / 2;
+        bgSprite.y = app.screen.height / 2;
+        const scaleX = app.screen.width / (bgSprite.texture.width || 1);
+        const scaleY = app.screen.height / (bgSprite.texture.height || 1);
+        bgSprite.scale.set(Math.max(scaleX, scaleY)); 
+        syncMonitors(); 
+    }
+    bgSprite.texture.baseTexture.on('loaded', resizeBackground);
+    window.addEventListener('resize', resizeBackground);
+    backgroundLayer.addChild(bgSprite);
+
+    // --- 3. ISOMETRIC ENGINE ---
+    let TILE_W = 128, TILE_H = 64;  
+    function getOrigin() { 
+        return { x: app.screen.width / 2, y: app.screen.height * 0.3 }; 
+    }
+
+    function toIso(cartX, cartY) {
+        const origin = getOrigin();
+        return {
+            x: (cartX - cartY) * (TILE_W / 2) + origin.x,
+            y: (cartX + cartY) * (TILE_H / 2) + origin.y
+        };
+    }
+
+    function toCart(screenX, screenY) {
+        const origin = getOrigin();
+        let adjX = screenX - origin.x, adjY = screenY - origin.y;
+        return {
+            x: (adjX / (TILE_W / 2) + adjY / (TILE_H / 2)) / 2,
+            y: (adjY / (TILE_H / 2) - adjX / (TILE_W / 2)) / 2
+        };
+    }
+
+    // --- 4. BUTTON HITBOXES ---
+    function createButtonHitbox(id, x, y, width, height, onClick) {
+        const hitbox = new PIXI.Graphics();
+        hitbox.beginFill(0x000000); hitbox.drawRect(x, y, width, height); hitbox.endFill();
+        hitbox.alpha = 0.0;
+        hitbox.interactive = true; hitbox.cursor = 'pointer';
+        hitbox.on('pointerdown', () => { hitbox.alpha = 0.5; });
+        hitbox.on('pointerup', () => { hitbox.alpha = 0.0; if (onClick) onClick(); });
+        hitbox.on('pointerupoutside', () => { hitbox.alpha = 0.0; });
+        bgSprite.addChild(hitbox);
+    }
+
+    createButtonHitbox("SPEED UP", -1300, 510, 120, 120, () => {
+        entityLayer.children.forEach(e => e.animationSpeed = 0.2);
+        document.getElementById('coords-display').innerText = "SYSTEM: OVERCLOCK";
+    }); 
+    createButtonHitbox("HALT", -1135, 510, 120, 120, () => {
+        entityLayer.children.forEach(e => e.stop());
+        document.getElementById('coords-display').innerText = "SYSTEM: HALTED";
+    }); 
+    createButtonHitbox("NEW PART", -965, 510, 120, 120, () => {
+        entityLayer.children.forEach(e => { e.animationSpeed = 0.1; e.play(); });
+        document.getElementById('coords-display').innerText = "SYSTEM: RESUMED";
+    }); 
+    createButtonHitbox("NEW MECHANISM", -795, 510, 120, 120, () => {
+        alert("Deploying New Mechanism protocol!");
+    }); 
+
+    // --- 5. MONITOR SYSTEM ---
+    const monitors = [];
+
+    function createMonitorOverlay(id, localX, localY, localWidth, localHeight, contentHTML, baseTransform = 'none') {
+        const div = document.createElement('div');
+        div.className = 'monitor-overlay';
+        div.id = id;
+        
+        const coverHTML = (id === 'mon-web') ? `<div class="monitor-cover">IBEX</div>` : '';
+        if (id === 'mon-web') div.classList.add('is-iframe-monitor');
+        
+        div.innerHTML = `
+            <div class="monitor-header"><span>:: ${id.toUpperCase()}</span><div class="close-btn">✕</div></div>
+            <div class="monitor-body">
+                <div class="glass-shield"></div>
+                ${coverHTML}
+                ${contentHTML}
+            </div>
+        `;
+        document.body.appendChild(div);
+
+        const closeBtn = div.querySelector('.close-btn');
+        const shield = div.querySelector('.glass-shield');
+        const cover = div.querySelector('.monitor-cover');
+
+        const monitorData = {
+            element: div, baseX: localX, baseY: localY, 
+            baseW: localWidth, baseH: localHeight,
+            baseTransform: baseTransform, state: 'docked' 
+        };
+        monitors.push(monitorData);
+        div.style.transform = baseTransform;
+
+        // EXPAND LOGIC
+        const focusMe = () => {
+            if (monitorData.state === 'centered') return;
+            monitorData.state = 'centered';
+            div.classList.add('is-centered'); 
+            
+            if (cover) cover.style.opacity = '0'; // Hide IBEX plate
+
+            app.view.style.filter = 'blur(12px) brightness(0.5)';
+            closeBtn.style.display = 'block';
+            shield.style.display = 'none';
+            div.style.zIndex = 200;
+            div.style.transform = 'none'; 
+            
+            // Fixed pixel sizes so the font doesn't blow up on large desktop screens!
+            div.style.fontSize = (id === 'mon-web') ? '16px' : '18px'; 
+            
+            if (id === 'mon-web') {
+                div.style.width = '94vw'; div.style.height = '94vh'; div.style.left = '3vw'; div.style.top = '3vh';       
+            } else {
+                div.style.width = '70vw'; div.style.height = '75vh'; div.style.left = '15vw'; div.style.top = '12.5vh'; 
+            }
+            const input = div.querySelector('input');
+            if (input) setTimeout(() => input.focus(), 500);
+        };
+
+        // SNAP BACK LOGIC
+        const dockMe = (e) => {
+            if (e) e.stopPropagation();
+            if (monitorData.state === 'docked') return;
+            monitorData.state = 'docked';
+            div.classList.remove('is-centered'); 
+            
+            if (cover) cover.style.opacity = '1'; // Show IBEX plate
+
+            app.view.style.filter = 'none';
+            closeBtn.style.display = 'none';
+            shield.style.display = 'block';
+            div.style.zIndex = 50;
+            div.style.transform = monitorData.baseTransform; 
+            
+            syncMonitors(); // Re-applies docked dimensions & font
+        };
+
+        div.addEventListener('click', focusMe);
+        closeBtn.addEventListener('click', dockMe);
+        monitorData.dock = dockMe; 
+        return div;
+    }
+
+    // Keeps monitors glued to background scale
+    function syncMonitors() {
+        const scale = bgSprite.scale.x; 
+        const centerX = app.screen.width / 2;
+        const centerY = app.screen.height / 2;
+        if (scale === 0) return; 
+
+        monitors.forEach(m => {
+            if (m.state === 'docked') { // Only sync if on the wall
+                m.element.style.left = `${centerX + (m.baseX * scale)}px`;
+                m.element.style.top = `${centerY + (m.baseY * scale)}px`;
+                m.element.style.width = `${m.baseW * scale}px`;
+                m.element.style.height = `${m.baseH * scale}px`;
+                m.element.style.fontSize = `${12 * scale}px`; 
+            }
+        });
+    }
+
+    // Global Close Triggers (Esc Key & Background DblClick)
+    document.body.addEventListener('dblclick', (e) => {
+        if (!e.target.closest('.monitor-overlay')) monitors.forEach(m => m.dock());
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') monitors.forEach(m => m.dock());
+    });
+
+    // --- 6. INITIALIZE MONITORS ---
+    createMonitorOverlay("mon-terminal", -1030, 300, 170, 120, `
+        <div id="term-log" class="term-log">IBEX OS v3.1<br/>Root access granted...<br/></div>
+        <input type="text" id="term-input" class="term-input" placeholder=">_" autocomplete="off" />
+    `, 'perspective(800px) rotateY(18deg) skewY(-4deg)'); // Tilted Right
+    
+    createMonitorOverlay("mon-web", -815, 300, 220, 120, `
+        <iframe class="monitor-iframe" src="https://goibex.it"></iframe>
+    `, 'none'); // Flat center
+    
+    createMonitorOverlay("mon-info", -530, 320, 150, 120, `
+        <div style="font-size:0.9em">SYS: ONLINE</div>
+        <div id="info-time" style="margin-top: 10px; font-weight: bold; font-size: 1.3em; color:#fff;">--:--:--</div>
+        <div id="info-loc" style="margin-top: 10px; color:#81C784; font-size:0.8em">Locating...</div>
+        <div id="info-weather" style="margin-top: 5px; color:#81C784; font-size:0.8em">Temp: --</div>
+    `, 'perspective(800px) rotateY(-18deg) skewY(4deg)'); // Tilted Left
+
+    // --- 7. WIDGET FUNCTIONALITY ---
+    
+    // Terminal App
+    const termInput = document.getElementById('term-input');
+    const termLog = document.getElementById('term-log');
+    termInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const cmd = termInput.value.toLowerCase().trim();
+            termLog.innerHTML += `<div>> ${cmd}</div>`;
+            if (cmd === 'help') termLog.innerHTML += `<div>help, clear, status, ping</div>`;
+            else if (cmd === 'clear') termLog.innerHTML = `IBEX OS v3.1<br/>`;
+            else if (cmd === 'status') termLog.innerHTML += `<div>All sensors nominal.</div>`;
+            else if (cmd === 'ping') termLog.innerHTML += `<div>Pong! 12ms</div>`;
+            else if (cmd !== '') termLog.innerHTML += `<div style="color:#ff5252;">Unknown command</div>`;
+            termInput.value = ''; termLog.scrollTop = termLog.scrollHeight; 
+        }
+    });
+
+    // Clock
+    setInterval(() => {
+        document.getElementById('info-time').innerText = new Date().toLocaleTimeString();
+    }, 1000);
+
+    // Weather & Location (CORS-Safe)
+    async function fetchWeatherAndLocation() {
+        const locEl = document.getElementById('info-loc');
+        const tempEl = document.getElementById('info-weather');
+        try {
+            const geoRes = await fetch('https://freeipapi.com/api/json');
+            const geoData = await geoRes.json();
+            locEl.innerText = `${geoData.cityName}, ${geoData.countryCode}`;
+            const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${geoData.latitude}&longitude=${geoData.longitude}&current_weather=true`);
+            const weatherData = await weatherRes.json();
+            tempEl.innerText = `Temp: ${weatherData.current_weather.temperature}°C`;
+        } catch (e) {
+            locEl.innerText = "DEMO: Zagreb, HR";
+            tempEl.innerText = "Temp: 18°C (Sim)";
+        }
+    }
+    fetchWeatherAndLocation();
+
+    // The Safety Sync Loop (Prevents layout jump on initial page load)
+    let loadSyncCount = 0;
+    const loadSyncInterval = setInterval(() => {
+        syncMonitors();
+        if (++loadSyncCount > 30) clearInterval(loadSyncInterval);
+    }, 100);
+
+    // --- 8. ENTITY SYSTEM (DRAGGABLE & ANIMATED) ---
+    const swPaths = [ 'animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_003.png' ];
+    const nePaths = [ 'animations/Breathing_Idle-c1b5dcec/north-east/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_003.png' ];
+    const robotSEPaths = [ 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_001.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_002.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_003.png' ];
+
+    PIXI.Assets.load([...swPaths, ...nePaths, ...robotSEPaths]).then((textures) => {
+        function createEntity(paths, gridX, gridY) {
+            const entity = new PIXI.AnimatedSprite(paths.map(p => textures[p]));
+            entity.animationSpeed = 0.1; entity.play();
+            entity.anchor.set(0.5, 1); entity.scale.set(3); 
+            
+            const pos = toIso(gridX, gridY);
+            entity.x = pos.x; entity.y = pos.y;
+            entity.zIndex = entity.y; // Initial depth map
+            
+            entityLayer.addChild(entity);
+
+            // Drag and Drop Logic
+            entity.interactive = true; 
+            entity.cursor = 'grab';
+            let dragging = false, dragOffset = { x: 0, y: 0 };
+
+            entity.on('pointerdown', (e) => {
+                dragging = true; entity.isDragging = true;
+                entity.cursor = 'grabbing'; entity.alpha = 0.8;
+                entity.zIndex = 10000; // Bring to front while dragging
+                dragOffset.x = entity.x - e.data.global.x;
+                dragOffset.y = entity.y - e.data.global.y;
+            });
+
+            const endDrag = () => {
+                dragging = false; entity.isDragging = false;
+                entity.cursor = 'grab'; entity.alpha = 1;
+            };
+            entity.on('pointerup', endDrag);
+            entity.on('pointerupoutside', endDrag);
+
+            entity.on('pointermove', (e) => {
+                if (dragging) {
+                    entity.x = e.data.global.x + dragOffset.x;
+                    entity.y = e.data.global.y + dragOffset.y;
+                    
+                    // Update the coordinate display in the UI panel dynamically
+                    const cart = toCart(entity.x, entity.y);
+                    document.getElementById('coords-display').innerText = 
+                        `X: ${cart.x.toFixed(1)} | Y: ${cart.y.toFixed(1)}`;
+                }
+            });
+
+            return entity;
+        }
+
+        // Spawn Entities at correct starting grid coordinates
+        createEntity(swPaths, -1.5, 2.6); createEntity(swPaths, 4.3, 3.0); createEntity(swPaths, 11.6, 2.7);
+        createEntity(nePaths, 0.0, 8.0); createEntity(nePaths, 6.8, 8.1); createEntity(nePaths, 12.2, 8.2);
+        createEntity(robotSEPaths, -1.3, 4.5); createEntity(robotSEPaths, 1.0, 4.6); createEntity(robotSEPaths, 3.5, 4.8); createEntity(robotSEPaths, 6.6, 4.8);
+    });
+
+    // Final Ticker for maintaining correct overlapping depths
+    app.ticker.add(() => { 
+        entityLayer.children.forEach(c => {
+            if (!c.isDragging) c.zIndex = c.y; // Sort dynamically based on vertical position
+        });
+    });
+</script>
+</body>
+</html>

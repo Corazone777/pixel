@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IBEX Factory Floor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    <style>
+        /* CSS reset and full screen setup */
+        body { 
+            margin: 0; padding: 0; overflow: hidden; 
+            background-color: #0b0c10; color: #e0e0e0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        
+        #ui-panel { 
+            position: absolute; top: 20px; left: 20px; 
+            background: rgba(11, 12, 16, 0.85); padding: 15px 25px; 
+            border-radius: 8px; font-size: 14px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            border: 1px solid rgba(76, 175, 80, 0.2);
+            pointer-events: none;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .panel-title { 
+            font-size: 11px; text-transform: uppercase; 
+            letter-spacing: 1.5px; color: #81C784; margin-bottom: 6px; 
+        }
+        .panel-data { 
+            font-size: 22px; font-weight: bold; 
+            color: #4CAF50; font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* --- MODERNIZED MONITOR STYLES --- */
+        .monitor-overlay {
+            position: absolute;
+            background: rgba(11, 15, 12, 0.75); /* Modern dark translucent */
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(76, 175, 80, 0.3); 
+            border-top: 2px solid rgba(76, 175, 80, 0.8); /* Accent top border */
+            border-radius: 6px;
+            color: #69f0ae; /* Brighter neon green */
+            font-family: 'Courier New', Courier, monospace;
+            box-sizing: border-box;
+            overflow: hidden;
+            pointer-events: auto; 
+            z-index: 5; 
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(76, 175, 80, 0.05);
+            /* Smooth animations for ALL transforms and sizing */
+            transition: left 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                        top 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                        width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                        height 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+                        font-size 0.5s ease, background 0.3s ease;
+        }
+
+        .monitor-overlay:hover {
+            border-color: rgba(76, 175, 80, 0.6);
+            background: rgba(15, 25, 18, 0.85);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(76, 175, 80, 0.15);
+        }
+
+        .monitor-header {
+            background: rgba(0, 0, 0, 0.3);
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: rgba(105, 240, 174, 0.7);
+            user-select: none;
+            flex-shrink: 0;
+            border-bottom: 1px solid rgba(76, 175, 80, 0.2);
+            cursor: pointer; /* Indicates it can be clicked */
+        }
+
+        /* Modern Close 'X' Button */
+        .close-btn {
+            display: none; /* Hidden when docked */
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s, transform 0.2s;
+            font-family: sans-serif;
+            padding: 0 5px;
+        }
+        .close-btn:hover {
+            color: #ff5252; /* Red on hover */
+            transform: scale(1.2);
+        }
+
+        .monitor-body {
+            flex-grow: 1;
+            padding: 12px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* The invisible shield that captures double-clicks while docked */
+        .glass-shield {
+            position: absolute; inset: 0; z-index: 10; cursor: pointer;
+        }
+
+        /* Content Styles */
+        .term-input {
+            width: 100%; background: transparent; color: #69f0ae;
+            border: none; outline: none; font-family: inherit;
+            margin-top: 5px; font-size: inherit; flex-shrink: 0;
+        }
+        .term-log {
+            flex-grow: 1; overflow-y: auto; word-wrap: break-word;
+        }
+        .term-log::-webkit-scrollbar { display: none; }
+        .monitor-iframe {
+            width: 100%; height: 100%; border: none; background: #fff; border-radius: 4px;
+        }
+        
+        canvas { 
+            display: block; 
+            /* Smooth blur transition for the background canvas */
+            transition: filter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); 
+        }
+    </style>
+</head>
+<body>
+
+<div id="ui-panel">
+    <div class="panel-title">Active Entity Position</div>
+    <div class="panel-data" id="coords-display">X: -- | Y: --</div>
+</div>
+
+<script>
+    const app = new PIXI.Application({ resizeTo: window, backgroundColor: 0x121214 });
+    document.body.appendChild(app.view);
+
+    const backgroundLayer = new PIXI.Container();
+    const gridLayer = new PIXI.Container();
+    const entityLayer = new PIXI.Container();
+    app.stage.addChild(backgroundLayer);
+    app.stage.addChild(gridLayer);
+    app.stage.addChild(entityLayer);
+
+    const bgSprite = PIXI.Sprite.from('gemini_background.png'); 
+    bgSprite.anchor.set(0.5, 0.5); 
+    
+    function resizeBackground() {
+        bgSprite.x = app.screen.width / 2;
+        bgSprite.y = app.screen.height / 2;
+        const scaleX = app.screen.width / (bgSprite.texture.width || 1);
+        const scaleY = app.screen.height / (bgSprite.texture.height || 1);
+        bgSprite.scale.set(Math.max(scaleX, scaleY)); 
+    }
+    bgSprite.texture.baseTexture.on('loaded', resizeBackground);
+    window.addEventListener('resize', resizeBackground);
+    backgroundLayer.addChild(bgSprite);
+
+    // --- BUTTON HITBOXES ---
+    const DEBUG_BUTTONS = false; 
+    function createButtonHitbox(id, x, y, width, height, onClick) {
+        const hitbox = new PIXI.Graphics();
+        hitbox.beginFill(0x000000); hitbox.drawRect(x, y, width, height); hitbox.endFill();
+        hitbox.alpha = DEBUG_BUTTONS ? 0.3 : 0.0;
+        hitbox.interactive = true; hitbox.cursor = 'pointer';
+
+        hitbox.on('pointerdown', () => { hitbox.alpha = 0.6; });
+        hitbox.on('pointerup', () => { hitbox.alpha = DEBUG_BUTTONS ? 0.3 : 0.0; if (onClick) onClick(); });
+        hitbox.on('pointerupoutside', () => { hitbox.alpha = DEBUG_BUTTONS ? 0.3 : 0.0; });
+        bgSprite.addChild(hitbox);
+        return hitbox;
+    }
+
+    createButtonHitbox("SPEED UP", -1300, 510, 120, 120, () => {
+        entityLayer.children.forEach(entity => { entity.animationSpeed = 0.2; });
+        document.getElementById('coords-display').innerHTML = "STATUS: SPEEDING UP";
+        document.getElementById('coords-display').style.color = "#ffff00";
+    }); 
+    createButtonHitbox("HALT", -1135, 510, 120, 120, () => {
+        entityLayer.children.forEach(entity => { entity.stop(); });
+        document.getElementById('coords-display').innerHTML = "STATUS: HALTED";
+        document.getElementById('coords-display').style.color = "#ff0000";
+    }); 
+    createButtonHitbox("NEW PART", -965, 510, 120, 120, () => {
+        entityLayer.children.forEach(entity => {
+            entity.animationSpeed = 0.08 + (Math.random() * 0.04);
+            entity.play(); 
+        });
+        document.getElementById('coords-display').innerHTML = "STATUS: NORMAL YIELD";
+        document.getElementById('coords-display').style.color = "#4CAF50";
+    }); 
+    createButtonHitbox("NEW MECHANISM", -795, 510, 120, 120, () => {
+        alert("Deploying New Mechanism protocol!");
+    }); 
+
+    // --- ISOMETRIC MATH ENGINE ---
+    let TILE_W = 128, TILE_H = 64;  
+    let ORIGIN_X = app.screen.width / 2, ORIGIN_Y = app.screen.height * 0.3; 
+    window.addEventListener('resize', () => { ORIGIN_X = app.screen.width / 2; ORIGIN_Y = app.screen.height * 0.3; });
+    function toIso(cartX, cartY) { return { x: (cartX - cartY) * (TILE_W / 2) + ORIGIN_X, y: (cartX + cartY) * (TILE_H / 2) + ORIGIN_Y }; }
+    function toCart(screenX, screenY) {
+        let adjX = screenX - ORIGIN_X, adjY = screenY - ORIGIN_Y;
+        return { x: (adjX / (TILE_W / 2) + adjY / (TILE_H / 2)) / 2, y: (adjY / (TILE_H / 2) - adjX / (TILE_W / 2)) / 2 };
+    }
+
+    // --- MODERNIZED HTML MONITOR OVERLAYS ---
+    const monitors = [];
+
+    function createMonitorOverlay(id, localX, localY, localWidth, localHeight, contentHTML) {
+        const div = document.createElement('div');
+        div.className = 'monitor-overlay';
+        div.id = id;
+        
+        // Construct the Header (with close button) and Body (with glass shield)
+        div.innerHTML = `
+            <div class="monitor-header">
+                <span>:: ${id.toUpperCase()}</span>
+                <div class="close-btn">✕</div>
+            </div>
+            <div class="monitor-body">
+                <div class="glass-shield" title="Double click to expand"></div>
+                ${contentHTML}
+            </div>
+        `;
+        document.body.appendChild(div);
+
+        const closeBtn = div.querySelector('.close-btn');
+        const shield = div.querySelector('.glass-shield');
+
+        const monitorData = {
+            element: div,
+            baseX: localX, baseY: localY, 
+            baseW: localWidth, baseH: localHeight,
+            state: 'docked' 
+        };
+        monitors.push(monitorData);
+
+        // --- THE FOCUS LOGIC (DOUBLE CLICK TO EXPAND) ---
+        const focusMe = () => {
+            if (monitorData.state === 'centered') return;
+            monitorData.state = 'centered';
+
+            // Blur the PixiJS canvas
+            app.view.style.filter = 'blur(12px) brightness(0.6)';
+            
+            // Show close button, hide the protective shield so the user can interact
+            closeBtn.style.display = 'block';
+            shield.style.display = 'none';
+            
+            // Animate to center of screen (takes over 70% of viewport)
+            div.style.zIndex = 20;
+            div.style.width = '70vw';
+            div.style.height = '75vh';
+            div.style.left = '15vw'; // (100 - 70) / 2
+            div.style.top = '12.5vh'; // (100 - 75) / 2
+            div.style.fontSize = '18px'; // Boost font size
+            
+            // Focus terminal input if it has one
+            const input = div.querySelector('input');
+            if (input) setTimeout(() => input.focus(), 500);
+        };
+
+        // --- THE DOCK LOGIC (RESET TO FACTORY FLOOR) ---
+        const dockMe = (e) => {
+            if (e) e.stopPropagation();
+            if (monitorData.state === 'docked') return;
+            
+            monitorData.state = 'docked';
+            
+            // Remove blur
+            app.view.style.filter = 'none';
+            
+            // Hide close button, restore the protective shield
+            closeBtn.style.display = 'none';
+            shield.style.display = 'block';
+            
+            div.style.zIndex = 5;
+            
+            // Trigger sync to mathematically snap it back to isometric coordinates
+            syncMonitors();
+        };
+
+        // Attach events
+        div.addEventListener('click', focusMe);
+        closeBtn.addEventListener('click', dockMe);
+        monitorData.dock = dockMe; // Expose globally so we can close it from anywhere
+
+        return div;
+    }
+
+    // MAIN SYNC LOOP (Only affects 'docked' monitors)
+    function syncMonitors() {
+        const scale = bgSprite.scale.x; 
+        const centerX = app.screen.width / 2;
+        const centerY = app.screen.height / 2;
+
+        monitors.forEach(m => {
+            if (m.state === 'docked') {
+                m.element.style.left = `${centerX + (m.baseX * scale)}px`;
+                m.element.style.top = `${centerY + (m.baseY * scale)}px`;
+                m.element.style.width = `${m.baseW * scale}px`;
+                m.element.style.height = `${m.baseH * scale}px`;
+                m.element.style.fontSize = `${12 * scale}px`; 
+            }
+        });
+    }
+
+    // --- DOUBLE CLICK BACKGROUND TO CLOSE EVERYTHING ---
+    document.body.addEventListener('dblclick', (e) => {
+        // If they double clicked ON a monitor, ignore this global rule
+        if (e.target.closest('.monitor-overlay')) return;
+        
+        // Otherwise, send all monitors back to docked state
+        monitors.forEach(m => m.dock());
+    });
+
+    // --- INITIALIZE SCREENS ---
+    createMonitorOverlay("mon-terminal", -1030, 300, 170, 120, `
+        <div id="term-log" class="term-log">IBEX OS v3.1<br/>Awaiting input...<br/></div>
+        <input type="text" id="term-input" class="term-input" placeholder=">_" autocomplete="off" />
+    `);
+    
+    createMonitorOverlay("mon-web", -815, 300, 220, 120, `
+        <iframe class="monitor-iframe" src="https://en.wikipedia.org/wiki/Automation"></iframe>
+    `); 
+    
+    createMonitorOverlay("mon-info", -530, 320, 150, 120, `
+        <div>SYS: ONLINE</div>
+        <div id="info-time" style="margin-top: 10px; font-weight: bold; font-size: 1.2em;">--:--:--</div>
+        <div id="info-loc" style="margin-top: 10px; color:#81C784;">Locating...</div>
+        <div id="info-weather" style="margin-top: 5px;">Temp: --</div>
+    `);
+
+    // --- INNER WIDGET LOGIC ---
+    const termInput = document.getElementById('term-input');
+    const termLog = document.getElementById('term-log');
+    termInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const cmd = termInput.value.toLowerCase().trim();
+            termLog.innerHTML += `<div>> ${cmd}</div>`;
+            if (cmd === 'help') termLog.innerHTML += `<div>Commands: help, clear, status, ping</div>`;
+            else if (cmd === 'clear') termLog.innerHTML = `IBEX OS v3.1<br/>`;
+            else if (cmd === 'status') termLog.innerHTML += `<div>All systems nominal.</div>`;
+            else if (cmd === 'ping') termLog.innerHTML += `<div>Pong! 24ms</div>`;
+            else if (cmd !== '') termLog.innerHTML += `<div style="color:#ff5252;">Command not found</div>`;
+            termInput.value = ''; termLog.scrollTop = termLog.scrollHeight; 
+        }
+    });
+
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('info-time').innerText = now.toLocaleTimeString();
+    }, 1000);
+
+    async function fetchWeatherAndLocation() {
+        try {
+            const geoRes = await fetch('https://ipapi.co/json/');
+            const geoData = await geoRes.json();
+            document.getElementById('info-loc').innerText = `${geoData.city}, ${geoData.country_code}`;
+            const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${geoData.latitude}&longitude=${geoData.longitude}&current_weather=true`);
+            const weatherData = await weatherRes.json();
+            document.getElementById('info-weather').innerText = `Temp: ${weatherData.current_weather.temperature}°C`;
+        } catch (error) {
+            document.getElementById('info-loc').innerText = "Loc: Offline";
+            document.getElementById('info-weather').innerText = "Temp: Offline";
+        }
+    }
+    fetchWeatherAndLocation();
+
+    window.addEventListener('resize', syncMonitors);
+    setTimeout(syncMonitors, 100);
+
+    // --- ENTITY LOADING ---
+    const swPaths = [ 'animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_003.png' ];
+    const nePaths = [ 'animations/Breathing_Idle-c1b5dcec/north-east/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_003.png' ];
+    const robotSEPaths = [ 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_001.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_002.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_003.png' ];
+
+    PIXI.Assets.load([...swPaths, ...nePaths, ...robotSEPaths]).then((textures) => {
+        const framesSW = swPaths.map(path => textures[path]);
+        const framesNE = nePaths.map(path => textures[path]);
+        const framesRobotSE = robotSEPaths.map(path => textures[path]);
+
+        function createEntity(framesArray, gridX, gridY) {
+            const entity = new PIXI.AnimatedSprite(framesArray);
+            entity.animationSpeed = 0.08 + (Math.random() * 0.04); entity.play();
+            entity.anchor.set(0.5, 1); entity.scale.set(3); 
+            entity.gridX = gridX; entity.gridY = gridY;
+            let pos = toIso(gridX, gridY);
+            entity.x = pos.x; entity.y = pos.y;
+            entityLayer.addChild(entity);
+
+            entity.interactive = true; entity.cursor = 'grab';
+            let dragging = false, dragOffset = { x: 0, y: 0 };
+
+            entity.on('pointerdown', (e) => {
+                dragging = true; entity.cursor = 'grabbing'; entity.alpha = 0.85;
+                entityLayer.setChildIndex(entity, entityLayer.children.length - 1);
+                dragOffset.x = entity.x - e.data.global.x; dragOffset.y = entity.y - e.data.global.y;
+            });
+            const resetDrag = () => { dragging = false; entity.cursor = 'grab'; entity.alpha = 1; };
+            entity.on('pointerup', resetDrag); entity.on('pointerupoutside', resetDrag);
+            entity.on('pointermove', (e) => {
+                if (dragging) {
+                    entity.x = e.data.global.x + dragOffset.x; entity.y = e.data.global.y + dragOffset.y;
+                    let newGrid = toCart(entity.x, entity.y);
+                    entity.gridX = newGrid.x; entity.gridY = newGrid.y;
+                    document.getElementById('coords-display').innerHTML = `X: ${entity.gridX.toFixed(1)} | Y: ${entity.gridY.toFixed(1)}`;
+                }
+            });
+            return entity;
+        }
+
+        createEntity(framesSW, -1.5, 2.6); createEntity(framesSW, 4.3, 3.0); createEntity(framesSW, 11.6, 2.7);
+        createEntity(framesNE, 0.0, 8.0); createEntity(framesNE, 6.8, 8.1); createEntity(framesNE, 12.2, 8.2);
+        createEntity(framesRobotSE, -1.3, 4.5); createEntity(framesRobotSE, 1.0, 4.6); createEntity(framesRobotSE, 3.5, 4.8); createEntity(framesRobotSE, 6.6, 4.8);
+    }).catch(err => console.error("Asset Load Error.", err));
+
+    app.ticker.add(() => { entityLayer.children.sort((a, b) => a.y - b.y); });
+</script>
+</body>
+</html>

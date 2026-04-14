@@ -3,25 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IBEX Factory</title>
+    <title>IBEX Factory Floor - Ultimate Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
     <style>
         /* --- 1. GLOBAL & UI STYLES --- */
         body { 
             margin: 0; padding: 0; overflow: hidden; 
-            background-color: #050505; color: #e0e0e0; 
+            background-color: #0b0c10; color: #e0e0e0; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
         }
         
-        /* THE MASTER WRAPPER (Allows us to animate the whole screen at once) */
-        #app-wrapper {
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            position: relative;
-            transform-origin: center center;
-        }
-
         #ui-panel { 
             position: absolute; top: 20px; left: 20px; 
             background: rgba(11, 12, 16, 0.85); padding: 15px 25px; 
@@ -42,48 +33,6 @@
             color: #4CAF50; font-family: 'Courier New', Courier, monospace;
         }
 
-        /* --- EASTER EGG OVERLAY --- */
-        #easter-egg-overlay {
-            display: none;
-            position: absolute;
-            inset: 0;
-            background: rgba(15, 0, 0, 0.95);
-            z-index: 9000;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-        .warning-text {
-            color: #ff1111; 
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 3.5vw; 
-            text-align: center; 
-            font-weight: bold;
-            text-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000;
-            animation: warning-blink 1.2s steps(2, start) infinite;
-        }
-        @keyframes warning-blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.2; }
-        }
-
-        /* --- CRT ANIMATIONS --- */
-        .crt-shutdown { animation: crt-power-off 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
-        .crt-turn-on { animation: crt-power-on 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
-
-        @keyframes crt-power-off {
-            0% { transform: scale(1, 1); opacity: 1; filter: brightness(1) contrast(1); }
-            30% { transform: scale(1, 0.005); opacity: 1; filter: brightness(5) contrast(3); }
-            70% { transform: scale(0.005, 0.005); opacity: 1; filter: brightness(5); }
-            100% { transform: scale(0, 0); opacity: 0; filter: brightness(0); }
-        }
-        @keyframes crt-power-on {
-            0% { transform: scale(0, 0); opacity: 0; filter: brightness(0); }
-            40% { transform: scale(0.005, 0.005); opacity: 1; filter: brightness(5); }
-            70% { transform: scale(1, 0.005); opacity: 1; filter: brightness(5) contrast(3); }
-            100% { transform: scale(1, 1); opacity: 1; filter: brightness(1) contrast(1); }
-        }
-
         /* --- 2. MODERN MONITOR OVERLAYS --- */
         .monitor-overlay {
             position: absolute;
@@ -92,12 +41,17 @@
             -webkit-backdrop-filter: blur(8px);
             border: 1px solid rgba(76, 175, 80, 0.3); 
             border-top: 2px solid rgba(76, 175, 80, 0.8); 
-            border-radius: 6px; color: #69f0ae; 
+            border-radius: 6px;
+            color: #69f0ae; 
             font-family: 'Courier New', Courier, monospace;
-            box-sizing: border-box; overflow: hidden;
-            pointer-events: auto; z-index: 50; 
-            display: flex; flex-direction: column;
+            box-sizing: border-box;
+            overflow: hidden;
+            pointer-events: auto; 
+            z-index: 50; 
+            display: flex;
+            flex-direction: column;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(76, 175, 80, 0.05);
+            /* Smooth transitions for expansion, font scaling, and 3D tilts */
             transition: left 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), 
                         top 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), 
                         width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), 
@@ -107,40 +61,65 @@
             transform-origin: center center;
         }
 
+        /* --- POWER OFF STATE --- */
         .monitor-overlay.power-off {
             background: rgba(5, 5, 5, 0.95) !important;
             border-color: rgba(30, 30, 30, 0.8) !important;
             border-top: 2px solid rgba(30, 30, 30, 1) !important;
             box-shadow: inset 0 0 50px rgba(0,0,0,1) !important;
-            pointer-events: none !important; 
+            pointer-events: none !important; /* Prevents clicks */
         }
-        .monitor-overlay > * { transition: opacity 0.3s ease; }
-        .monitor-overlay.power-off > * { opacity: 0 !important; }
+        .monitor-overlay > * {
+            transition: opacity 0.3s ease;
+        }
+        .monitor-overlay.power-off > * {
+            opacity: 0 !important;
+        }
 
+        /* The Black Cover Screen for Iframe */
         .monitor-cover {
-            position: absolute; inset: 0; background: #000;
-            z-index: 60; display: flex; align-items: center; justify-content: center;
-            font-size: 2.5em; font-weight: bold; letter-spacing: 10px; color: #4CAF50;
+            position: absolute;
+            inset: 0;
+            background: #000;
+            z-index: 60;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5em;
+            font-weight: bold;
+            letter-spacing: 10px;
+            color: #4CAF50;
             text-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
-            transition: opacity 0.4s ease; pointer-events: none;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
         }
 
+        /* Hide borders/chrome when docked for the Iframe screen */
         .is-iframe-monitor:not(.is-centered) {
-            border: none; background: transparent; box-shadow: none; backdrop-filter: none;
-            -webkit-backdrop-filter: none;
+            border: none; background: transparent; box-shadow: none;
+            backdrop-filter: none; -webkit-backdrop-filter: none;
         }
         .is-iframe-monitor:not(.is-centered) .monitor-header { display: none; }
         .is-iframe-monitor:not(.is-centered) .monitor-body { padding: 0; }
 
         .monitor-header {
-            background: rgba(0, 0, 0, 0.4); height: 26px; display: flex; align-items: center;
-            justify-content: space-between; padding: 0 12px; font-size: 11px;
-            letter-spacing: 2px; color: rgba(105, 240, 174, 0.8); user-select: none;
-            flex-shrink: 0; border-bottom: 1px solid rgba(76, 175, 80, 0.2);
+            background: rgba(0, 0, 0, 0.4);
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: rgba(105, 240, 174, 0.8);
+            user-select: none;
+            flex-shrink: 0;
+            border-bottom: 1px solid rgba(76, 175, 80, 0.2);
         }
 
         .close-btn {
-            display: none; color: rgba(255, 255, 255, 0.5);
+            display: none; 
+            color: rgba(255, 255, 255, 0.5);
             font-size: 16px; font-weight: bold; cursor: pointer;
             font-family: sans-serif; padding: 0 5px;
         }
@@ -151,11 +130,14 @@
             overflow: hidden; display: flex; flex-direction: column;
         }
 
+        /* Shield prevents accidental clicks on inner elements when docked */
         .glass-shield { position: absolute; inset: 0; z-index: 70; cursor: pointer; }
 
+        /* --- 3. WIDGET STYLES --- */
         .term-input {
             width: 100%; background: transparent; color: #69f0ae;
-            border: none; outline: none; font-family: inherit; margin-top: 5px; font-size: inherit;
+            border: none; outline: none; font-family: inherit;
+            margin-top: 5px; font-size: inherit;
         }
         .term-log { flex-grow: 1; overflow-y: auto; word-wrap: break-word; }
         .term-log::-webkit-scrollbar { display: none; }
@@ -163,35 +145,25 @@
             width: 100%; height: 100%; border: none; background: #fff; 
             border-radius: 4px; display: block; opacity: 1;
         }
+        
         canvas { display: block; transition: filter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
-
-        /* Utility styles for the expanded info monitor */
-        .info-divider { border-top: 1px solid rgba(76, 175, 80, 0.2); margin-top: 8px; padding-top: 8px; }
     </style>
 </head>
 <body>
 
-<div id="app-wrapper">
-    <div id="ui-panel">
-        <div class="panel-title">Active Entity Position</div>
-        <div class="panel-data" id="coords-display">X: -- | Y: --</div>
-    </div>
-    
-    <div id="easter-egg-overlay">
-        <div class="warning-text">
-            ROBOTS HAVE ASSUMED CONTROL.<br><br>SHUTTING THE SYSTEMS DOWN<br>AND REBOOTING...
-        </div>
-    </div>
+<div id="ui-panel">
+    <div class="panel-title">Active Entity Position</div>
+    <div class="panel-data" id="coords-display">X: -- | Y: --</div>
 </div>
 
 <script>
     // --- 1. PIXI INITIALIZATION ---
     const app = new PIXI.Application({ resizeTo: window, backgroundColor: 0x121214 });
-    document.getElementById('app-wrapper').appendChild(app.view);
+    document.body.appendChild(app.view);
 
     const backgroundLayer = new PIXI.Container();
     const entityLayer = new PIXI.Container();
-    entityLayer.sortableChildren = true; 
+    entityLayer.sortableChildren = true; // Crucial for z-index sorting animations
 
     app.stage.addChild(backgroundLayer);
     app.stage.addChild(entityLayer);
@@ -214,19 +186,30 @@
 
     // --- 3. ISOMETRIC ENGINE ---
     let TILE_W = 128, TILE_H = 64;  
-    function getOrigin() { return { x: app.screen.width / 2, y: app.screen.height * 0.3 }; }
+    function getOrigin() { 
+        return { x: app.screen.width / 2, y: app.screen.height * 0.3 }; 
+    }
+
     function toIso(cartX, cartY) {
         const origin = getOrigin();
-        return { x: (cartX - cartY) * (TILE_W / 2) + origin.x, y: (cartX + cartY) * (TILE_H / 2) + origin.y };
+        return {
+            x: (cartX - cartY) * (TILE_W / 2) + origin.x,
+            y: (cartX + cartY) * (TILE_H / 2) + origin.y
+        };
     }
+
     function toCart(screenX, screenY) {
         const origin = getOrigin();
         let adjX = screenX - origin.x, adjY = screenY - origin.y;
-        return { x: (adjX / (TILE_W / 2) + adjY / (TILE_H / 2)) / 2, y: (adjY / (TILE_H / 2) - adjX / (TILE_W / 2)) / 2 };
+        return {
+            x: (adjX / (TILE_W / 2) + adjY / (TILE_H / 2)) / 2,
+            y: (adjY / (TILE_H / 2) - adjX / (TILE_W / 2)) / 2
+        };
     }
 
-    // --- 4. MONITOR SYSTEM ---
+    // --- 4. MONITOR SYSTEM (Defined before buttons so dock() works) ---
     const monitors = [];
+
     function createMonitorOverlay(id, localX, localY, localWidth, localHeight, contentHTML, baseTransform = 'none') {
         const div = document.createElement('div');
         div.className = 'monitor-overlay';
@@ -237,9 +220,13 @@
         
         div.innerHTML = `
             <div class="monitor-header"><span>:: ${id.toUpperCase()}</span><div class="close-btn">✕</div></div>
-            <div class="monitor-body"><div class="glass-shield"></div>${coverHTML}${contentHTML}</div>
+            <div class="monitor-body">
+                <div class="glass-shield"></div>
+                ${coverHTML}
+                ${contentHTML}
+            </div>
         `;
-        document.getElementById('app-wrapper').appendChild(div);
+        document.body.appendChild(div);
 
         const closeBtn = div.querySelector('.close-btn');
         const shield = div.querySelector('.glass-shield');
@@ -253,19 +240,24 @@
         monitors.push(monitorData);
         div.style.transform = baseTransform;
 
+        // EXPAND LOGIC
         const focusMe = () => {
             if (monitorData.state === 'centered') return;
+            // Prevent expansion if power is off
             if (div.classList.contains('power-off')) return; 
 
             monitorData.state = 'centered';
             div.classList.add('is-centered'); 
-            if (cover) cover.style.opacity = '0'; 
+            
+            if (cover) cover.style.opacity = '0'; // Hide IBEX plate
 
             app.view.style.filter = 'blur(12px) brightness(0.5)';
             closeBtn.style.display = 'block';
             shield.style.display = 'none';
             div.style.zIndex = 200;
             div.style.transform = 'none'; 
+            
+            // Fixed pixel sizes so the font doesn't blow up on large screens
             div.style.fontSize = (id === 'mon-web') ? '16px' : '18px'; 
             
             if (id === 'mon-web') {
@@ -277,19 +269,22 @@
             if (input) setTimeout(() => input.focus(), 500);
         };
 
+        // SNAP BACK LOGIC
         const dockMe = (e) => {
             if (e) e.stopPropagation();
             if (monitorData.state === 'docked') return;
             monitorData.state = 'docked';
             div.classList.remove('is-centered'); 
-            if (cover) cover.style.opacity = '1'; 
+            
+            if (cover) cover.style.opacity = '1'; // Show IBEX plate
 
             app.view.style.filter = 'none';
             closeBtn.style.display = 'none';
             shield.style.display = 'block';
             div.style.zIndex = 50;
             div.style.transform = monitorData.baseTransform; 
-            syncMonitors(); 
+            
+            syncMonitors(); // Re-applies docked dimensions & font
         };
 
         div.addEventListener('click', focusMe);
@@ -298,6 +293,7 @@
         return div;
     }
 
+    // Keeps monitors glued to background scale
     function syncMonitors() {
         const scale = bgSprite.scale.x; 
         const centerX = app.screen.width / 2;
@@ -305,7 +301,7 @@
         if (scale === 0) return; 
 
         monitors.forEach(m => {
-            if (m.state === 'docked') { 
+            if (m.state === 'docked') { // Only sync if on the wall
                 m.element.style.left = `${centerX + (m.baseX * scale)}px`;
                 m.element.style.top = `${centerY + (m.baseY * scale)}px`;
                 m.element.style.width = `${m.baseW * scale}px`;
@@ -315,129 +311,104 @@
         });
     }
 
-    document.getElementById('app-wrapper').addEventListener('dblclick', (e) => {
+    // Global Close Triggers (Esc Key & Background DblClick)
+    document.body.addEventListener('dblclick', (e) => {
         if (!e.target.closest('.monitor-overlay')) monitors.forEach(m => m.dock());
     });
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') monitors.forEach(m => m.dock());
     });
 
-    createMonitorOverlay("mon-terminal", -1025, 300, 170, 120, `
+    // --- INITIALIZE MONITORS ---
+    createMonitorOverlay("mon-terminal", -1030, 300, 170, 120, `
         <div id="term-log" class="term-log">IBEX OS v3.1<br/>Root access granted...<br/></div>
         <input type="text" id="term-input" class="term-input" placeholder=">_" autocomplete="off" />
-    `, 'perspective(800px) rotateY(18deg) skewY(-4deg)'); 
+    `, 'perspective(800px) rotateY(18deg) skewY(-4deg)'); // Tilted Right
     
-    createMonitorOverlay("mon-web", -810, 300, 220, 120, `
-        <iframe class="monitor-iframe" src="https://goibex.it"></iframe>
-    `, 'none'); 
+    createMonitorOverlay("mon-web", -815, 300, 220, 120, `
+        <iframe class="monitor-iframe" src="https://en.wikipedia.org/wiki/Automation"></iframe>
+    `, 'none'); // Flat center
     
-    createMonitorOverlay("mon-info", -535, 325, 150, 120, `
-        <div style="font-size:0.9em; color:#81C784; font-weight:bold;">SYS: ONLINE</div>
-        <div style="font-size:0.8em; margin-bottom:5px;">UPTIME: <span id="info-uptime" style="color:#fff;">00:00:00</span></div>
-        <div id="info-time" style="font-weight: bold; font-size: 1.3em; color:#fff;">--:--:--</div>
-        
-        <div class="info-divider">
-            <div id="info-loc" style="color:#81C784; font-size:0.8em">Locating...</div>
-            <div id="info-weather" style="color:#81C784; font-size:0.8em">Temp: --</div>
-        </div>
-        
-        <div class="info-divider">
-            <div style="font-size:0.8em; color:#ffb74d">CPU: <span id="info-cpu" style="color:#fff;">42</span>% | RAM: <span id="info-ram" style="color:#fff;">16</span>%</div>
-            <div style="font-size:0.8em; color:#69f0ae">ACTIVE UNITS: <span id="info-units" style="color:#fff;">0</span></div>
-        </div>
-    `, 'perspective(800px) rotateY(-18deg) skewY(4deg)');
+    createMonitorOverlay("mon-info", -530, 320, 150, 120, `
+        <div style="font-size:0.9em">SYS: ONLINE</div>
+        <div id="info-time" style="margin-top: 10px; font-weight: bold; font-size: 1.3em; color:#fff;">--:--:--</div>
+        <div id="info-loc" style="margin-top: 10px; color:#81C784; font-size:0.8em">Locating...</div>
+        <div id="info-weather" style="margin-top: 5px; color:#81C784; font-size:0.8em">Temp: --</div>
+    `, 'perspective(800px) rotateY(-18deg) skewY(4deg)'); // Tilted Left
 
     // --- 5. BUTTON HITBOXES & LOGIC ---
-    let isAnimating = true;
-    let isFast = false;
-
     function createButtonHitbox(id, x, y, width, height, onClick) {
         const hitbox = new PIXI.Graphics();
         hitbox.beginFill(0x000000); hitbox.drawRect(x, y, width, height); hitbox.endFill();
-        hitbox.alpha = 0.0; hitbox.interactive = true; hitbox.cursor = 'pointer';
+        hitbox.alpha = 0.0;
+        hitbox.interactive = true; hitbox.cursor = 'pointer';
         hitbox.on('pointerdown', () => { hitbox.alpha = 0.5; });
         hitbox.on('pointerup', () => { hitbox.alpha = 0.0; if (onClick) onClick(); });
         hitbox.on('pointerupoutside', () => { hitbox.alpha = 0.0; });
         bgSprite.addChild(hitbox);
     }
 
+    // 1. GREEN BUTTON: Power Monitors ON
     createButtonHitbox("POWER ON", -1300, 510, 120, 120, () => {
         document.querySelectorAll('.monitor-overlay').forEach(el => el.classList.remove('power-off'));
         document.getElementById('coords-display').innerText = "SYSTEM: MONITORS ON";
         document.getElementById('coords-display').style.color = "#4CAF50";
     }); 
+
+    // 2. RED BUTTON: Power Monitors OFF
     createButtonHitbox("POWER OFF", -1135, 510, 120, 120, () => {
-        monitors.forEach(m => m.dock()); 
+        monitors.forEach(m => m.dock()); // Force everything back to the wall first
         document.querySelectorAll('.monitor-overlay').forEach(el => el.classList.add('power-off'));
         document.getElementById('coords-display').innerText = "SYSTEM: MONITORS OFF";
         document.getElementById('coords-display').style.color = "#ff5252";
     }); 
+
+    // 3. BLUE BUTTON: Toggle Animations
+    let isAnimating = true;
     createButtonHitbox("TOGGLE ANIM", -965, 510, 120, 120, () => {
         isAnimating = !isAnimating;
-        entityLayer.children.forEach(e => { if (isAnimating) e.play(); else e.stop(); });
+        entityLayer.children.forEach(e => {
+            if (isAnimating) e.play();
+            else e.stop();
+        });
         document.getElementById('coords-display').innerText = `SYSTEM: ${isAnimating ? 'RESUMED' : 'PAUSED'}`;
         document.getElementById('coords-display').style.color = isAnimating ? "#4CAF50" : "#ffb74d";
     }); 
+
+    // 4. GREY BUTTON: Speed Up Animations
+    let isFast = false;
     createButtonHitbox("SPEED UP", -795, 510, 120, 120, () => {
         isFast = !isFast;
-        entityLayer.children.forEach(e => { e.animationSpeed = isFast ? 0.25 : 0.1; });
+        entityLayer.children.forEach(e => {
+            e.animationSpeed = isFast ? 0.25 : 0.1;
+        });
         document.getElementById('coords-display').innerText = `SYSTEM: SPEED ${isFast ? 'MAX' : 'NORMAL'}`;
         document.getElementById('coords-display').style.color = isFast ? "#ffff00" : "#4CAF50";
     }); 
 
-    // --- 6. WIDGET LOGIC & UPDATES ---
+    // --- 6. WIDGET LOGIC ---
+    // Terminal App
     const termInput = document.getElementById('term-input');
     const termLog = document.getElementById('term-log');
     termInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             const cmd = termInput.value.toLowerCase().trim();
             termLog.innerHTML += `<div>> ${cmd}</div>`;
-            
-            if (cmd === 'help') termLog.innerHTML += `<div>cmds: help, clear, status, ping, whoami, ls, uptime, exit</div>`;
-            else if (cmd === 'clear') termLog.innerHTML = `IBEX OS v3.1<br/>Root access granted...<br/>`;
-            else if (cmd === 'status') termLog.innerHTML += `<div>All sensors nominal. Conveyors active.</div>`;
-            else if (cmd === 'ping') termLog.innerHTML += `<div>Pong! Connection secure (12ms).</div>`;
-            else if (cmd === 'whoami') termLog.innerHTML += `<div>root_supervisor_99</div>`;
-            else if (cmd === 'ls') termLog.innerHTML += `<div>bin/  boot/  dev/  etc/  factory_ctrl/  usr/</div>`;
-            else if (cmd === 'uptime') termLog.innerHTML += `<div>System online for ${document.getElementById('info-uptime').innerText}</div>`;
-            else if (cmd === 'exit' || cmd === 'quit' || cmd === 'close') {
-                termLog.innerHTML += `<div>Closing terminal session...</div>`;
-                // Programmatically click the close button of this specific monitor!
-                document.querySelector('#mon-terminal .close-btn').click(); 
-            }
+            if (cmd === 'help') termLog.innerHTML += `<div>help, clear, status, ping</div>`;
+            else if (cmd === 'clear') termLog.innerHTML = `IBEX OS v3.1<br/>`;
+            else if (cmd === 'status') termLog.innerHTML += `<div>All sensors nominal.</div>`;
+            else if (cmd === 'ping') termLog.innerHTML += `<div>Pong! 12ms</div>`;
             else if (cmd !== '') termLog.innerHTML += `<div style="color:#ff5252;">Unknown command</div>`;
-            
             termInput.value = ''; termLog.scrollTop = termLog.scrollHeight; 
         }
     });
 
-    let uptimeSeconds = 0;
-    setInterval(() => { 
-        // Update Time
-        document.getElementById('info-time').innerText = new Date().toLocaleTimeString(); 
-        
-        // Update Uptime
-        uptimeSeconds++;
-        let h = Math.floor(uptimeSeconds / 3600).toString().padStart(2, '0');
-        let m = Math.floor((uptimeSeconds % 3600) / 60).toString().padStart(2, '0');
-        let s = (uptimeSeconds % 60).toString().padStart(2, '0');
-        document.getElementById('info-uptime').innerText = `${h}:${m}:${s}`;
-        
-        // Fluctuate fake CPU/RAM usage
-        let currCpu = parseInt(document.getElementById('info-cpu').innerText);
-        let currRam = parseInt(document.getElementById('info-ram').innerText);
-        let newCpu = Math.max(10, Math.min(99, currCpu + (Math.floor(Math.random() * 15) - 7))); // +/- 7
-        let newRam = Math.max(10, Math.min(99, currRam + (Math.floor(Math.random() * 5) - 2)));  // +/- 2
-        document.getElementById('info-cpu').innerText = newCpu;
-        document.getElementById('info-ram').innerText = newRam;
-        
-        // Count active units live
-        let unitCount = 0;
-        entityLayer.children.forEach(c => { if(c.type) unitCount++; });
-        document.getElementById('info-units').innerText = unitCount;
-
+    // Clock
+    setInterval(() => {
+        document.getElementById('info-time').innerText = new Date().toLocaleTimeString();
     }, 1000);
 
+    // Weather & Location (CORS-Safe)
     async function fetchWeatherAndLocation() {
         const locEl = document.getElementById('info-loc');
         const tempEl = document.getElementById('info-weather');
@@ -449,131 +420,53 @@
             const weatherData = await weatherRes.json();
             tempEl.innerText = `Temp: ${weatherData.current_weather.temperature}°C`;
         } catch (e) {
-            locEl.innerText = "DEMO: Zagreb, HR"; tempEl.innerText = "Temp: 18°C (Sim)";
+            locEl.innerText = "DEMO: Zagreb, HR";
+            tempEl.innerText = "Temp: 18°C (Sim)";
         }
     }
     fetchWeatherAndLocation();
 
+    // The Safety Sync Loop (Prevents layout jump on initial page load)
     let loadSyncCount = 0;
     const loadSyncInterval = setInterval(() => {
-        syncMonitors(); if (++loadSyncCount > 30) clearInterval(loadSyncInterval);
+        syncMonitors();
+        if (++loadSyncCount > 30) clearInterval(loadSyncInterval);
     }, 100);
 
-    // --- 7. EASTER EGG LOGIC ---
-    let easterEggTriggered = false;
-
-    function triggerEasterEgg() {
-        easterEggTriggered = true;
-        
-        // Disable Dragging
-        entityLayer.children.forEach(c => c.interactive = false);
-        
-        // Undock everything
-        monitors.forEach(m => m.dock());
-        
-        // Show Warning
-        const overlay = document.getElementById('easter-egg-overlay');
-        overlay.style.display = 'flex';
-        
-        // Sequence Timers
-        setTimeout(() => {
-            const appWrapper = document.getElementById('app-wrapper');
-            appWrapper.classList.add('crt-shutdown');
-            
-            // Wait for shutdown to finish, then wait in darkness
-            setTimeout(() => {
-                // THE REBOOT: Reset all entities to their original positions
-                entityLayer.children.forEach(c => {
-                    c.gridX = c.initialGridX;
-                    c.gridY = c.initialGridY;
-                    let pos = toIso(c.gridX, c.gridY);
-                    c.x = pos.x;
-                    c.y = pos.y;
-                    c.zIndex = c.y;
-                    c.interactive = true; 
-                });
-                
-                // Reset states
-                isAnimating = true;
-                isFast = false;
-                entityLayer.children.forEach(e => { e.animationSpeed = 0.1; e.play(); });
-                document.querySelectorAll('.monitor-overlay').forEach(el => el.classList.remove('power-off'));
-                document.getElementById('coords-display').innerText = "SYSTEM: REBOOTED";
-                document.getElementById('coords-display').style.color = "#4CAF50";
-
-                // Power Back On
-                overlay.style.display = 'none';
-                appWrapper.classList.remove('crt-shutdown');
-                appWrapper.classList.add('crt-turn-on');
-                
-                // Clean up classes
-                setTimeout(() => {
-                    appWrapper.classList.remove('crt-turn-on');
-                    easterEggTriggered = false;
-                }, 1000);
-                
-            }, 2800); // Wait 0.8s for CRT off + 2s of darkness
-        }, 3500); // Let the user read the warning for 3.5 seconds
-    }
-
-    // --- 8. ENTITY SYSTEM ---
+    // --- 7. ENTITY SYSTEM (DRAGGABLE & ANIMATED) ---
     const swPaths = [ 'animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_003.png' ];
     const nePaths = [ 'animations/Breathing_Idle-c1b5dcec/north-east/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_003.png' ];
     const robotSEPaths = [ 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_001.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_002.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_003.png' ];
 
     PIXI.Assets.load([...swPaths, ...nePaths, ...robotSEPaths]).then((textures) => {
-        function createEntity(paths, gridX, gridY, type) {
+        function createEntity(paths, gridX, gridY) {
             const entity = new PIXI.AnimatedSprite(paths.map(p => textures[p]));
             entity.animationSpeed = 0.1; entity.play();
             entity.anchor.set(0.5, 1); entity.scale.set(3); 
             
-            // Store original positions for the Reboot!
-            entity.initialGridX = gridX;
-            entity.initialGridY = gridY;
-            entity.type = type;
-            
             const pos = toIso(gridX, gridY);
             entity.x = pos.x; entity.y = pos.y;
-            entity.zIndex = entity.y; 
+            entity.zIndex = entity.y; // Initial depth map
+            
             entityLayer.addChild(entity);
 
-            entity.interactive = true; entity.cursor = 'grab';
+            // Drag and Drop Logic
+            entity.interactive = true; 
+            entity.cursor = 'grab';
             let dragging = false, dragOffset = { x: 0, y: 0 };
 
             entity.on('pointerdown', (e) => {
-                if(easterEggTriggered) return;
                 dragging = true; entity.isDragging = true;
                 entity.cursor = 'grabbing'; entity.alpha = 0.8;
-                entity.zIndex = 10000; 
+                entity.zIndex = 10000; // Bring to front while dragging
                 dragOffset.x = entity.x - e.data.global.x;
                 dragOffset.y = entity.y - e.data.global.y;
             });
 
             const endDrag = () => {
-                if(!dragging) return;
                 dragging = false; entity.isDragging = false;
                 entity.cursor = 'grab'; entity.alpha = 1;
-
-                // --- CHECK FOR EASTER EGG TRIGGER ---
-                if (!easterEggTriggered) {
-                    let robotsOnBelt = 0;
-                    let humansOnBelt = 0;
-                    
-                    // Count who is inside the conveyor belt bounding box
-                    entityLayer.children.forEach(c => {
-                        if (c.gridY >= 3.5 && c.gridY <= 6.0 && c.gridX >= -4 && c.gridX <= 12) {
-                            if (c.type === 'robot') robotsOnBelt++;
-                            if (c.type === 'human') humansOnBelt++;
-                        }
-                    });
-
-                    // TRIGGER: 0 robots and exactly 4 humans on the belt
-                    if (robotsOnBelt === 0 && humansOnBelt >= 4) {
-                        triggerEasterEgg();
-                    }
-                }
             };
-            
             entity.on('pointerup', endDrag);
             entity.on('pointerupoutside', endDrag);
 
@@ -582,31 +475,27 @@
                     entity.x = e.data.global.x + dragOffset.x;
                     entity.y = e.data.global.y + dragOffset.y;
                     
+                    // Update the coordinate display in the UI panel dynamically
                     const cart = toCart(entity.x, entity.y);
-                    entity.gridX = cart.x;
-                    entity.gridY = cart.y;
-                    document.getElementById('coords-display').innerText = `X: ${cart.x.toFixed(1)} | Y: ${cart.y.toFixed(1)}`;
+                    document.getElementById('coords-display').innerText = 
+                        `X: ${cart.x.toFixed(1)} | Y: ${cart.y.toFixed(1)}`;
                 }
             });
 
             return entity;
         }
 
-        // 4 Humans
-        createEntity(swPaths, -1.5, 2.6, 'human'); 
-        createEntity(swPaths, 4.3, 3.0, 'human'); 
-        createEntity(nePaths, 0.0, 8.0, 'human'); 
-        createEntity(nePaths, 6.8, 8.1, 'human'); 
-        
-        // 4 Robots
-        createEntity(robotSEPaths, -1.3, 4.5, 'robot'); 
-        createEntity(robotSEPaths, 1.0, 4.6, 'robot'); 
-        createEntity(robotSEPaths, 3.5, 4.8, 'robot'); 
-        createEntity(robotSEPaths, 6.6, 4.8, 'robot');
+        // Spawn Entities at correct starting grid coordinates
+        createEntity(swPaths, -1.5, 2.6); createEntity(swPaths, 4.3, 3.0); createEntity(swPaths, 11.6, 2.7);
+        createEntity(nePaths, 0.0, 8.0); createEntity(nePaths, 6.8, 8.1); createEntity(nePaths, 12.2, 8.2);
+        createEntity(robotSEPaths, -1.3, 4.5); createEntity(robotSEPaths, 1.0, 4.6); createEntity(robotSEPaths, 3.5, 4.8); createEntity(robotSEPaths, 6.6, 4.8);
     });
 
+    // Final Ticker for maintaining correct overlapping depths
     app.ticker.add(() => { 
-        entityLayer.children.forEach(c => { if (!c.isDragging) c.zIndex = c.y; });
+        entityLayer.children.forEach(c => {
+            if (!c.isDragging) c.zIndex = c.y; // Sort dynamically based on vertical position
+        });
     });
 </script>
 </body>
