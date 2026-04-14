@@ -1,0 +1,51 @@
+{
+  "character": {
+    "id": "44818ac3-405d-4652-9a8b-d78b89ef58db",
+    "name": "human factory worker, 2.5d isometric",
+    "prompt": "human factory worker, 2.5d isometric",
+    "size": {
+      "width": 68,
+      "height": 68
+    },
+    "template_id": "mannequin",
+    "directions": 8,
+    "view": "low top-down",
+    "created_at": "2026-04-14T08:56:53.013212+00:00"
+  },
+  "frames": {
+    "rotations": {
+      "south": "rotations/south.png",
+      "south-east": "rotations/south-east.png",
+      "east": "rotations/east.png",
+      "north-east": "rotations/north-east.png",
+      "north": "rotations/north.png",
+      "north-west": "rotations/north-west.png",
+      "west": "rotations/west.png",
+      "south-west": "rotations/south-west.png"
+    },
+    "animations": {
+      "Breathing_Idle-c1b5dcec": {
+        "south": [
+          "animations/Breathing_Idle-c1b5dcec/south/frame_000.png",
+          "animations/Breathing_Idle-c1b5dcec/south/frame_001.png",
+          "animations/Breathing_Idle-c1b5dcec/south/frame_002.png",
+          "animations/Breathing_Idle-c1b5dcec/south/frame_003.png"
+        ],
+        "north-east": [
+          "animations/Breathing_Idle-c1b5dcec/north-east/frame_000.png",
+          "animations/Breathing_Idle-c1b5dcec/north-east/frame_001.png",
+          "animations/Breathing_Idle-c1b5dcec/north-east/frame_002.png",
+          "animations/Breathing_Idle-c1b5dcec/north-east/frame_003.png"
+        ],
+        "south-west": [
+          "animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png",
+          "animations/Breathing_Idle-c1b5dcec/south-west/frame_001.png",
+          "animations/Breathing_Idle-c1b5dcec/south-west/frame_002.png",
+          "animations/Breathing_Idle-c1b5dcec/south-west/frame_003.png"
+        ]
+      }
+    }
+  },
+  "export_version": "2.0",
+  "export_date": "2026-04-14T09:21:12.626837"
+}

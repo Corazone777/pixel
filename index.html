@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Screen Isometric Factory</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    <style>
+        /* CSS updated for true full screen */
+        body { 
+            margin: 0; padding: 0; overflow: hidden; /* Prevent scrolling */
+            background-color: #1e1e24; color: white; 
+            font-family: 'Courier New', monospace; 
+        }
+        /* Float the UI panel over the canvas */
+        #ui-panel { 
+            position: absolute; top: 20px; left: 20px; 
+            background: rgba(40, 40, 50, 0.85); padding: 15px 25px; 
+            border-radius: 8px; font-size: 16px; font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            pointer-events: none; /* Lets clicks pass through to the canvas */
+            z-index: 10;
+        }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+
+<div id="ui-panel">Active Worker<br>Grid X: -- | Grid Y: --</div>
+
+<script>
+    // 1. Initialize Full-Screen Application
+    const app = new PIXI.Application({ 
+        resizeTo: window, // Automatically fills the browser window
+        backgroundColor: 0x222228 
+    });
+    // Append directly to the body instead of a container div
+    document.body.appendChild(app.view);
+
+    // 2. Scene Layers
+    const gridLayer = new PIXI.Container();
+    const entityLayer = new PIXI.Container();
+    app.stage.addChild(gridLayer);
+    app.stage.addChild(entityLayer);
+
+    // 3. Isometric Math Engine
+    const TILE_W = 64; 
+    const TILE_H = 32; 
+    // Center the origin based on the full screen width
+    const ORIGIN_X = window.innerWidth / 2; 
+    const ORIGIN_Y = window.innerHeight * 0.2; // Start grid 20% down from the top
+
+    function toIso(cartX, cartY) {
+        return {
+            x: (cartX - cartY) * (TILE_W / 2) + ORIGIN_X,
+            y: (cartX + cartY) * (TILE_H / 2) + ORIGIN_Y
+        };
+    }
+
+    function toCart(screenX, screenY) {
+        let adjX = screenX - ORIGIN_X;
+        let adjY = screenY - ORIGIN_Y;
+        let cartX = (adjX / (TILE_W / 2) + adjY / (TILE_H / 2)) / 2;
+        let cartY = (adjY / (TILE_H / 2) - adjX / (TILE_W / 2)) / 2;
+        return { x: cartX, y: cartY };
+    }
+
+    // 4. Draw Background Grid (Expanded to 15x15 for the larger screen)
+    function drawGrid() {
+        const grid = new PIXI.Graphics();
+        grid.lineStyle(1, 0x444455, 0.4);
+        for(let i = 0; i <= 15; i++) {
+            let pt1 = toIso(i, 0); let pt2 = toIso(i, 15);
+            grid.moveTo(pt1.x, pt1.y); grid.lineTo(pt2.x, pt2.y);
+            let pt3 = toIso(0, i); let pt4 = toIso(15, i);
+            grid.moveTo(pt3.x, pt3.y); grid.lineTo(pt4.x, pt4.y);
+        }
+        gridLayer.addChild(grid);
+    }
+    drawGrid();
+
+    // --- 5. ASSET LOADING & ANIMATION ---
+    
+    // Define both paths based on your folder structure
+    const swPaths = [
+        'animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png',
+        'animations/Breathing_Idle-c1b5dcec/south-west/frame_001.png',
+        'animations/Breathing_Idle-c1b5dcec/south-west/frame_002.png',
+        'animations/Breathing_Idle-c1b5dcec/south-west/frame_003.png'
+    ];
+
+    const nePaths = [
+        'animations/Breathing_Idle-c1b5dcec/north-east/frame_000.png',
+        'animations/Breathing_Idle-c1b5dcec/north-east/frame_001.png',
+        'animations/Breathing_Idle-c1b5dcec/north-east/frame_002.png',
+        'animations/Breathing_Idle-c1b5dcec/north-east/frame_003.png'
+    ];
+
+    // Load ALL paths at once
+    PIXI.Assets.load([...swPaths, ...nePaths]).then((textures) => {
+        
+        // Separate the loaded textures into two distinct animation frame arrays
+        const framesSW = swPaths.map(path => textures[path]);
+        const framesNE = nePaths.map(path => textures[path]);
+
+        // Updated createWorker to accept the specific frame array as an argument
+        function createWorker(framesArray, gridX, gridY) {
+            
+            const worker = new PIXI.AnimatedSprite(framesArray);
+            
+            // Add a tiny bit of random speed so they don't all breathe perfectly in sync
+            worker.animationSpeed = 0.08 + (Math.random() * 0.04); 
+            worker.play();
+
+            // Anchor feet
+            worker.anchor.set(0.5, 1); 
+
+            // Initial positioning
+            worker.gridX = gridX;
+            worker.gridY = gridY;
+            let pos = toIso(gridX, gridY);
+            worker.x = pos.x;
+            worker.y = pos.y;
+            
+            entityLayer.addChild(worker);
+
+            // Drag Interactivity
+            worker.interactive = true;
+            worker.cursor = 'grab';
+            
+            let dragging = false;
+            let dragOffset = { x: 0, y: 0 };
+
+            worker.on('pointerdown', (e) => {
+                dragging = true;
+                worker.cursor = 'grabbing';
+                // Bring hovered worker slightly forward visually while dragging
+                worker.alpha = 0.8;
+                dragOffset.x = worker.x - e.data.global.x;
+                dragOffset.y = worker.y - e.data.global.y;
+            });
+
+            worker.on('pointerup', () => { dragging = false; worker.cursor = 'grab'; worker.alpha = 1; });
+            worker.on('pointerupoutside', () => { dragging = false; worker.cursor = 'grab'; worker.alpha = 1; });
+
+            worker.on('pointermove', (e) => {
+                if (dragging) {
+                    worker.x = e.data.global.x + dragOffset.x;
+                    worker.y = e.data.global.y + dragOffset.y;
+                    
+                    let newGrid = toCart(worker.x, worker.y);
+                    worker.gridX = newGrid.x;
+                    worker.gridY = newGrid.y;
+                    
+                    // Update UI panel with the currently dragged worker's position
+                    document.getElementById('ui-panel').innerHTML = `Active Worker<br>Grid X: ${worker.gridX.toFixed(2)} | Grid Y: ${worker.gridY.toFixed(2)}`;
+                }
+            });
+            
+            return worker;
+        }
+
+        // --- SPAWN MULTIPLE WORKERS ---
+        // Facing South-West
+        createWorker(framesSW, 5, 5);
+        createWorker(framesSW, 8, 3);
+        createWorker(framesSW, 3, 10);
+
+        // Facing North-East
+        createWorker(framesNE, 6, 6);
+        createWorker(framesNE, 4, 8);
+        createWorker(framesNE, 10, 5);
+
+    }).catch((err) => {
+        console.error("Error loading the animation frames. Check your folder paths!", err);
+    });
+
+    // 6. Dynamic Depth Sorting Loop (Handles Z-indexing for all workers)
+    app.ticker.add(() => {
+        entityLayer.children.sort((a, b) => a.y - b.y);
+    });
+
+</script>
+</body>
+</html>
