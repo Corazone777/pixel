@@ -325,16 +325,16 @@
         if (e.key === 'Escape') monitors.forEach(m => m.dock());
     });
 
-    createMonitorOverlay("mon-terminal", -985, 310, 150, 110, `
+    createMonitorOverlay("mon-terminal", -990, 305, 160, 120, `
         <div id="term-log" class="term-log">IBEX OS v3.1<br/>Root access granted...<br/></div>
         <input type="text" id="term-input" class="term-input" placeholder=">_" autocomplete="off" />
-    `, 'perspective(800px) rotateY(18deg) skewY(-4deg)');
+    `, 'perspective(800px) rotateY(20deg) skewY(-5deg)');
 
     createMonitorOverlay("mon-web", -784, 300, 220, 120, `
         <iframe class="monitor-iframe" src="https://goibex.it"></iframe>
     `, 'none');
 
-    createMonitorOverlay("mon-info", -510, 335, 150, 110, `
+    createMonitorOverlay("mon-info", -515, 325, 160, 120, `
         <div style="font-size:0.9em; color:#81C784; font-weight:bold;">SYS: ONLINE</div>
         <div style="font-size:0.8em; margin-bottom:5px;">UPTIME: <span id="info-uptime" style="color:#fff;">00:00:00</span></div>
         <div id="info-time" style="font-weight: bold; font-size: 1.3em; color:#fff;">--:--:--</div>
@@ -348,7 +348,7 @@
             <div style="font-size:0.8em; color:#ffb74d">CPU: <span id="info-cpu" style="color:#fff;">42</span>% | RAM: <span id="info-ram" style="color:#fff;">16</span>%</div>
             <div style="font-size:0.8em; color:#69f0ae">ACTIVE UNITS: <span id="info-units" style="color:#fff;">0</span></div>
         </div>
-    `, 'perspective(800px) rotateY(-18deg) skewY(4deg)');
+    `, 'perspective(800px) rotateY(-20deg) skewY(8deg)');
 
     // --- 5. BUTTON HITBOXES & LOGIC ---
     let isAnimating = true;
@@ -422,7 +422,7 @@
         const pressedTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(halfWidth, 0, halfWidth, fullHeight));
 
         const customStopBtn = new PIXI.Sprite(normalTex);
-        customStopBtn.x = -1020;
+        customStopBtn.x = -1025;
         customStopBtn.y = 430;
         customStopBtn.scale.set(3);
         customStopBtn.interactive = true;
