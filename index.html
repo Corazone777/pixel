@@ -683,10 +683,35 @@
         claw.visible = true;
         fxLayer.addChild(claw);
 
+        
         function createEntity(paths, gridX, gridY, type) {
             const entity = new PIXI.AnimatedSprite(paths.map(p => textures[p]));
             entity.animationSpeed = 0.1; entity.play();
             entity.anchor.set(0.5, 1); entity.scale.set(3);
+
+            // --- NEW: PRECISE CUSTOM HITBOX ---
+            const texW = textures[paths[0]].width;
+            const texH = textures[paths[0]].height;
+            const hitWidth = texW * 0.30; 
+            const hitHeight = texH * 0.80;
+            
+            entity.hitArea = new PIXI.Rectangle(
+                -hitWidth / 2,    // X: Centers the box horizontally
+                -hitHeight,       // Y: Starts from the bottom anchor and goes up
+                hitWidth,         // Width of the clickable area
+                hitHeight         // Height of the clickable area
+            );
+
+            // ==========================================
+            // 🐛 DEBUG VISUALIZER: Uncomment these lines below to physically SEE the hitbox! 
+            // ==========================================
+            /*
+            const debugBox = new PIXI.Graphics();
+            debugBox.lineStyle(2, 0xFF0000, 1); // 2px red line
+            debugBox.drawRect(entity.hitArea.x, entity.hitArea.y, entity.hitArea.width, entity.hitArea.height);
+            entity.addChild(debugBox);
+            */
+            // ==========================================
 
             // Store original positions for the Reboot!
             entity.initialGridX = gridX;
@@ -751,7 +776,7 @@
             entity.on('pointerup', endDrag);
             entity.on('pointerupoutside', endDrag);
 
-            entity.on('pointermove', (e) => {
+            entity.on('globalpointermove', (e) => {
                 if (dragging) {
                     entity.x = e.data.global.x + dragOffset.x;
                     entity.y = e.data.global.y + dragOffset.y;
@@ -769,6 +794,7 @@
 
             return entity;
         }
+
 
         // 4 Humans
         createEntity(swPaths, -1.5, 2.6, 'human');
