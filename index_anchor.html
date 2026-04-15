@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IBEX Factory Floor - Themed Monitors</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    <style>
+        /* --- 1. GLOBAL & UI STYLES --- */
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: #050505; color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
+        }
+
+        #app-wrapper {
+            width: 100vw; height: 100vh; overflow: hidden;
+            position: relative; transform-origin: center center;
+        }
+
+        #ui-panel {
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(11, 12, 16, 0.85); padding: 15px 25px;
+            border-radius: 8px; font-size: 14px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            border: 1px solid rgba(76, 175, 80, 0.2);
+            pointer-events: none; z-index: 100;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        .panel-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #81C784; margin-bottom: 6px; }
+        .panel-data { font-size: 22px; font-weight: bold; color: #4CAF50; font-family: 'Courier New', Courier, monospace; }
+
+        /* --- EASTER EGG OVERLAY --- */
+        #easter-egg-overlay {
+            display: none; position: absolute; inset: 0;
+            background: rgba(15, 0, 0, 0.95); z-index: 9000;
+            flex-direction: column; justify-content: center; align-items: center;
+        }
+        .warning-text {
+            color: #ff1111; font-family: 'Courier New', Courier, monospace;
+            font-size: 3.5vw; text-align: center; font-weight: bold;
+            text-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000;
+            animation: warning-blink 1.2s steps(2, start) infinite;
+        }
+        @keyframes warning-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+        /* --- CRT ANIMATIONS --- */
+        .crt-shutdown { animation: crt-power-off 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+        .crt-turn-on { animation: crt-power-on 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+
+        @keyframes crt-power-off {
+            0% { transform: scale(1, 1); opacity: 1; filter: brightness(1) contrast(1); }
+            30% { transform: scale(1, 0.005); opacity: 1; filter: brightness(5) contrast(3); }
+            70% { transform: scale(0.005, 0.005); opacity: 1; filter: brightness(5); }
+            100% { transform: scale(0, 0); opacity: 0; filter: brightness(0); }
+        }
+        @keyframes crt-power-on {
+            0% { transform: scale(0, 0); opacity: 0; filter: brightness(0); }
+            40% { transform: scale(0.005, 0.005); opacity: 1; filter: brightness(5); }
+            70% { transform: scale(1, 0.005); opacity: 1; filter: brightness(5) contrast(3); }
+            100% { transform: scale(1, 1); opacity: 1; filter: brightness(1) contrast(1); }
+        }
+
+        /* --- 2. MODERN MONITOR OVERLAYS (Base Styles) --- */
+        .monitor-overlay {
+            position: absolute; background: rgba(11, 15, 12, 0.85);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            border: 1px solid transparent; border-top: 2px solid transparent;
+            border-radius: 6px; font-family: 'Courier New', Courier, monospace;
+            box-sizing: border-box; overflow: hidden; pointer-events: auto; z-index: 50;
+            display: flex; flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 0, 0, 0.2);
+            transition: left 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+                        width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+                        transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), font-size 0.5s ease, background 0.3s ease, border-color 0.3s ease;
+            transform-origin: center center;
+        }
+
+        body.is-panning .monitor-overlay { transition: none !important; }
+
+        /* --- NEW: SPECIFIC MONITOR THEMES --- */
+
+        /* Theme: Terminal (Green) */
+        .theme-terminal { color: #69f0ae; border-color: rgba(76, 175, 80, 0.3); border-top-color: #4CAF50; }
+        .theme-terminal .monitor-header { color: #69f0ae; border-bottom: 1px solid rgba(76, 175, 80, 0.3); }
+        .theme-terminal .term-input { color: #69f0ae; }
+
+        /* Theme: System Info (Cyan) */
+        .theme-info { color: #00e5ff; border-color: rgba(0, 229, 255, 0.3); border-top-color: #00b8d4; background: rgba(5, 15, 20, 0.85); }
+        .theme-info .monitor-header { color: #00e5ff; border-bottom: 1px solid rgba(0, 229, 255, 0.3); }
+        .theme-info .info-divider { border-top: 1px solid rgba(0, 229, 255, 0.2); }
+
+        /* Theme: Web iframe (Silver/White) */
+        .theme-web { border-color: rgba(255, 255, 255, 0.2); border-top-color: #ffffff; }
+        .theme-web .monitor-cover { color: #ffffff; text-shadow: 0 0 20px rgba(255, 255, 255, 0.6); background: #0a0a0a; }
+
+        /* --- POWER OFF OVERRIDES --- */
+        .monitor-overlay.power-off {
+            background: rgba(5, 5, 5, 0.95) !important; border-color: rgba(30, 30, 30, 0.8) !important;
+            border-top: 2px solid rgba(30, 30, 30, 1) !important; box-shadow: inset 0 0 50px rgba(0,0,0,1) !important;
+            pointer-events: none !important;
+        }
+        .monitor-overlay > * { transition: opacity 0.3s ease; }
+        .monitor-overlay.power-off > * { opacity: 0 !important; }
+
+        .monitor-cover {
+            position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+            font-size: 2.5em; font-weight: bold; letter-spacing: 10px;
+            transition: opacity 0.4s ease; pointer-events: none;
+        }
+
+        .is-iframe-monitor:not(.is-centered) { border: none; background: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+        .is-iframe-monitor:not(.is-centered) .monitor-header { display: none; }
+        .is-iframe-monitor:not(.is-centered) .monitor-body { padding: 0; }
+
+        .monitor-header {
+            background: rgba(0, 0, 0, 0.4); height: 26px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 12px; font-size: 11px; letter-spacing: 2px; user-select: none; flex-shrink: 0;
+        }
+
+        .close-btn { display: none; color: rgba(255, 255, 255, 0.5); font-size: 16px; font-weight: bold; cursor: pointer; font-family: sans-serif; padding: 0 5px; }
+        .close-btn:hover { color: #ff5252; transform: scale(1.2); }
+
+        .monitor-body { flex-grow: 1; padding: 12px; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        .glass-shield { position: absolute; inset: 0; z-index: 70; cursor: pointer; }
+
+        .term-input { width: 100%; background: transparent; border: none; outline: none; font-family: inherit; margin-top: 5px; font-size: inherit; }
+        .term-log { flex-grow: 1; overflow-y: auto; word-wrap: break-word; }
+        .term-log::-webkit-scrollbar { display: none; }
+        .monitor-iframe { width: 100%; height: 100%; border: none; background: #fff; border-radius: 4px; display: block; opacity: 1; }
+        canvas { display: block; transition: filter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); outline: none; }
+        .info-divider { margin-top: 8px; padding-top: 8px; }
+
+        @media (max-width: 768px) {
+            #ui-panel { top: 10px; left: 10px; padding: 10px; border-radius: 6px; }
+            .panel-title { font-size: 9px; margin-bottom: 4px; }
+            .panel-data { font-size: 16px; }
+            .warning-text { font-size: 6vw; }
+            .monitor-header { height: 32px; font-size: 10px; }
+            .close-btn { font-size: 20px; padding: 0 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-wrapper">
+    <div id="ui-panel">
+        <div class="panel-title">Active Entity Position</div>
+        <div class="panel-data" id="coords-display">X: -- | Y: --</div>
+    </div>
+
+    <div id="easter-egg-overlay">
+        <div class="warning-text">
+            ROBOTS HAVE ASSUMED CONTROL.<br><br>SHUTTING THE SYSTEMS DOWN<br>AND REBOOTING...
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 1. PIXI INITIALIZATION ---
+    const app = new PIXI.Application({ resizeTo: window, backgroundColor: 0x121214 });
+    document.getElementById('app-wrapper').appendChild(app.view);
+
+    const backgroundLayer = new PIXI.Container();
+    const entityLayer = new PIXI.Container();
+    entityLayer.sortableChildren = true;
+
+    app.stage.addChild(backgroundLayer);
+    app.stage.addChild(entityLayer);
+
+    // --- 2. DYNAMIC SCALING & CAMERA LOGIC ---
+    let globalScale = 1;
+    let cameraOffsetX = 0;
+    let cameraOffsetY = 0;
+    let initialPanDone = false;
+
+    const BASE_TILE_W = 128;
+    const BASE_TILE_H = 64;
+
+    const bgSprite = PIXI.Sprite.from('gemini_background.png');
+    bgSprite.anchor.set(0.5, 0.5);
+
+    function resizeBackground() {
+        const baseW = bgSprite.texture.width > 1 ? bgSprite.texture.width : 1920;
+        const baseH = bgSprite.texture.height > 1 ? bgSprite.texture.height : 1080;
+
+        const scaleX = app.screen.width / baseW;
+        const scaleY = app.screen.height / baseH;
+
+        globalScale = Math.max(scaleX, scaleY);
+        bgSprite.scale.set(globalScale);
+
+        if (!initialPanDone && window.innerWidth <= 768) {
+            cameraOffsetX = 600 * globalScale;
+            initialPanDone = true;
+        }
+        updateCamera();
+    }
+
+    function updateCamera() {
+        bgSprite.x = (app.screen.width / 2) + cameraOffsetX;
+        bgSprite.y = (app.screen.height / 2) + cameraOffsetY;
+
+        entityLayer.children.forEach(c => {
+            if (c.type) {
+                c.scale.set(3 * globalScale);
+                let pos = toIso(c.gridX, c.gridY);
+                c.x = pos.x;
+                c.y = pos.y;
+            }
+        });
+
+        syncMonitors();
+    }
+
+    bgSprite.texture.baseTexture.on('loaded', resizeBackground);
+    window.addEventListener('resize', resizeBackground);
+    backgroundLayer.addChild(bgSprite);
+
+    // --- DRAG TO PAN CAMERA ---
+    let isPanning = false;
+    let panStart = { x: 0, y: 0 };
+
+    bgSprite.interactive = true;
+    bgSprite.cursor = 'grab';
+
+    bgSprite.on('pointerdown', (e) => {
+        if(easterEggTriggered) return;
+        isPanning = true;
+        bgSprite.cursor = 'grabbing';
+        document.body.classList.add('is-panning');
+        panStart.x = e.data.global.x - cameraOffsetX;
+        panStart.y = e.data.global.y - cameraOffsetY;
+    });
+
+    const endPan = () => {
+        isPanning = false;
+        bgSprite.cursor = 'grab';
+        document.body.classList.remove('is-panning');
+    };
+
+    bgSprite.on('pointerup', endPan);
+    bgSprite.on('pointerupoutside', endPan);
+    bgSprite.on('pointermove', (e) => {
+        if (isPanning) {
+            cameraOffsetX = e.data.global.x - panStart.x;
+            cameraOffsetY = e.data.global.y - panStart.y;
+
+            const limitX = (bgSprite.texture.width * globalScale) / 2;
+            const limitY = (bgSprite.texture.height * globalScale) / 2;
+            cameraOffsetX = Math.max(-limitX, Math.min(limitX, cameraOffsetX));
+            cameraOffsetY = Math.max(-limitY, Math.min(limitY, cameraOffsetY));
+
+            updateCamera();
+        }
+    });
+
+    // --- 3. ISOMETRIC ENGINE ---
+    function getOrigin() { return { x: (app.screen.width / 2) + cameraOffsetX, y: (app.screen.height * 0.3) + cameraOffsetY }; }
+    function toIso(cartX, cartY) {
+        const origin = getOrigin();
+        const scaledW = BASE_TILE_W * globalScale; const scaledH = BASE_TILE_H * globalScale;
+        return { x: (cartX - cartY) * (scaledW / 2) + origin.x, y: (cartX + cartY) * (scaledH / 2) + origin.y };
+    }
+    function toCart(screenX, screenY) {
+        const origin = getOrigin();
+        const scaledW = BASE_TILE_W * globalScale; const scaledH = BASE_TILE_H * globalScale;
+        let adjX = screenX - origin.x, adjY = screenY - origin.y;
+        return { x: (adjX / (scaledW / 2) + adjY / (scaledH / 2)) / 2, y: (adjY / (scaledH / 2) - adjX / (scaledW / 2)) / 2 };
+    }
+
+    // --- 4. MONITOR SYSTEM ---
+    const monitors = [];
+
+    // NEW: We now pass the Theme Class into this function
+    function createMonitorOverlay(id, localX, localY, localWidth, localHeight, contentHTML, baseTransform, themeClass) {
+        const div = document.createElement('div');
+        div.className = `monitor-overlay ${themeClass}`;
+        div.id = id;
+
+        const coverHTML = (id === 'mon-web') ? `<div class="monitor-cover">IBEX</div>` : '';
+        if (id === 'mon-web') div.classList.add('is-iframe-monitor');
+
+        div.innerHTML = `
+            <div class="monitor-header"><span>:: ${id.toUpperCase()}</span><div class="close-btn">✕</div></div>
+            <div class="monitor-body"><div class="glass-shield"></div>${coverHTML}${contentHTML}</div>
+        `;
+        document.getElementById('app-wrapper').appendChild(div);
+
+        const closeBtn = div.querySelector('.close-btn');
+        const shield = div.querySelector('.glass-shield');
+        const cover = div.querySelector('.monitor-cover');
+
+        const monitorData = {
+            element: div, baseX: localX, baseY: localY,
+            baseW: localWidth, baseH: localHeight,
+            baseTransform: baseTransform, state: 'docked'
+        };
+        monitors.push(monitorData);
+        div.style.transform = baseTransform;
+
+        const focusMe = () => {
+            if (monitorData.state === 'centered' || div.classList.contains('power-off')) return;
+
+            monitorData.state = 'centered';
+            div.classList.add('is-centered');
+            if (cover) cover.style.opacity = '0';
+
+            app.view.style.filter = 'blur(12px) brightness(0.5)';
+            closeBtn.style.display = 'block';
+            shield.style.display = 'none';
+            div.style.zIndex = 200;
+            div.style.transform = 'none';
+
+            const isMobile = window.innerWidth <= 768;
+            div.style.fontSize = isMobile ? '14px' : ((id === 'mon-web') ? '16px' : '18px');
+
+            if (id === 'mon-web' || isMobile) {
+                div.style.width = '94vw'; div.style.height = '94vh'; div.style.left = '3vw'; div.style.top = '3vh';
+            } else {
+                div.style.width = '70vw'; div.style.height = '75vh'; div.style.left = '15vw'; div.style.top = '12.5vh';
+            }
+            const input = div.querySelector('input');
+            if (input) setTimeout(() => input.focus(), 500);
+        };
+
+        const dockMe = (e) => {
+            if (e) e.stopPropagation();
+            if (monitorData.state === 'docked') return;
+            monitorData.state = 'docked';
+            div.classList.remove('is-centered');
+            if (cover) cover.style.opacity = '1';
+
+            app.view.style.filter = 'none';
+            closeBtn.style.display = 'none';
+            shield.style.display = 'block';
+            div.style.zIndex = 50;
+            div.style.transform = monitorData.baseTransform;
+            syncMonitors();
+        };
+
+        div.addEventListener('click', focusMe);
+        closeBtn.addEventListener('click', dockMe);
+        monitorData.dock = dockMe;
+        return div;
+    }
+
+    function syncMonitors() {
+        if (globalScale === 0) return;
+        const centerX = (app.screen.width / 2) + cameraOffsetX;
+        const centerY = (app.screen.height / 2) + cameraOffsetY;
+
+        monitors.forEach(m => {
+            if (m.state === 'docked') {
+                m.element.style.left = `${centerX + (m.baseX * globalScale)}px`;
+                m.element.style.top = `${centerY + (m.baseY * globalScale)}px`;
+                m.element.style.width = `${m.baseW * globalScale}px`;
+                m.element.style.height = `${m.baseH * globalScale}px`;
+                m.element.style.fontSize = `${12 * globalScale}px`;
+            }
+        });
+    }
+
+    document.getElementById('app-wrapper').addEventListener('dblclick', (e) => {
+        if (!e.target.closest('.monitor-overlay')) monitors.forEach(m => m.dock());
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') monitors.forEach(m => m.dock());
+    });
+
+    // --- DEPLOYING THE THEMED MONITORS ---
+    // Notice the more aggressive 25deg tilt so they pop out more!
+
+    createMonitorOverlay("mon-terminal", -1025, 300, 170, 120, `
+        <div id="term-log" class="term-log">IBEX OS v3.1<br/>Root access granted...<br/></div>
+        <input type="text" id="term-input" class="term-input" placeholder=">_" autocomplete="off" />
+    `, 'perspective(600px) rotateY(25deg) skewY(-5deg)', 'theme-terminal');
+
+    createMonitorOverlay("mon-web", -810, 300, 220, 120, `
+        <iframe class="monitor-iframe" src="https://goibex.it"></iframe>
+    `, 'none', 'theme-web');
+
+    createMonitorOverlay("mon-info", -535, 325, 150, 160, `
+        <div style="font-weight:bold; margin-bottom:5px;">SYS: ONLINE</div>
+        <div style="font-size:0.8em; margin-bottom:5px;">UPTIME: <span id="info-uptime" style="color:#fff;">00:00:00</span></div>
+        <div id="info-time" style="font-weight: bold; font-size: 1.3em; color:#fff;">--:--:--</div>
+        <div class="info-divider">
+            <div id="info-loc" style="font-size:0.8em">Locating...</div>
+            <div id="info-weather" style="font-size:0.8em">Temp: --</div>
+        </div>
+        <div class="info-divider">
+            <div style="font-size:0.8em;">CPU: <span id="info-cpu" style="color:#fff;">42</span>% | RAM: <span id="info-ram" style="color:#fff;">16</span>%</div>
+            <div style="font-size:0.8em;">ACTIVE UNITS: <span id="info-units" style="color:#fff;">0</span></div>
+        </div>
+    `, 'perspective(600px) rotateY(-25deg) skewY(5deg)', 'theme-info');
+
+    // --- 5. BUTTON HITBOXES ---
+    let isAnimating = true;
+    let isFast = false;
+
+    function createButtonHitbox(id, x, y, width, height, onClick) {
+        const hitbox = new PIXI.Graphics();
+        hitbox.beginFill(0x000000); hitbox.drawRect(x, y, width, height); hitbox.endFill();
+        hitbox.alpha = 0.0; hitbox.interactive = true; hitbox.cursor = 'pointer';
+        hitbox.on('pointerdown', (e) => { e.stopPropagation(); hitbox.alpha = 0.5; });
+        hitbox.on('pointerup', () => { hitbox.alpha = 0.0; if (onClick) onClick(); });
+        hitbox.on('pointerupoutside', () => { hitbox.alpha = 0.0; });
+        bgSprite.addChild(hitbox);
+    }
+
+    createButtonHitbox("POWER ON", -1300, 510, 120, 120, () => {
+        document.querySelectorAll('.monitor-overlay').forEach(el => el.classList.remove('power-off'));
+        document.getElementById('coords-display').innerText = "SYSTEM: MONITORS ON";
+        document.getElementById('coords-display').style.color = "#4CAF50";
+    });
+    createButtonHitbox("POWER OFF", -1135, 510, 120, 120, () => {
+        monitors.forEach(m => m.dock());
+        document.querySelectorAll('.monitor-overlay').forEach(el => el.classList.add('power-off'));
+        document.getElementById('coords-display').innerText = "SYSTEM: MONITORS OFF";
+        document.getElementById('coords-display').style.color = "#ff5252";
+    });
+    createButtonHitbox("TOGGLE ANIM", -965, 510, 120, 120, () => {
+        isAnimating = !isAnimating;
+        entityLayer.children.forEach(e => { if (isAnimating) e.play(); else e.stop(); });
+        document.getElementById('coords-display').innerText = `SYSTEM: ${isAnimating ? 'RESUMED' : 'PAUSED'}`;
+        document.getElementById('coords-display').style.color = isAnimating ? "#4CAF50" : "#ffb74d";
+    });
+    createButtonHitbox("SPEED UP", -795, 510, 120, 120, () => {
+        isFast = !isFast;
+        entityLayer.children.forEach(e => { e.animationSpeed = isFast ? 0.25 : 0.1; });
+        document.getElementById('coords-display').innerText = `SYSTEM: SPEED ${isFast ? 'MAX' : 'NORMAL'}`;
+        document.getElementById('coords-display').style.color = isFast ? "#ffff00" : "#4CAF50";
+    });
+
+    // --- 6. WIDGET APPS LOGIC ---
+    const termInput = document.getElementById('term-input');
+    const termLog = document.getElementById('term-log');
+    termInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const cmd = termInput.value.toLowerCase().trim();
+            termLog.innerHTML += `<div>> ${cmd}</div>`;
+
+            if (cmd === 'help') termLog.innerHTML += `<div>cmds: help, clear, status, ping, whoami, ls, uptime, reboot, exit</div>`;
+            else if (cmd === 'clear') termLog.innerHTML = `IBEX OS v3.1<br/>Root access granted...<br/>`;
+            else if (cmd === 'status') termLog.innerHTML += `<div>All sensors nominal. Conveyors active.</div>`;
+            else if (cmd === 'ping') termLog.innerHTML += `<div>Pong! Connection secure (12ms).</div>`;
+            else if (cmd === 'whoami') termLog.innerHTML += `<div>root_supervisor_99</div>`;
+            else if (cmd === 'ls') termLog.innerHTML += `<div>bin/  boot/  dev/  etc/  factory_ctrl/  usr/</div>`;
+            else if (cmd === 'uptime') termLog.innerHTML += `<div>System online for ${document.getElementById('info-uptime').innerText}</div>`;
+            else if (cmd === 'reboot') {
+                termLog.innerHTML += `<div style="color:#ff5252;">INITIATING SYSTEM REBOOT...</div>`;
+                triggerEasterEgg();
+            }
+            else if (cmd === 'exit' || cmd === 'quit' || cmd === 'close') {
+                termLog.innerHTML += `<div>Closing terminal session...</div>`;
+                document.querySelector('#mon-terminal .close-btn').click();
+            }
+            else if (cmd !== '') termLog.innerHTML += `<div style="color:#ff5252;">Unknown command</div>`;
+
+            termInput.value = ''; termLog.scrollTop = termLog.scrollHeight;
+        }
+    });
+
+    let uptimeSeconds = 0;
+    setInterval(() => {
+        document.getElementById('info-time').innerText = new Date().toLocaleTimeString();
+        uptimeSeconds++;
+        let h = Math.floor(uptimeSeconds / 3600).toString().padStart(2, '0');
+        let m = Math.floor((uptimeSeconds % 3600) / 60).toString().padStart(2, '0');
+        let s = (uptimeSeconds % 60).toString().padStart(2, '0');
+        document.getElementById('info-uptime').innerText = `${h}:${m}:${s}`;
+
+        let currCpu = parseInt(document.getElementById('info-cpu').innerText);
+        let currRam = parseInt(document.getElementById('info-ram').innerText);
+        document.getElementById('info-cpu').innerText = Math.max(10, Math.min(99, currCpu + (Math.floor(Math.random() * 15) - 7)));
+        document.getElementById('info-ram').innerText = Math.max(10, Math.min(99, currRam + (Math.floor(Math.random() * 5) - 2)));
+
+        let unitCount = 0;
+        entityLayer.children.forEach(c => { if(c.type) unitCount++; });
+        document.getElementById('info-units').innerText = unitCount;
+    }, 1000);
+
+    async function fetchWeatherAndLocation() {
+        const locEl = document.getElementById('info-loc');
+        const tempEl = document.getElementById('info-weather');
+        try {
+            const geoRes = await fetch('https://freeipapi.com/api/json');
+            const geoData = await geoRes.json();
+            locEl.innerText = `${geoData.cityName}, ${geoData.countryCode}`;
+            const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${geoData.latitude}&longitude=${geoData.longitude}&current_weather=true`);
+            const weatherData = await weatherRes.json();
+            tempEl.innerText = `Temp: ${weatherData.current_weather.temperature}°C`;
+        } catch (e) {
+            locEl.innerText = "DEMO: Zagreb, HR"; tempEl.innerText = "Temp: 18°C (Sim)";
+        }
+    }
+    fetchWeatherAndLocation();
+
+    let loadSyncCount = 0;
+    const loadSyncInterval = setInterval(() => {
+        syncMonitors(); if (++loadSyncCount > 30) clearInterval(loadSyncInterval);
+    }, 100);
+
+    // --- 7. EASTER EGG LOGIC ---
+    let easterEggTriggered = false;
+
+    function triggerEasterEgg() {
+        easterEggTriggered = true;
+        entityLayer.children.forEach(c => c.interactive = false);
+        monitors.forEach(m => m.dock());
+
+        const overlay = document.getElementById('easter-egg-overlay');
+        overlay.style.display = 'flex';
+
+        setTimeout(() => {
+            const appWrapper = document.getElementById('app-wrapper');
+            appWrapper.classList.add('crt-shutdown');
+
+            setTimeout(() => {
+                entityLayer.children.forEach(c => {
+                    c.gridX = c.initialGridX;
+                    c.gridY = c.initialGridY;
+                    let pos = toIso(c.gridX, c.gridY);
+                    c.x = pos.x; c.y = pos.y; c.zIndex = c.y; c.interactive = true;
+                });
+
+                isAnimating = true; isFast = false;
+                entityLayer.children.forEach(e => { e.animationSpeed = 0.1; e.play(); });
+                document.querySelectorAll('.monitor-overlay').forEach(el => el.classList.remove('power-off'));
+                document.getElementById('coords-display').innerText = "SYSTEM: REBOOTED";
+                document.getElementById('coords-display').style.color = "#4CAF50";
+
+                overlay.style.display = 'none';
+                appWrapper.classList.remove('crt-shutdown');
+                appWrapper.classList.add('crt-turn-on');
+
+                setTimeout(() => {
+                    appWrapper.classList.remove('crt-turn-on');
+                    easterEggTriggered = false;
+                }, 1000);
+            }, 2800);
+        }, 3500);
+    }
+
+    // --- 8. ENTITY SYSTEM ---
+    const swPaths = [ 'animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_003.png' ];
+    const nePaths = [ 'animations/Breathing_Idle-c1b5dcec/north-east/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_003.png' ];
+    const robotSEPaths = [ 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_001.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_002.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_003.png' ];
+
+    PIXI.Assets.load([...swPaths, ...nePaths, ...robotSEPaths]).then((textures) => {
+        function createEntity(paths, gridX, gridY, type) {
+            const entity = new PIXI.AnimatedSprite(paths.map(p => textures[p]));
+            entity.animationSpeed = 0.1; entity.play();
+            entity.anchor.set(0.5, 1);
+
+            entity.initialGridX = gridX; entity.initialGridY = gridY; entity.type = type;
+
+            entityLayer.addChild(entity);
+
+            entity.interactive = true; entity.cursor = 'grab';
+            let dragging = false, dragOffset = { x: 0, y: 0 };
+
+            entity.on('pointerdown', (e) => {
+                if(easterEggTriggered) return;
+                e.stopPropagation(); // Prevents panning camera when dragging worker
+                dragging = true; entity.isDragging = true;
+                entity.cursor = 'grabbing'; entity.alpha = 0.8;
+                entity.zIndex = 10000;
+                dragOffset.x = entity.x - e.data.global.x;
+                dragOffset.y = entity.y - e.data.global.y;
+            });
+
+            const endDrag = () => {
+                if(!dragging) return;
+                dragging = false; entity.isDragging = false;
+                entity.cursor = 'grab'; entity.alpha = 1;
+
+                if (!easterEggTriggered) {
+                    let robotsOnBelt = 0; let humansOnBelt = 0;
+                    entityLayer.children.forEach(c => {
+                        if (c.gridY >= 3.5 && c.gridY <= 6.0 && c.gridX >= -4 && c.gridX <= 12) {
+                            if (c.type === 'robot') robotsOnBelt++;
+                            if (c.type === 'human') humansOnBelt++;
+                        }
+                    });
+                    if (robotsOnBelt === 0 && humansOnBelt >= 4) triggerEasterEgg();
+                }
+            };
+
+            entity.on('pointerup', endDrag); entity.on('pointerupoutside', endDrag);
+
+            entity.on('pointermove', (e) => {
+                if (dragging) {
+                    entity.x = e.data.global.x + dragOffset.x;
+                    entity.y = e.data.global.y + dragOffset.y;
+
+                    const cart = toCart(entity.x, entity.y);
+                    entity.gridX = cart.x; entity.gridY = cart.y;
+                    document.getElementById('coords-display').innerText = `X: ${cart.x.toFixed(1)} | Y: ${cart.y.toFixed(1)}`;
+                }
+            });
+
+            return entity;
+        }
+
+        createEntity(swPaths, -1.5, 2.6, 'human'); createEntity(swPaths, 4.3, 3.0, 'human');
+        createEntity(nePaths, 0.0, 8.0, 'human'); createEntity(nePaths, 6.8, 8.1, 'human');
+
+        createEntity(robotSEPaths, -1.3, 4.5, 'robot'); createEntity(robotSEPaths, 1.0, 4.6, 'robot');
+        createEntity(robotSEPaths, 3.5, 4.8, 'robot'); createEntity(robotSEPaths, 6.6, 4.8, 'robot');
+
+        resizeBackground();
+    });
+
+    app.ticker.add(() => {
+        entityLayer.children.forEach(c => { if (!c.isDragging) c.zIndex = c.y; });
+    });
+</script>
+</body>
+</html>
