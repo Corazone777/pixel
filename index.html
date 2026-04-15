@@ -195,9 +195,13 @@
     const backgroundLayer = new PIXI.Container();
     const entityLayer = new PIXI.Container();
     entityLayer.sortableChildren = true;
+    
+    // NEW: Effects layer specifically for the claw so it stays on top!
+    const fxLayer = new PIXI.Container();
 
     app.stage.addChild(backgroundLayer);
     app.stage.addChild(entityLayer);
+    app.stage.addChild(fxLayer);
 
     // --- 2. BACKGROUND & RESIZING ---
     const bgSprite = PIXI.Sprite.from('gemini_image.png');
@@ -463,7 +467,7 @@
         bgSprite.addChild(customStopBtn);
     });
 
-    // --- NEW BUTTON: TOGGLE ANIMATION ---
+    // --- TOGGLE ANIMATION BUTTON ---
     PIXI.Assets.load('toggle_btn.png').then((texture) => {
         const halfWidth = texture.width / 2;
         const fullHeight = texture.height;
@@ -472,7 +476,6 @@
         const pressedTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(halfWidth, 0, halfWidth, fullHeight));
 
         const customToggleBtn = new PIXI.Sprite(normalTex);
-        // Placing it to the right of the red button (maintaining a 300px gap)
         customToggleBtn.x = -690;
         customToggleBtn.y = 430;
         customToggleBtn.scale.set(3);
@@ -501,7 +504,6 @@
         customToggleBtn.on('pointerup', () => {
             releaseButton();
 
-            // The original TOGGLE ANIM logic
             isAnimating = !isAnimating;
             entityLayer.children.forEach(e => { if (isAnimating) e.play(); else e.stop(); });
             document.getElementById('coords-display').innerText = `SYSTEM: ${isAnimating ? 'RESUMED' : 'PAUSED'}`;
@@ -516,7 +518,6 @@
     });
 
     // --- REMAINING INVISIBLE HITBOXES ---
-    // (Only the SPEED UP hitbox remains invisible now)
     createButtonHitbox("SPEED UP", -795, 510, 120, 120, () => {
         isFast = !isFast;
         entityLayer.children.forEach(e => { e.animationSpeed = isFast ? 0.25 : 0.1; });
@@ -660,7 +661,28 @@
     const nePaths = [ 'animations/Breathing_Idle-c1b5dcec/north-east/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_003.png' ];
     const robotSEPaths = [ 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_001.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_002.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_003.png' ];
 
-    PIXI.Assets.load([...swPaths, ...nePaths, ...robotSEPaths]).then((textures) => {
+    // Make sure to include 'hook.png' in the PIXI.Assets.load array!
+    PIXI.Assets.load([...swPaths, ...nePaths, ...robotSEPaths, 'hook-remove.png']).then((textures) => {
+        
+        // --- CLAW SPRITE SETUP ---
+        const hookTex = textures['hook-remove.png'];
+        
+        // Assuming the generated 4x2 image grid: dividing width by 4, height by 2.
+        // If your cropped image has different dimensions, adjust these dividers!
+        const frameW = hookTex.width / 4; 
+        const frameH = hookTex.height / 2;
+        
+        // Frame 1 (Open) and Frame 2 (Closed) from the top row of the sheet
+        const openClawTex = new PIXI.Texture(hookTex.baseTexture, new PIXI.Rectangle(0, 0, frameW, frameH));
+        const closedClawTex = new PIXI.Texture(hookTex.baseTexture, new PIXI.Rectangle(frameW, 0, frameW, frameH));
+
+        const claw = new PIXI.Sprite(openClawTex);
+        // Anchor near the bottom center so it visually grabs the top of the entity
+        claw.anchor.set(0.6, 1.2); 
+        claw.scale.set(1.5); // Increase or decrease based on your image size
+        claw.visible = true;
+        fxLayer.addChild(claw);
+
         function createEntity(paths, gridX, gridY, type) {
             const entity = new PIXI.AnimatedSprite(paths.map(p => textures[p]));
             entity.animationSpeed = 0.1; entity.play();
@@ -686,12 +708,25 @@
                 entity.zIndex = 10000;
                 dragOffset.x = entity.x - e.data.global.x;
                 dragOffset.y = entity.y - e.data.global.y;
+
+                // --- Show the claw as CLOSED, position it over entity ---
+                claw.texture = closedClawTex;
+                claw.visible = true;
+                claw.x = entity.x;
+                claw.y = entity.y - 30; // Adjust Y so it fits the character's head
             });
 
             const endDrag = () => {
                 if(!dragging) return;
                 dragging = false; entity.isDragging = false;
                 entity.cursor = 'grab'; entity.alpha = 1;
+
+                // --- Swap to OPEN claw, wait briefly, then hide it ---
+                claw.texture = openClawTex;
+                setTimeout(() => {
+                    // Only hide it if the user didn't immediately grab someone else!
+                    if (!dragging) claw.visible = false; 
+                }, 150);
 
                 // --- CHECK FOR EASTER EGG TRIGGER ---
                 if (!easterEggTriggered) {
@@ -720,6 +755,10 @@
                 if (dragging) {
                     entity.x = e.data.global.x + dragOffset.x;
                     entity.y = e.data.global.y + dragOffset.y;
+
+                    // --- Claw follows the entity ---
+                    claw.x = entity.x;
+                    claw.y = entity.y - 30;
 
                     const cart = toCart(entity.x, entity.y);
                     entity.gridX = cart.x;
