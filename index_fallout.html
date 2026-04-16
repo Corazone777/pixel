@@ -111,7 +111,7 @@
             letter-spacing: 2px; color: #1cf843; user-select: none;
             flex-shrink: 0; border-bottom: 2px solid #1cf843;
             box-shadow: 0 2px 10px rgba(28, 248, 67, 0.2);
-            cursor: grab;
+            cursor: grab; /* Shows it's draggable */
         }
         .monitor-header:active { cursor: grabbing; }
 
@@ -149,7 +149,7 @@
 
         .retro-title {
             margin-bottom: 15px; border-bottom: 2px solid #1cf843; padding-bottom: 10px;
-            font-size: 1.2em; text-transform: uppercase; flex-shrink: 0;
+            font-size: 1.2em; text-transform: uppercase;
         }
 
         .term-log { flex-grow: 1; overflow-y: auto; word-wrap: break-word; z-index: 2; position: relative; }
@@ -157,7 +157,7 @@
         .term-log::-webkit-scrollbar-track { background: #040c04; border-left: 1px solid #113311; }
         .term-log::-webkit-scrollbar-thumb { background: #1cf843; }
 
-        .term-input-row { display: flex; align-items: center; z-index: 2; position: relative; margin-top: 10px; flex-shrink: 0; }
+        .term-input-row { display: flex; align-items: center; z-index: 2; position: relative; margin-top: 10px; }
         .term-input {
             width: 100%; background: transparent; color: #1cf843;
             border: none; outline: none; font-family: inherit; font-size: inherit; font-weight: inherit;
@@ -166,10 +166,8 @@
 
         .sys-grid {
             display: grid; grid-template-columns: 1fr 1fr; gap: 20px; z-index: 2; position: relative;
-            border-bottom: 2px dashed rgba(28, 248, 67, 0.5); padding-bottom: 20px; margin-bottom: 20px;
-            flex-shrink: 0;
         }
-        .sys-block { margin-bottom: 5px; }
+        .sys-block { margin-bottom: 20px; }
         .ascii-bar { color: #1cf843; letter-spacing: 2px; }
         
         .website-iframe {
@@ -181,7 +179,7 @@
         .resize-handle {
             position: absolute; bottom: 0; right: 0;
             width: 25px; height: 25px; cursor: nwse-resize;
-            z-index: 100; display: none;
+            z-index: 100; display: none; /* Shown only when .is-centered */
         }
         .resize-handle::after {
             content: ''; position: absolute; bottom: 6px; right: 6px;
@@ -192,59 +190,10 @@
         .resize-handle:hover::after { opacity: 1; filter: drop-shadow(0 0 5px #1cf843); }
 
         .monitor-overlay.is-centered .resize-handle { display: block; }
+
+        /* Unified state for resizing OR moving to protect iframes from stealing pointers */
         .monitor-overlay.is-interacting iframe { pointer-events: none; }
         .monitor-overlay.is-interacting { box-shadow: 0 15px 50px rgba(28, 248, 67, 0.25), inset 0 0 40px rgba(0,0,0,1); opacity: 0.95; }
-
-        /* --- MINIGAME / MENU STYLES --- */
-        .hack-container {
-            display: flex; gap: 30px; font-size: 1.1em; letter-spacing: 2px; height: 100%;
-            z-index: 2; position: relative; overflow: hidden;
-        }
-        .hack-main { flex-grow: 1; display: flex; gap: 20px; overflow-y: hidden; }
-        .hack-column { display: flex; flex-direction: column; width: 50%; }
-        
-        /* New Row Appear Animation */
-        @keyframes row-appear {
-            0% { opacity: 0; transform: translateX(-5px); }
-            100% { opacity: 1; transform: translateX(0); }
-        }
-        .hack-row { 
-            display: flex; gap: 15px; margin-bottom: 2px; 
-            opacity: 0; animation: row-appear 0.15s ease forwards; 
-        }
-        
-        .hack-hex { opacity: 0.6; }
-        
-        /* Updated Word Styles (No blinking, just a solid retro highlight) */
-        .hack-word { cursor: pointer; transition: background 0.1s, color 0.1s; position: relative; display: inline-block;}
-        .hack-word:hover { 
-            background: #1cf843; color: #040c04; text-shadow: none; 
-            box-shadow: 0 0 8px #1cf843;
-        }
-        
-        .hack-log-panel {
-            width: 250px; border-left: 2px dashed rgba(28, 248, 67, 0.5); 
-            padding-left: 20px; display: flex; flex-direction: column;
-        }
-        .hack-attempts { margin-bottom: 15px; }
-        .hack-output { flex-grow: 1; overflow-y: auto; font-size: 0.9em; line-height: 1.5; word-wrap: break-word; }
-        .hack-hover-display {
-            margin-top: auto; border-top: 1px solid #1cf843; padding-top: 10px; 
-            min-height: 20px; font-weight: bold;
-        }
-        @keyframes blink-cursor { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-        .cursor-block { display: inline-block; animation: blink-cursor 1s infinite; }
-        
-        .portal-menu { z-index: 2; position: relative; display: flex; flex-direction: column; gap: 10px; font-size: 1.2em; }
-        .portal-item { cursor: pointer; padding: 5px; display: inline-block; transition: all 0.2s; width: max-content;}
-        .portal-item:hover { background: #1cf843; color: #040c04; text-shadow: none; }
-        
-        .portal-content { z-index: 2; position: relative; display: flex; gap: 40px; height: 100%; flex-direction: column;}
-        .portal-body { display: flex; gap: 40px; }
-        .portal-text { flex: 1; font-size: 1.1em; line-height: 1.6; }
-        .portal-art { flex: 1; white-space: pre; font-size: 12px; line-height: 14px; color: #1cf843; }
-        .portal-back { margin-top: auto; cursor: pointer; width: max-content; padding: 5px; border: 1px solid #1cf843; }
-        .portal-back:hover { background: #1cf843; color: #040c04; text-shadow: none; }
     </style>
 </head>
 <body>
@@ -308,6 +257,7 @@
     // --- 4. GLOBAL RESIZE & DRAG LOGIC ---
     let activeResizingMonitor = null;
     let rStartX = 0, rStartY = 0, rStartW = 0, rStartH = 0;
+
     let activeDraggingMonitor = null;
     let dStartX = 0, dStartY = 0, dStartLeft = 0, dStartTop = 0;
 
@@ -315,11 +265,16 @@
         if (activeResizingMonitor) {
             const dx = e.clientX - rStartX;
             const dy = e.clientY - rStartY;
-            let newW = Math.max(500, rStartW + dx); 
-            let newH = Math.max(400, rStartH + dy);
+            let newW = rStartW + dx;
+            let newH = rStartH + dy;
+            
+            newW = Math.max(400, newW);
+            newH = Math.max(300, newH);
+            
             activeResizingMonitor.style.width = `${newW}px`;
             activeResizingMonitor.style.height = `${newH}px`;
         }
+
         if (activeDraggingMonitor) {
             const dx = e.clientX - dStartX;
             const dy = e.clientY - dStartY;
@@ -342,29 +297,7 @@
         }
     });
 
-    // --- ESCAPE KEY & MENU NAVIGATION ---
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            monitors.forEach(m => m.dock());
-            return;
-        }
-
-        if (document.querySelector('.portal-menu')) {
-            switch(e.key) {
-                case '1': loadPortalPage('COMPANY INFO'); break;
-                case '2': loadPortalPage('TALENT SOLUTIONS'); break;
-                case '3': loadPortalPage('CONTACT'); break;
-                case '4': loadPortalPage('CUSTOMER CARE'); break;
-                case '5': loadPortalPage('BLOG'); break;
-                case '6': startHackingGame(); break; 
-            }
-        } else if (document.querySelector('.portal-content') && e.key === 'Backspace') {
-            showIntranetMenu();
-        }
-    }, true);
-
-
-    // --- 5. NEW MONITOR SYSTEM ---
+    // --- 5. NEW MONITOR SYSTEM (DROP-DOWN + RESIZE + DRAG) ---
     const monitors = [];
     function createMonitorOverlay(id, label, localX, localY, localWidth, localHeight, contentHTML, baseTransform = 'none') {
         const div = document.createElement('div');
@@ -393,6 +326,7 @@
         };
         monitors.push(monitorData);
 
+        // Bind Resize Handle
         resizer.addEventListener('pointerdown', (e) => {
             if (monitorData.state !== 'centered') return;
             e.stopPropagation();
@@ -404,17 +338,24 @@
             document.body.style.cursor = 'nwse-resize';
         });
 
+        // Bind Drag Handle (Header)
         header.addEventListener('pointerdown', (e) => {
+            // Prevent dragging if they are clicking the close button
             if (e.target === closeBtn || monitorData.state !== 'centered') return;
             e.stopPropagation();
+            
             activeDraggingMonitor = div;
             div.classList.add('is-interacting');
+            
             dStartX = e.clientX; dStartY = e.clientY;
             const rect = div.getBoundingClientRect();
             dStartLeft = rect.left; dStartTop = rect.top;
+            
+            // Switch to absolute pixel positions so it doesn't jump
             div.style.transition = 'none'; 
             div.style.left = dStartLeft + 'px';
             div.style.top = dStartTop + 'px';
+            
             document.body.style.userSelect = 'none';
         });
 
@@ -439,6 +380,7 @@
             app.view.style.filter = 'blur(8px) brightness(0.4)';
 
             void div.offsetWidth; // Force Reflow
+
             div.style.transition = 'top 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.15)'; 
             div.style.top = '7.5vh'; 
 
@@ -447,10 +389,6 @@
                 div.classList.add('is-centered'); 
                 const input = div.querySelector('input');
                 if (input) input.focus();
-                
-                if(id === 'mon-security' && !document.getElementById('hack-container-id')) {
-                    startHackingGame();
-                }
             }, 750);
         };
 
@@ -460,6 +398,7 @@
             monitorData.state = 'animating';
             div.classList.remove('is-centered'); 
             
+            // Re-enable transition so it animates back up smoothly, even if dragged
             div.style.transition = 'top 0.5s cubic-bezier(0.6, -0.28, 0.735, 0.045)'; 
             div.style.top = '-100vh';
             app.view.style.filter = 'none';
@@ -483,26 +422,38 @@
         return div;
     }
 
-    // --- INSTANTIATE MONITORS ---
+    function syncMonitors() {
+        const scale = bgSprite.scale.x;
+        const centerX = app.screen.width / 2;
+        const centerY = app.screen.height / 2;
+        if (scale === 0) return;
+
+        monitors.forEach(m => {
+            if (m.state === 'docked') {
+                m.element.style.left = `${centerX + (m.baseX * scale)}px`;
+                m.element.style.top = `${centerY + (m.baseY * scale)}px`;
+                m.element.style.width = `${m.baseW * scale}px`;
+                m.element.style.height = `${m.baseH * scale}px`;
+                m.element.style.fontSize = `${12 * scale}px`;
+                m.element.style.transform = m.baseTransform; 
+            }
+        });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') monitors.forEach(m => m.dock());
+    });
+
+    // --- INSTANTIATE RETRO MONITORS ---
     createMonitorOverlay("mon-terminal", "TERMINAL", -990, 305, 160, 120, `
         <div class="retro-wrapper">
-            <div class="retro-title">IBEX-OS(TM) V3.1.4 - MASTER TERMINAL</div>
-            <div class="sys-grid">
-                <div class="sys-block">
-                    <div>STATUS: <span style="color:#1cf843; font-weight:bold;">ONLINE</span></div>
-                    <div>UPTIME: <span id="info-uptime">00:00:00</span></div>
-                    <div>ACTIVE UNITS: <span id="info-units">0</span></div>
-                    <div>SECTOR: <span id="info-loc">LOCATING...</span></div>
-                </div>
-                <div class="sys-block">
-                    <div>MEMORY USAGE</div>
-                    <div class="ascii-bar"><span id="info-ram-bar">[----------]</span> <span id="info-ram">16</span>%</div>
-                    <div>CPU LOAD</div>
-                    <div class="ascii-bar"><span id="info-cpu-bar">[----------]</span> <span id="info-cpu">42</span>%</div>
-                </div>
+            <div class="retro-title">
+                IBEX STAFFING SOLUTIONS<br>
+                UNIFIED OPERATING SYSTEM<br>
+                - NODE ALPHA -
             </div>
             <div id="term-log" class="term-log">
-                Root access granted. Welcome back, SYS_ADMIN.<br>Type 'help' for system commands.<br><br>
+                Root access granted.<br>Type 'help' for system commands.<br><br>
             </div>
             <div class="term-input-row">
                 > <input type="text" id="term-input" class="term-input" autocomplete="off" spellcheck="false" />
@@ -510,7 +461,7 @@
         </div>
     `, 'perspective(800px) rotateY(20deg) skewY(-5deg)');
 
-    createMonitorOverlay("mon-web", "IBEX", -784, 300, 220, 120, `
+    createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
         <div class="retro-wrapper" style="padding: 0; padding-top: 15px;">
             <div class="retro-title" style="margin: 0 15px 10px 15px; flex-shrink: 0;">
                 IBEX STAFFING SOLUTIONS PORTAL
@@ -519,211 +470,34 @@
         </div>
     `, 'none');
 
-    createMonitorOverlay("mon-security", "SYSTEM", -515, 325, 160, 120, `
+    createMonitorOverlay("mon-info", "SYS_OP", -515, 325, 160, 120, `
         <div class="retro-wrapper">
-            <div class="retro-title">RESTRICTED AREA // PASSWORD REQUIRED</div>
-            <div id="security-content" style="flex-grow: 1; position: relative;">
+            <div class="retro-title">IBEX-OS(TM) V3.1.4 - SYSTEM DIAGNOSTICS</div>
+            <div class="sys-grid">
+                <div class="sys-block">
+                    <div>STATUS: <span style="color:#1cf843; font-weight:bold;">ONLINE</span></div>
+                    <div>UPTIME: <span id="info-uptime">00:00:00</span></div>
+                    <br>
+                    <div>ACTIVE UNITS: <span id="info-units">0</span></div>
+                    <div>SECTOR: <span id="info-loc">LOCATING...</span></div>
                 </div>
+                <div class="sys-block">
+                    <div>MEMORY USAGE</div>
+                    <div class="ascii-bar"><span id="info-ram-bar">[----------]</span> <span id="info-ram">16</span>%</div>
+                    <br>
+                    <div>CPU LOAD</div>
+                    <div class="ascii-bar"><span id="info-cpu-bar">[----------]</span> <span id="info-cpu">42</span>%</div>
+                </div>
+            </div>
+            <div style="margin-top:auto; font-size: 0.9em; border-top: 1px dashed #1cf843; padding-top: 10px;">
+                WORKFORCE EFFICIENCY: OPTIMAL <br>
+                FACILITY STATUS: SECURE
+            </div>
         </div>
     `, 'perspective(800px) rotateY(-20deg) skewY(8deg)');
 
 
-    // --- 6. HACKING MINIGAME LOGIC ---
-    let hackAttempts = 4;
-    const targetWord = "IBEX";
-    
-    const decoyWords = ["CODE", "DATA", "HIRE", "WORK", "JOBS", "TEAM", "TECH", "CORE", "SYNC", "PLAN", "ROOT", "BOOT", "USER", "FILE", "NODE", "PORT", "NULL"];
-    const garbageChars = "!@#$%^&*()_+-=[]{}|;':,./<>?`~";
-
-    function startHackingGame() {
-        const container = document.getElementById('security-content');
-        hackAttempts = 4;
-        
-        let shuffledDecoys = decoyWords.sort(() => 0.5 - Math.random()).slice(0, 14);
-        let allWords = [...shuffledDecoys, targetWord].sort(() => 0.5 - Math.random());
-        
-        let html = `
-            <div class="hack-container" id="hack-container-id">
-                <div class="hack-main">
-                    <div class="hack-column" id="hack-col-1"></div>
-                    <div class="hack-column" id="hack-col-2"></div>
-                </div>
-                <div class="hack-log-panel">
-                    <div class="hack-attempts">ATTEMPTS REMAINING: <span id="hack-attempt-count">4</span> <span id="hack-blocks">■ ■ ■ ■</span></div>
-                    <div class="hack-output" id="hack-output-log">
-                        > INITIATING LOGIN...<br>
-                        > ENTER PASSWORD.<br>
-                    </div>
-                    <div class="hack-hover-display" id="hack-hover-display">> <span class="cursor-block">█</span></div>
-                </div>
-            </div>
-        `;
-        container.innerHTML = html;
-
-        const col1 = document.getElementById('hack-col-1');
-        const col2 = document.getElementById('hack-col-2');
-        let wordIndex = 0;
-
-        for(let i=0; i<40; i++) {
-            const hex = "0x" + Math.floor(Math.random()*65535).toString(16).toUpperCase().padStart(4, '0');
-            
-            let rowStr = "";
-            for(let j=0; j<14; j++) rowStr += garbageChars.charAt(Math.floor(Math.random() * garbageChars.length));
-
-            if (wordIndex < allWords.length && Math.random() > 0.4) {
-                const word = allWords[wordIndex];
-                const insertPos = Math.floor(Math.random() * (14 - word.length));
-                const pre = rowStr.substring(0, insertPos).replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                const post = rowStr.substring(insertPos + word.length).replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                
-                rowStr = `${pre}<span class="hack-word" 
-                    onmouseenter="document.getElementById('hack-hover-display').innerHTML = '> ${word} <span class=\\'cursor-block\\'>█</span>'" 
-                    onmouseleave="document.getElementById('hack-hover-display').innerHTML = '> <span class=\\'cursor-block\\'>█</span>'" 
-                    onclick="handleHackAttempt('${word}')">${word}</span>${post}`;
-                
-                wordIndex++;
-            } else {
-                rowStr = rowStr.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            }
-
-            // Calculate staggered delay so it scans top to bottom across both columns
-            let delayIndex = i < 20 ? i : i - 20;
-            let delay = delayIndex * 0.03;
-
-            const rowHtml = `<div class="hack-row" style="animation-delay: ${delay}s"><span class="hack-hex">${hex}</span> <span>${rowStr}</span></div>`;
-            if(i < 20) col1.innerHTML += rowHtml;
-            else col2.innerHTML += rowHtml;
-        }
-    }
-
-    window.handleHackAttempt = function(word) {
-        if(hackAttempts <= 0) return;
-
-        const log = document.getElementById('hack-output-log');
-        log.innerHTML += `> ${word}<br>`;
-
-        if(word === targetWord) {
-            log.innerHTML += `<span style="color:#fff; text-shadow: 0 0 10px #fff;">> EXACT MATCH!</span><br>> ACCESS GRANTED.<br>`;
-            setTimeout(() => { showIntranetMenu(); }, 1200);
-            return;
-        }
-
-        let likeness = 0;
-        for(let i=0; i<4; i++) { if(word[i] === targetWord[i]) likeness++; }
-        
-        hackAttempts--;
-        log.innerHTML += `> ENTRY DENIED.<br>> LIKENESS=${likeness}<br>`;
-        
-        document.getElementById('hack-attempt-count').innerText = hackAttempts;
-        let blocks = "";
-        for(let i=0; i<hackAttempts; i++) blocks += "■ ";
-        document.getElementById('hack-blocks').innerText = blocks;
-
-        if(hackAttempts <= 0) {
-            log.innerHTML += `<span style="color:red; text-shadow: 0 0 10px red;">> TERMINAL LOCKED.</span><br>> REBOOTING...<br>`;
-            setTimeout(() => { startHackingGame(); }, 2000); 
-        }
-        
-        log.scrollTop = log.scrollHeight;
-    };
-
-    // --- 7. INTRANET MENU SYSTEM ---
-    function showIntranetMenu() {
-        const container = document.getElementById('security-content');
-        container.innerHTML = `
-            <div class="portal-menu">
-                <div style="margin-bottom: 20px; border-bottom: 1px dashed #1cf843; padding-bottom: 10px;">
-                    WELCOME TO THE IBEX SECURE INTRANET.<br>PLEASE SELECT A MODULE OR USE KEYBOARD (1-6):
-                </div>
-                <div class="portal-item" onclick="loadPortalPage('COMPANY INFO')">[1] COMPANY INFO</div>
-                <div class="portal-item" onclick="loadPortalPage('TALENT SOLUTIONS')">[2] TALENT SOLUTIONS</div>
-                <div class="portal-item" onclick="loadPortalPage('CONTACT')">[3] CONTACT</div>
-                <div class="portal-item" onclick="loadPortalPage('CUSTOMER CARE')">[4] CUSTOMER CARE</div>
-                <div class="portal-item" onclick="loadPortalPage('BLOG')">[5] LOGS / BLOG</div>
-                <div class="portal-item" style="margin-top:20px; color:#aaa;" onclick="startHackingGame()">[6] LOGOUT</div>
-            </div>
-        `;
-    }
-
-    const portalData = {
-        'COMPANY INFO': {
-            text: "IBEX Staffing Solutions.<br><br>Founded on the principle that the right talent unlocks exponential growth. We specialize in sourcing, vetting, and deploying top-tier professionals across multiple sectors.<br><br>Our robust facility ensures high-efficiency processing and unparalleled synergy between worker and objective.",
-            art: `
-       /\\
-      // \\
-     //   \\
-    //IBEX \\
-   //_______\\
-  /          \\
-            `
-        },
-        'TALENT SOLUTIONS': {
-            text: "Whether you need temporary contractors for immediate project scaling or long-term executive placements, IBEX delivers.<br><br>Our predictive algorithm matches skill sets with corporate culture to ensure a 99.8% retention rate over the first fiscal year.",
-            art: `
-    _____     _____
-   /     \\   /     \\
-  |  ___  |_|  ___  |
-  | |   |__ __|   | |
-  |_|      V      |_|
-   Handshake Protocol
-      Engaged.
-            `
-        },
-        'CONTACT': {
-            text: "REACH THE IBEX HUB:<br><br>Direct Line: 555-IBEX-HIRE<br>Encrypted Mail: secure@goibex.it<br><br>Global Headquarters located in Sector 4. Authorized personnel only beyond the lobby.",
-            art: `
-   _________________
-  / \\             / \\
- |   \\           /   |
- |    \\_________/    |
- |      S E C U R E  |
-  \\_________________/
-            `
-        },
-        'CUSTOMER CARE': {
-            text: "We stand by our placements.<br><br>If a unit fails to meet efficiency standards within the 30-day grace period, IBEX provides a frictionless replacement protocol at zero extra corporate cost.<br><br>Your satisfaction is our primary directive.",
-            art: `
-    _  _
-   / \\/ \\
-   \\    /
-    \\  /
-     \\/
- Client Loyalty.
-            `
-        },
-        'BLOG': {
-            text: "LATEST ENTRIES:<br><br>- Q3 Hiring Trends Shift Towards Automation.<br>- How to optimize your resume for Machine Learning parsers.<br>- IBEX wins 'Agency of the Year' in Sector 7.<br>- The benefits of isometric factory monitoring.",
-            art: `
-   _________
-  | |_____| |
-  |  _____  |
-  | | IBX | |
-  |_|_____|_|
- Data Saved.
-            `
-        }
-    };
-
-    window.loadPortalPage = function(pageId) {
-        const container = document.getElementById('security-content');
-        const data = portalData[pageId];
-        
-        container.innerHTML = `
-            <div class="portal-content">
-                <div style="border-bottom: 1px dashed #1cf843; padding-bottom: 10px;">
-                    MODULE :: ${pageId}
-                </div>
-                <div class="portal-body">
-                    <div class="portal-text">${data.text}</div>
-                    <div class="portal-art">${data.art}</div>
-                </div>
-                <div class="portal-back" onclick="showIntranetMenu()">[ < RETURN TO MENU (BACKSPACE) ]</div>
-            </div>
-        `;
-    };
-
-
-    // --- 8. WIDGET LOGIC & UPDATES ---
+    // --- 6. WIDGET LOGIC & UPDATES ---
     const termInput = document.getElementById('term-input');
     const termLog = document.getElementById('term-log');
     termInput.addEventListener('keydown', (e) => {
@@ -794,30 +568,12 @@
     }
     fetchWeatherAndLocation();
 
-    function syncMonitors() {
-        const scale = bgSprite.scale.x;
-        const centerX = app.screen.width / 2;
-        const centerY = app.screen.height / 2;
-        if (scale === 0) return;
-
-        monitors.forEach(m => {
-            if (m.state === 'docked') {
-                m.element.style.left = `${centerX + (m.baseX * scale)}px`;
-                m.element.style.top = `${centerY + (m.baseY * scale)}px`;
-                m.element.style.width = `${m.baseW * scale}px`;
-                m.element.style.height = `${m.baseH * scale}px`;
-                m.element.style.fontSize = `${12 * scale}px`;
-                m.element.style.transform = m.baseTransform; 
-            }
-        });
-    }
-
     let loadSyncCount = 0;
     const loadSyncInterval = setInterval(() => {
         syncMonitors(); if (++loadSyncCount > 30) clearInterval(loadSyncInterval);
     }, 100);
 
-    // --- 9. BUTTON HITBOXES & EASTER EGG ---
+    // --- 7. BUTTON HITBOXES & EASTER EGG ---
     let isAnimating = true, isFast = false;
     let easterEggTriggered = false;
 
@@ -860,23 +616,40 @@
         const fullHeight = texture.height;
         const normalTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(0, 0, halfWidth, fullHeight));
         const pressedTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(halfWidth, 0, halfWidth, fullHeight));
-        const customStartBtn = new PIXI.Sprite(normalTex);
-        customStartBtn.x = -1350; customStartBtn.y = 430; customStartBtn.scale.set(3);
-        customStartBtn.interactive = true; customStartBtn.cursor = 'pointer';
 
-        let isPressed = false; const pressDepth = 4;
+        const customStartBtn = new PIXI.Sprite(normalTex);
+        customStartBtn.x = -1350;
+        customStartBtn.y = 430;
+        customStartBtn.scale.set(3);
+        customStartBtn.interactive = true;
+        customStartBtn.cursor = 'pointer';
+
+        let isPressed = false;
+        const pressDepth = 4;
+
         customStartBtn.on('pointerdown', () => {
-            if (!isPressed) { customStartBtn.texture = pressedTex; customStartBtn.y += (pressDepth * customStartBtn.scale.y); isPressed = true; }
+            if (!isPressed) {
+                customStartBtn.texture = pressedTex;
+                customStartBtn.y += (pressDepth * customStartBtn.scale.y);
+                isPressed = true;
+            }
         });
+
         const releaseButton = () => {
-            if (isPressed) { customStartBtn.texture = normalTex; customStartBtn.y -= (pressDepth * customStartBtn.scale.y); isPressed = false; }
+            if (isPressed) {
+                customStartBtn.texture = normalTex;
+                customStartBtn.y -= (pressDepth * customStartBtn.scale.y);
+                isPressed = false;
+            }
         };
+
         customStartBtn.on('pointerup', () => {
             releaseButton();
             document.querySelectorAll('.monitor-overlay').forEach(el => el.classList.remove('power-off'));
             document.getElementById('coords-display').innerText = "SYSTEM: MONITORS ON";
             document.getElementById('coords-display').style.color = "#4CAF50";
         });
+
         customStartBtn.on('pointerupoutside', releaseButton);
         bgSprite.addChild(customStartBtn);
     });
@@ -887,17 +660,33 @@
         const fullHeight = texture.height;
         const normalTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(0, 0, halfWidth, fullHeight));
         const pressedTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(halfWidth, 0, halfWidth, fullHeight));
-        const customStopBtn = new PIXI.Sprite(normalTex);
-        customStopBtn.x = -1025; customStopBtn.y = 430; customStopBtn.scale.set(3);
-        customStopBtn.interactive = true; customStopBtn.cursor = 'pointer';
 
-        let isPressed = false; const pressDepth = 4;
+        const customStopBtn = new PIXI.Sprite(normalTex);
+        customStopBtn.x = -1025;
+        customStopBtn.y = 430;
+        customStopBtn.scale.set(3);
+        customStopBtn.interactive = true;
+        customStopBtn.cursor = 'pointer';
+
+        let isPressed = false;
+        const pressDepth = 4;
+
         customStopBtn.on('pointerdown', () => {
-            if (!isPressed) { customStopBtn.texture = pressedTex; customStopBtn.y += (pressDepth * customStopBtn.scale.y); isPressed = true; }
+            if (!isPressed) {
+                customStopBtn.texture = pressedTex;
+                customStopBtn.y += (pressDepth * customStopBtn.scale.y);
+                isPressed = true;
+            }
         });
+
         const releaseButton = () => {
-            if (isPressed) { customStopBtn.texture = normalTex; customStopBtn.y -= (pressDepth * customStopBtn.scale.y); isPressed = false; }
+            if (isPressed) {
+                customStopBtn.texture = normalTex;
+                customStopBtn.y -= (pressDepth * customStopBtn.scale.y);
+                isPressed = false;
+            }
         };
+
         customStopBtn.on('pointerup', () => {
             releaseButton();
             monitors.forEach(m => m.dock());
@@ -905,6 +694,7 @@
             document.getElementById('coords-display').innerText = "SYSTEM: MONITORS OFF";
             document.getElementById('coords-display').style.color = "#ff5252";
         });
+
         customStopBtn.on('pointerupoutside', releaseButton);
         bgSprite.addChild(customStopBtn);
     });
@@ -915,17 +705,33 @@
         const fullHeight = texture.height;
         const normalTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(0, 0, halfWidth, fullHeight));
         const pressedTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(halfWidth, 0, halfWidth, fullHeight));
-        const customToggleBtn = new PIXI.Sprite(normalTex);
-        customToggleBtn.x = -690; customToggleBtn.y = 430; customToggleBtn.scale.set(3);
-        customToggleBtn.interactive = true; customToggleBtn.cursor = 'pointer';
 
-        let isPressed = false; const pressDepth = 4;
+        const customToggleBtn = new PIXI.Sprite(normalTex);
+        customToggleBtn.x = -690;
+        customToggleBtn.y = 430;
+        customToggleBtn.scale.set(3);
+        customToggleBtn.interactive = true;
+        customToggleBtn.cursor = 'pointer';
+
+        let isPressed = false;
+        const pressDepth = 4;
+
         customToggleBtn.on('pointerdown', () => {
-            if (!isPressed) { customToggleBtn.texture = pressedTex; customToggleBtn.y += (pressDepth * customToggleBtn.scale.y); isPressed = true; }
+            if (!isPressed) {
+                customToggleBtn.texture = pressedTex;
+                customToggleBtn.y += (pressDepth * customToggleBtn.scale.y);
+                isPressed = true;
+            }
         });
+
         const releaseButton = () => {
-            if (isPressed) { customToggleBtn.texture = normalTex; customToggleBtn.y -= (pressDepth * customToggleBtn.scale.y); isPressed = false; }
+            if (isPressed) {
+                customToggleBtn.texture = normalTex;
+                customToggleBtn.y -= (pressDepth * customToggleBtn.scale.y);
+                isPressed = false;
+            }
         };
+
         customToggleBtn.on('pointerup', () => {
             releaseButton();
             isAnimating = !isAnimating;
@@ -933,11 +739,12 @@
             document.getElementById('coords-display').innerText = `SYSTEM: ${isAnimating ? 'RESUMED' : 'PAUSED'}`;
             document.getElementById('coords-display').style.color = isAnimating ? "#4CAF50" : "#ffb74d";
         });
+
         customToggleBtn.on('pointerupoutside', releaseButton);
         bgSprite.addChild(customToggleBtn);
     });
 
-    // --- 10. ENTITY SYSTEM ---
+    // --- 8. ENTITY SYSTEM ---
     const swPaths = [ 'animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_003.png' ];
     const nePaths = [ 'animations/Breathing_Idle-c1b5dcec/north-east/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_003.png' ];
     const robotSEPaths = [ 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_001.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_002.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_003.png' ];
