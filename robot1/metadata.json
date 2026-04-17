@@ -1,0 +1,39 @@
+{
+  "character": {
+    "id": "3d0d785e-585c-4464-a875-725a5e61d28c",
+    "name": "ai robot, crouching ",
+    "prompt": "ai robot, crouching ",
+    "size": {
+      "width": 68,
+      "height": 68
+    },
+    "template_id": "mannequin",
+    "directions": 8,
+    "view": "low top-down",
+    "created_at": "2026-04-14T10:28:28.321628+00:00"
+  },
+  "frames": {
+    "rotations": {
+      "south": "rotations/south.png",
+      "south-east": "rotations/south-east.png",
+      "east": "rotations/east.png",
+      "north-east": "rotations/north-east.png",
+      "north": "rotations/north.png",
+      "north-west": "rotations/north-west.png",
+      "west": "rotations/west.png",
+      "south-west": "rotations/south-west.png"
+    },
+    "animations": {
+      "Breathing_Idle-6d37f6f3": {
+        "south-east": [
+          "animations/Breathing_Idle-6d37f6f3/south-east/frame_000.png",
+          "animations/Breathing_Idle-6d37f6f3/south-east/frame_001.png",
+          "animations/Breathing_Idle-6d37f6f3/south-east/frame_002.png",
+          "animations/Breathing_Idle-6d37f6f3/south-east/frame_003.png"
+        ]
+      }
+    }
+  },
+  "export_version": "2.0",
+  "export_date": "2026-04-17T13:02:09.512147"
+}
