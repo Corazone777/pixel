@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IBEX Staffing Solutions - Factory Dashboard</title>
+    <title>IBEX Staffing Solutions</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
     <style>
         /* --- 1. GLOBAL & UI STYLES --- */
@@ -11,6 +11,7 @@
             margin: 0; padding: 0; overflow: hidden;
             background-color: #050505; color: #e0e0e0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            image-rendering: pixelated;
         }
 
         #app-wrapper {
@@ -68,7 +69,7 @@
             100% { transform: scale(1, 1); opacity: 1; filter: brightness(1) contrast(1); }
         }
 
-        /* --- 2. MONITOR OVERLAYS (BASE) --- */
+        /* --- 2. DOCKED MONITOR OVERLAYS (BASE BACKGROUND MONITORS) --- */
         .monitor-overlay {
             position: absolute;
             background: #020602;
@@ -86,6 +87,8 @@
             box-shadow: inset 0 0 50px rgba(0,0,0,1) !important;
             pointer-events: none !important;
         }
+
+        /* Re-added the missing opacity rules to correctly blank out the screens on power off */
         .monitor-overlay > * { transition: opacity 0.3s ease; }
         .monitor-overlay.power-off > * { opacity: 0 !important; }
 
@@ -104,146 +107,128 @@
             box-shadow: inset 0 0 30px rgba(28, 248, 67, 0.3);
         }
 
-        .monitor-header {
-            background: #0a1f0a; height: 35px; display: flex; align-items: center;
-            justify-content: space-between; padding: 0 15px; font-size: 14px;
-            font-family: 'Courier New', Courier, monospace; font-weight: bold;
-            letter-spacing: 2px; color: #1cf843; user-select: none;
-            flex-shrink: 0; border-bottom: 2px solid #1cf843;
-            box-shadow: 0 2px 10px rgba(28, 248, 67, 0.2);
-            cursor: grab;
-        }
-        .monitor-header:active { cursor: grabbing; }
-
-        .close-btn {
-            display: none; color: #1cf843;
-            font-size: 22px; font-weight: bold; cursor: pointer; padding: 0 5px;
-        }
-        .close-btn:hover { color: #fff; text-shadow: 0 0 10px #fff; }
-
-        /* --- 3. RETRO UI STYLES --- */
-        .monitor-body {
-            flex-grow: 1; position: relative;
-            overflow: hidden; display: flex; flex-direction: column;
+        /* --- 3. IMMERSIVE HARDWARE STYLING (ONLY WHEN OPENED) --- */
+        .monitor-overlay.is-centered {
+            width: 90vw !important; max-width: 1800px;
+            height: 90vh !important; max-height: 1200px;
+            left: 5vw !important;
+            
+            border: 6px solid #000;
+            border-radius: 12px;
+            background-color: #556b47;
+            padding: 1.5rem 1.5rem 6rem 1.5rem; 
+            
+            box-shadow: 
+                inset 8px 8px 0 rgba(255,255,255,0.2), 
+                inset -8px -8px 0 rgba(0,0,0,0.4),
+                30px 30px 0 rgba(0,0,0,0.6);
+            transform: none !important;
         }
         
+        .monitor-overlay.is-centered#mon-web { background-color: #b0b0a0; }
+        .monitor-overlay.is-centered#mon-security { background-color: #3b3d40; }
+
+        .hardware-bezel {
+            flex-grow: 1; display: flex; flex-direction: column;
+            background: #000;
+            border: 6px solid #000;
+            border-radius: 8px;
+            box-shadow: inset 0 0 50px rgba(0,0,0,1);
+            overflow: hidden; position: relative;
+        }
+
+       .monitor-body { 
+            flex-grow: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; 
+            opacity: 1; transition: opacity 0.6s ease; 
+        }
+        .is-booting .monitor-body {
+            opacity: 0; pointer-events: none;
+            transition: none !important; 
+        }
+        .hardware-controls {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 6rem;
+            display: none; align-items: center; justify-content: space-between; padding: 0 3rem;
+        }
+        .monitor-overlay.is-centered .hardware-controls { display: flex; }
+
+        .hw-logo {
+            font-family: 'Courier New', Courier, monospace; font-weight: bold; font-size: 1.5rem;
+            color: rgba(0,0,0,0.5); text-shadow: 1px 1px 0px rgba(255,255,255,0.2); letter-spacing: 2px;
+        }
+        .hw-vent {
+            width: 15rem; height: 1.5rem; opacity: 0.7;
+            background: repeating-linear-gradient(to right, #000, #000 4px, transparent 4px, transparent 10px);
+        }
+        .hw-power-btn {
+            background: #d32f2f; color: #fff; font-family: 'Courier New', Courier, monospace;
+            border: 4px solid #000; padding: 0.5rem 1rem; font-weight: bold; font-size: 1rem; cursor: pointer;
+            box-shadow: inset 4px 4px 0 #ff6666, inset -4px -4px 0 #990000;
+            transition: all 0.1s;
+        }
+        .hw-power-btn:active { box-shadow: inset 4px 4px 0 #990000, inset -4px -4px 0 #ff6666; transform: translateY(2px); }
+        .monitor-header { display: none; }
+
+
+        /* --- 4. RETRO UI STYLES (INSIDE THE SCREEN) --- */
         .retro-wrapper {
             background-color: #040c04; color: #1cf843;
             font-family: 'Courier New', Courier, monospace; font-weight: bold;
             text-shadow: 0 0 6px rgba(28, 248, 67, 0.8);
             height: 100%; width: 100%; position: relative;
-            padding: 25px; box-sizing: border-box; overflow: hidden;
-            display: flex; flex-direction: column;
-            font-size: 1.1em; line-height: 1.4;
+            padding: 30px; box-sizing: border-box; overflow: hidden;
+            display: flex; flex-direction: column; 
+            font-size: 2.5em; /* Permanently set to 2.5em */
+            line-height: 1.3;
         }
 
         .retro-wrapper::after {
-            content: " "; display: block; position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
                         linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 10; background-size: 100% 4px, 3px 100%;
-            pointer-events: none;
+            z-index: 10; background-size: 100% 4px, 3px 100%; pointer-events: none;
             box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
         }
 
-        .retro-title {
-            margin-bottom: 15px; border-bottom: 2px solid #1cf843; padding-bottom: 10px;
-            font-size: 1.2em; text-transform: uppercase; flex-shrink: 0;
-        }
-
+        .retro-title { margin-bottom: 15px; border-bottom: 2px solid #1cf843; padding-bottom: 10px; font-size: 1.1em; text-transform: uppercase; flex-shrink: 0; padding-right: 80px; }
         .term-log { flex-grow: 1; overflow-y: auto; word-wrap: break-word; z-index: 2; position: relative; }
         .term-log::-webkit-scrollbar { width: 12px; }
         .term-log::-webkit-scrollbar-track { background: #040c04; border-left: 1px solid #113311; }
         .term-log::-webkit-scrollbar-thumb { background: #1cf843; }
 
         .term-input-row { display: flex; align-items: center; z-index: 2; position: relative; margin-top: 10px; flex-shrink: 0; }
-        .term-input {
-            width: 100%; background: transparent; color: #1cf843;
-            border: none; outline: none; font-family: inherit; font-size: inherit; font-weight: inherit;
-            text-shadow: 0 0 6px rgba(28, 248, 67, 0.8); margin-left: 10px;
-        }
+        .term-input { width: 100%; background: transparent; color: #1cf843; border: none; outline: none; font-family: inherit; font-size: inherit; font-weight: inherit; text-shadow: 0 0 6px rgba(28, 248, 67, 0.8); margin-left: 10px; }
 
-        .sys-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 20px; z-index: 2; position: relative;
-            border-bottom: 2px dashed rgba(28, 248, 67, 0.5); padding-bottom: 20px; margin-bottom: 20px;
-            flex-shrink: 0;
-        }
+        .sys-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; z-index: 2; position: relative; border-bottom: 2px dashed rgba(28, 248, 67, 0.5); padding-bottom: 20px; margin-bottom: 20px; flex-shrink: 0; }
         .sys-block { margin-bottom: 5px; }
         .ascii-bar { color: #1cf843; letter-spacing: 2px; }
-        
-        .website-iframe {
-            flex-grow: 1; border: none; width: 100%; height: 100%; 
-            background: #fff; z-index: 2; position: relative;
-        }
-
-        /* --- RESIZE HANDLE STYLES --- */
-        .resize-handle {
-            position: absolute; bottom: 0; right: 0;
-            width: 25px; height: 25px; cursor: nwse-resize;
-            z-index: 100; display: none;
-        }
-        .resize-handle::after {
-            content: ''; position: absolute; bottom: 6px; right: 6px;
-            width: 0; height: 0; border-style: solid;
-            border-width: 0 0 14px 14px; border-color: transparent transparent #1cf843 transparent;
-            opacity: 0.6; transition: opacity 0.2s;
-        }
-        .resize-handle:hover::after { opacity: 1; filter: drop-shadow(0 0 5px #1cf843); }
-
-        .monitor-overlay.is-centered .resize-handle { display: block; }
-        .monitor-overlay.is-interacting iframe { pointer-events: none; }
-        .monitor-overlay.is-interacting { box-shadow: 0 15px 50px rgba(28, 248, 67, 0.25), inset 0 0 40px rgba(0,0,0,1); opacity: 0.95; }
+        .website-iframe { flex-grow: 1; border: none; width: 100%; height: 100%; background: #fff; z-index: 2; position: relative; }
 
         /* --- MINIGAME / MENU STYLES --- */
-        .hack-container {
-            display: flex; gap: 30px; font-size: 1.1em; letter-spacing: 2px; height: 100%;
-            z-index: 2; position: relative; overflow: hidden;
-        }
-        .hack-main { flex-grow: 1; display: flex; gap: 20px; overflow-y: hidden; }
+        .hack-container { display: flex; gap: 2em; letter-spacing: 2px; height: 100%; z-index: 2; position: relative; overflow: hidden; }
+        .hack-main { flex-grow: 1; display: flex; gap: 1.5em; overflow-y: hidden; }
         .hack-column { display: flex; flex-direction: column; width: 50%; }
-        
-        /* New Row Appear Animation */
-        @keyframes row-appear {
-            0% { opacity: 0; transform: translateX(-5px); }
-            100% { opacity: 1; transform: translateX(0); }
-        }
-        .hack-row { 
-            display: flex; gap: 15px; margin-bottom: 2px; 
-            opacity: 0; animation: row-appear 0.15s ease forwards; 
-        }
-        
+        @keyframes row-appear { 0% { opacity: 0; transform: translateX(-5px); } 100% { opacity: 1; transform: translateX(0); } }
+        .hack-row { display: flex; gap: 1em; margin-bottom: 1px; opacity: 0; animation: row-appear 0.15s ease forwards; }
         .hack-hex { opacity: 0.6; }
-        
-        /* Updated Word Styles (No blinking, just a solid retro highlight) */
         .hack-word { cursor: pointer; transition: background 0.1s, color 0.1s; position: relative; display: inline-block;}
-        .hack-word:hover { 
-            background: #1cf843; color: #040c04; text-shadow: none; 
-            box-shadow: 0 0 8px #1cf843;
-        }
+        .hack-word:hover { background: #1cf843; color: #040c04; text-shadow: none; box-shadow: 0 0 8px #1cf843; }
         
-        .hack-log-panel {
-            width: 250px; border-left: 2px dashed rgba(28, 248, 67, 0.5); 
-            padding-left: 20px; display: flex; flex-direction: column;
-        }
-        .hack-attempts { margin-bottom: 15px; }
+        .hack-log-panel { width: 18em; min-width: 250px; border-left: 2px dashed rgba(28, 248, 67, 0.5); padding-left: 1.5em; display: flex; flex-direction: column; }
+        
+        .hack-attempts { margin-bottom: 1em; }
         .hack-output { flex-grow: 1; overflow-y: auto; font-size: 0.9em; line-height: 1.5; word-wrap: break-word; }
-        .hack-hover-display {
-            margin-top: auto; border-top: 1px solid #1cf843; padding-top: 10px; 
-            min-height: 20px; font-weight: bold;
-        }
+        .hack-hover-display { margin-top: auto; border-top: 1px solid #1cf843; padding-top: 0.8em; min-height: 1.5em; font-weight: bold; }
         @keyframes blink-cursor { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         .cursor-block { display: inline-block; animation: blink-cursor 1s infinite; }
         
-        .portal-menu { z-index: 2; position: relative; display: flex; flex-direction: column; gap: 10px; font-size: 1.2em; }
-        .portal-item { cursor: pointer; padding: 5px; display: inline-block; transition: all 0.2s; width: max-content;}
+        .portal-menu { z-index: 2; position: relative; display: flex; flex-direction: column; gap: 0.8em; font-size: 1.1em; }
+        .portal-item { cursor: pointer; padding: 0.3em; display: inline-block; transition: all 0.2s; width: max-content;}
         .portal-item:hover { background: #1cf843; color: #040c04; text-shadow: none; }
-        
-        .portal-content { z-index: 2; position: relative; display: flex; gap: 40px; height: 100%; flex-direction: column;}
-        .portal-body { display: flex; gap: 40px; }
+        .portal-content { z-index: 2; position: relative; display: flex; gap: 2em; height: 100%; flex-direction: column;}
+        .portal-body { display: flex; gap: 2em; }
         .portal-text { flex: 1; font-size: 1.1em; line-height: 1.6; }
-        .portal-art { flex: 1; white-space: pre; font-size: 12px; line-height: 14px; color: #1cf843; }
-        .portal-back { margin-top: auto; cursor: pointer; width: max-content; padding: 5px; border: 1px solid #1cf843; }
+        .portal-art { flex: 1; white-space: pre; font-size: 0.8em; line-height: 1.2em; color: #1cf843; }
+        .portal-back { margin-top: auto; cursor: pointer; width: max-content; padding: 0.5em; border: 1px solid #1cf843; }
         .portal-back:hover { background: #1cf843; color: #040c04; text-shadow: none; }
     </style>
 </head>
@@ -305,44 +290,7 @@
         return { x: (adjX / (TILE_W / 2) + adjY / (TILE_H / 2)) / 2, y: (adjY / (TILE_H / 2) - adjX / (TILE_W / 2)) / 2 };
     }
 
-    // --- 4. GLOBAL RESIZE & DRAG LOGIC ---
-    let activeResizingMonitor = null;
-    let rStartX = 0, rStartY = 0, rStartW = 0, rStartH = 0;
-    let activeDraggingMonitor = null;
-    let dStartX = 0, dStartY = 0, dStartLeft = 0, dStartTop = 0;
-
-    window.addEventListener('pointermove', (e) => {
-        if (activeResizingMonitor) {
-            const dx = e.clientX - rStartX;
-            const dy = e.clientY - rStartY;
-            let newW = Math.max(500, rStartW + dx); 
-            let newH = Math.max(400, rStartH + dy);
-            activeResizingMonitor.style.width = `${newW}px`;
-            activeResizingMonitor.style.height = `${newH}px`;
-        }
-        if (activeDraggingMonitor) {
-            const dx = e.clientX - dStartX;
-            const dy = e.clientY - dStartY;
-            activeDraggingMonitor.style.left = `${dStartLeft + dx}px`;
-            activeDraggingMonitor.style.top = `${dStartTop + dy}px`;
-        }
-    });
-
-    window.addEventListener('pointerup', () => {
-        if (activeResizingMonitor) {
-            activeResizingMonitor.classList.remove('is-interacting');
-            activeResizingMonitor = null;
-            document.body.style.userSelect = '';
-            document.body.style.cursor = '';
-        }
-        if (activeDraggingMonitor) {
-            activeDraggingMonitor.classList.remove('is-interacting');
-            activeDraggingMonitor = null;
-            document.body.style.userSelect = '';
-        }
-    });
-
-    // --- ESCAPE KEY & MENU NAVIGATION ---
+    // --- 4. ESCAPE KEY & MENU NAVIGATION ---
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             monitors.forEach(m => m.dock());
@@ -364,7 +312,7 @@
     }, true);
 
 
-    // --- 5. NEW MONITOR SYSTEM ---
+    // --- 5. NEW HARDWARE MONITOR SYSTEM ---
     const monitors = [];
     function createMonitorOverlay(id, label, localX, localY, localWidth, localHeight, contentHTML, baseTransform = 'none') {
         const div = document.createElement('div');
@@ -373,19 +321,23 @@
 
         div.innerHTML = `
             <div class="monitor-cover">${label}</div>
-            <div class="monitor-header"><span>IBEX OS // ${label}</span><div class="close-btn">[X]</div></div>
-            <div class="monitor-body">${contentHTML}</div>
-            <div class="resize-handle"></div>
+            
+            <div class="hardware-bezel">
+                <div class="monitor-header"><span>IBEX OS // ${label}</span></div>
+                <div class="monitor-body">${contentHTML}</div>
+            </div>
+
+            <div class="hardware-controls">
+                <div class="hw-logo">IBEX // ${label}</div>
+                <div class="hw-vent"></div>
+                <div class="hw-power-btn close-btn">SHUT DOWN</div>
+            </div>
         `;
         document.getElementById('app-wrapper').appendChild(div);
 
         const closeBtn = div.querySelector('.close-btn');
         const cover = div.querySelector('.monitor-cover');
-        const header = div.querySelector('.monitor-header');
-        const resizer = div.querySelector('.resize-handle');
         
-        header.style.display = 'none';
-
         const monitorData = {
             element: div, baseX: localX, baseY: localY,
             baseW: localWidth, baseH: localHeight,
@@ -393,72 +345,45 @@
         };
         monitors.push(monitorData);
 
-        resizer.addEventListener('pointerdown', (e) => {
-            if (monitorData.state !== 'centered') return;
-            e.stopPropagation();
-            activeResizingMonitor = div;
-            div.classList.add('is-interacting');
-            rStartX = e.clientX; rStartY = e.clientY;
-            rStartW = div.offsetWidth; rStartH = div.offsetHeight;
-            document.body.style.userSelect = 'none';
-            document.body.style.cursor = 'nwse-resize';
-        });
-
-        header.addEventListener('pointerdown', (e) => {
-            if (e.target === closeBtn || monitorData.state !== 'centered') return;
-            e.stopPropagation();
-            activeDraggingMonitor = div;
-            div.classList.add('is-interacting');
-            dStartX = e.clientX; dStartY = e.clientY;
-            const rect = div.getBoundingClientRect();
-            dStartLeft = rect.left; dStartTop = rect.top;
-            div.style.transition = 'none'; 
-            div.style.left = dStartLeft + 'px';
-            div.style.top = dStartTop + 'px';
-            document.body.style.userSelect = 'none';
-        });
-
         const focusMe = () => {
             if (monitorData.state === 'centered' || monitorData.state === 'animating') return;
             if (div.classList.contains('power-off')) return;
             
             monitorData.state = 'animating';
             
+            div.classList.add('is-booting');
+            div.classList.add('is-centered'); 
+            
             div.style.transition = 'none';
-            div.style.transform = 'none';
-            div.style.width = '85vw';
-            div.style.height = '85vh';
-            div.style.left = '7.5vw';
             div.style.top = '-100vh'; 
             div.style.zIndex = 200;
-            div.style.fontSize = '16px';
-            
             cover.style.display = 'none';
-            header.style.display = 'flex';
-            closeBtn.style.display = 'block';
-            app.view.style.filter = 'blur(8px) brightness(0.4)';
+            app.view.style.filter = 'blur(12px) brightness(0.3)';
 
-            void div.offsetWidth; // Force Reflow
-            div.style.transition = 'top 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.15)'; 
-            div.style.top = '7.5vh'; 
+            void div.offsetWidth; 
+            
+            div.style.transition = 'top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'; 
+            div.style.top = '5vh'; 
 
             setTimeout(() => {
                 monitorData.state = 'centered';
-                div.classList.add('is-centered'); 
+                div.classList.remove('is-booting'); 
+                
                 const input = div.querySelector('input');
                 if (input) input.focus();
                 
                 if(id === 'mon-security' && !document.getElementById('hack-container-id')) {
                     startHackingGame();
                 }
-            }, 750);
+            }, 650); 
         };
 
         const dockMe = (e) => {
             if (e) e.stopPropagation();
             if (monitorData.state === 'docked' || monitorData.state === 'animating') return;
             monitorData.state = 'animating';
-            div.classList.remove('is-centered'); 
+            
+            div.classList.add('is-booting'); 
             
             div.style.transition = 'top 0.5s cubic-bezier(0.6, -0.28, 0.735, 0.045)'; 
             div.style.top = '-100vh';
@@ -466,15 +391,15 @@
 
             setTimeout(() => {
                 div.style.transition = 'none';
+                div.classList.remove('is-centered'); 
+                div.classList.remove('is-booting');
                 cover.style.display = 'flex';
-                header.style.display = 'none';
-                closeBtn.style.display = 'none';
                 div.style.zIndex = 50;
                 div.style.transform = monitorData.baseTransform;
                 
                 monitorData.state = 'docked';
                 syncMonitors(); 
-            }, 550);
+            }, 500);
         };
 
         cover.addEventListener('click', focusMe);
@@ -510,20 +435,18 @@
         </div>
     `, 'perspective(800px) rotateY(20deg) skewY(-5deg)');
 
-    createMonitorOverlay("mon-web", "IBEX", -784, 300, 220, 120, `
-        <div class="retro-wrapper" style="padding: 0; padding-top: 15px;">
-            <div class="retro-title" style="margin: 0 15px 10px 15px; flex-shrink: 0;">
-                IBEX STAFFING SOLUTIONS PORTAL
-            </div>
+createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
+        <div class="retro-wrapper" style="padding: 0;">
             <iframe src="https://goibex.it" class="website-iframe"></iframe>
         </div>
     `, 'none');
+
 
     createMonitorOverlay("mon-security", "SYSTEM", -515, 325, 160, 120, `
         <div class="retro-wrapper">
             <div class="retro-title">RESTRICTED AREA // PASSWORD REQUIRED</div>
             <div id="security-content" style="flex-grow: 1; position: relative;">
-                </div>
+            </div>
         </div>
     `, 'perspective(800px) rotateY(-20deg) skewY(8deg)');
 
@@ -586,7 +509,6 @@
                 rowStr = rowStr.replace(/</g, "&lt;").replace(/>/g, "&gt;");
             }
 
-            // Calculate staggered delay so it scans top to bottom across both columns
             let delayIndex = i < 20 ? i : i - 20;
             let delay = delayIndex * 0.03;
 
@@ -739,7 +661,7 @@
             else if (cmd === 'OVERRIDE') termLog.innerHTML += `<div><span style="color:red; text-shadow:0 0 5px red;">ACCESS DENIED.</span> Security credentials required.</div>`;
             else if (cmd === 'EXIT' || cmd === 'QUIT') {
                 termLog.innerHTML += `<div>Terminating connection...</div>`;
-                setTimeout(() => document.querySelector('#mon-terminal .close-btn').click(), 500);
+                setTimeout(() => document.querySelector('.close-btn').click(), 500);
             }
             else if (cmd !== '') termLog.innerHTML += `<div>Bad command or file name.</div>`;
 
@@ -864,6 +786,8 @@
         customStartBtn.x = -1350; customStartBtn.y = 430; customStartBtn.scale.set(3);
         customStartBtn.interactive = true; customStartBtn.cursor = 'pointer';
 
+        customStartBtn.hitArea = new PIXI.Rectangle(25, 35, halfWidth - 45, fullHeight - 80);
+
         let isPressed = false; const pressDepth = 4;
         customStartBtn.on('pointerdown', () => {
             if (!isPressed) { customStartBtn.texture = pressedTex; customStartBtn.y += (pressDepth * customStartBtn.scale.y); isPressed = true; }
@@ -890,6 +814,8 @@
         const customStopBtn = new PIXI.Sprite(normalTex);
         customStopBtn.x = -1025; customStopBtn.y = 430; customStopBtn.scale.set(3);
         customStopBtn.interactive = true; customStopBtn.cursor = 'pointer';
+
+        customStopBtn.hitArea = new PIXI.Rectangle(25, 35, halfWidth - 45, fullHeight - 80);
 
         let isPressed = false; const pressDepth = 4;
         customStopBtn.on('pointerdown', () => {
@@ -918,6 +844,8 @@
         const customToggleBtn = new PIXI.Sprite(normalTex);
         customToggleBtn.x = -690; customToggleBtn.y = 430; customToggleBtn.scale.set(3);
         customToggleBtn.interactive = true; customToggleBtn.cursor = 'pointer';
+
+        customToggleBtn.hitArea = new PIXI.Rectangle(25, 35, halfWidth - 45, fullHeight - 80);
 
         let isPressed = false; const pressDepth = 4;
         customToggleBtn.on('pointerdown', () => {
