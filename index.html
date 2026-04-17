@@ -865,7 +865,7 @@ createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
         bgSprite.addChild(customToggleBtn);
     });
 
-    // --- 10. ENTITY SYSTEM ---
+ // --- 10. ENTITY SYSTEM ---
     const swPaths = [ 'animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_003.png' ];
     const nePaths = [ 'animations/Breathing_Idle-c1b5dcec/north-east/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_003.png' ];
     const robotSEPaths = [ 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_001.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_002.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_003.png' ];
@@ -876,9 +876,17 @@ createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
         const openClawTex = new PIXI.Texture(hookTex.baseTexture, new PIXI.Rectangle(0, 0, frameW, frameH));
         const closedClawTex = new PIXI.Texture(hookTex.baseTexture, new PIXI.Rectangle(frameW, 0, frameW, frameH));
 
+        // 1. Create the dynamic metal chain
+        const chain = new PIXI.Graphics();
+        fxLayer.addChild(chain);
+
+        // 2. Setup the Claw with animation properties
         const claw = new PIXI.Sprite(openClawTex);
         claw.anchor.set(0.6, 1.2); claw.scale.set(1.5); claw.visible = false;
-        fxLayer.addChild(claw);
+        claw.isDropping = false;
+        claw.isRetracting = false;
+        claw.targetY = 0;
+        fxLayer.addChild(claw); // Ensure claw renders in front of the chain
 
         function createEntity(paths, gridX, gridY, type) {
             const entity = new PIXI.AnimatedSprite(paths.map(p => textures[p]));
@@ -903,16 +911,27 @@ createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
                 dragging = true; entity.isDragging = true;
                 entity.cursor = 'grabbing'; entity.alpha = 0.8; entity.zIndex = 10000;
                 dragOffset.x = entity.x - e.data.global.x; dragOffset.y = entity.y - e.data.global.y;
-                claw.texture = closedClawTex; claw.visible = true;
-                claw.x = entity.x; claw.y = entity.y - 30;
+                
+                // Shoot claw down from the ceiling
+                claw.texture = openClawTex; 
+                claw.visible = true;
+                claw.x = entity.x; 
+                claw.y = -300; // Start offscreen
+                claw.targetY = entity.y - 30; // The character's head
+                claw.isDropping = true;
+                claw.isRetracting = false;
             });
 
             const endDrag = () => {
                 if(!dragging) return;
                 dragging = false; entity.isDragging = false;
                 entity.cursor = 'grab'; entity.alpha = 1;
+                
+                // Release character and shoot back to ceiling
                 claw.texture = openClawTex;
-                setTimeout(() => { if (!dragging) claw.visible = false; }, 150);
+                claw.isDropping = false;
+                claw.isRetracting = true;
+                claw.targetY = -300; // Fly back up to ceiling
 
                 if (!easterEggTriggered) {
                     let robotsOnBelt = 0; let humansOnBelt = 0;
@@ -932,7 +951,14 @@ createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
             entity.on('globalpointermove', (e) => {
                 if (dragging) {
                     entity.x = e.data.global.x + dragOffset.x; entity.y = e.data.global.y + dragOffset.y;
-                    claw.x = entity.x; claw.y = entity.y - 30;
+                    
+                    claw.x = entity.x;
+                    if (claw.isDropping) {
+                        claw.targetY = entity.y - 30; // Update target dynamically if user drags immediately
+                    } else {
+                        claw.y = entity.y - 30; // Follow perfectly once grabbed
+                    }
+
                     const cart = toCart(entity.x, entity.y);
                     entity.gridX = cart.x; entity.gridY = cart.y;
                     document.getElementById('coords-display').innerText = `X: ${cart.x.toFixed(1)} | Y: ${cart.y.toFixed(1)}`;
@@ -949,11 +975,60 @@ createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
         createEntity(robotSEPaths, 1.0, 4.6, 'robot');
         createEntity(robotSEPaths, 3.5, 4.8, 'robot');
         createEntity(robotSEPaths, 6.6, 4.8, 'robot');
-    });
 
-    app.ticker.add(() => {
-        entityLayer.children.forEach(c => { if (!c.isDragging) c.zIndex = c.y; });
+        // --- 11. GLOBAL TICKER FOR ANIMATIONS ---
+        app.ticker.add(() => {
+            // Sort entities for 3D depth
+            entityLayer.children.forEach(c => { if (!c.isDragging) c.zIndex = c.y; });
+
+            // Handle Claw Animations
+            if (claw.visible) {
+                if (claw.isDropping) {
+                    claw.y += (claw.targetY - claw.y) * 0.4; // High speed drop
+                    if (Math.abs(claw.targetY - claw.y) < 5) { // Snaps closed when close
+                        claw.y = claw.targetY;
+                        claw.isDropping = false;
+                        claw.texture = closedClawTex;
+                    }
+                } else if (claw.isRetracting) {
+                    claw.y += (claw.targetY - claw.y) * 0.2; // Smooth fly up
+                    if (claw.y < -100) { // Once fully offscreen
+                        claw.isRetracting = false;
+                        claw.visible = false;
+                        chain.clear(); // Hide chain
+                    }
+                }
+
+                // Dynamically draw the Pixel-Art Metal Chain
+                if (claw.visible) {
+                    chain.clear();
+                    
+                    // Shift the chain 12 pixels left to perfectly align with the grabber hinge
+                    const chainX = claw.x - 12; 
+
+                    // Draw interlocking chain links from ceiling down to the claw
+                    for (let cy = -300; cy < claw.y - 180; cy += 14) {
+                        
+                        // 1. Draw Vertical Link (Silver ring with a dark hollow center)
+                        chain.beginFill(0xaaaaaa); // Bright silver outer edge
+                        chain.drawRect(chainX - 3, cy, 6, 10);
+                        chain.beginFill(0x1a1a1a); // Dark "hollow" center hole
+                        chain.drawRect(chainX - 1, cy + 2, 2, 6);
+                        chain.endFill();
+
+                        // 2. Draw Horizontal Link (Dark metal connecting the rings)
+                        chain.beginFill(0x333333); // Dark shadow base
+                        chain.drawRect(chainX - 5, cy + 8, 10, 4);
+                        chain.beginFill(0x777777); // Bright top highlight for metallic shine
+                        chain.drawRect(chainX - 5, cy + 8, 10, 2);
+                        chain.endFill();
+                    }
+                }
+            }
+        });
     });
+</script>
+</script>
 </script>
 </body>
 </html>
