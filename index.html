@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IBEX Staffing Solutions</title>
+    <title>IBEX Staffing Solutions - Factory Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
     <style>
         /* --- 1. GLOBAL & UI STYLES --- */
@@ -88,7 +88,6 @@
             pointer-events: none !important;
         }
 
-        /* Re-added the missing opacity rules to correctly blank out the screens on power off */
         .monitor-overlay > * { transition: opacity 0.3s ease; }
         .monitor-overlay.power-off > * { opacity: 0 !important; }
 
@@ -137,14 +136,15 @@
             overflow: hidden; position: relative;
         }
 
-       .monitor-body { 
+        .monitor-body { 
             flex-grow: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; 
-            opacity: 1; transition: opacity 0.6s ease; 
+            opacity: 1; transition: opacity 0.4s ease;
         }
         .is-booting .monitor-body {
             opacity: 0; pointer-events: none;
-            transition: none !important; 
+            transition: none !important;
         }
+
         .hardware-controls {
             position: absolute; bottom: 0; left: 0; right: 0; height: 6rem;
             display: none; align-items: center; justify-content: space-between; padding: 0 3rem;
@@ -190,18 +190,53 @@
         }
 
         .retro-title { margin-bottom: 15px; border-bottom: 2px solid #1cf843; padding-bottom: 10px; font-size: 1.1em; text-transform: uppercase; flex-shrink: 0; padding-right: 80px; }
-        .term-log { flex-grow: 1; overflow-y: auto; word-wrap: break-word; z-index: 2; position: relative; }
-        .term-log::-webkit-scrollbar { width: 12px; }
-        .term-log::-webkit-scrollbar-track { background: #040c04; border-left: 1px solid #113311; }
-        .term-log::-webkit-scrollbar-thumb { background: #1cf843; }
-
-        .term-input-row { display: flex; align-items: center; z-index: 2; position: relative; margin-top: 10px; flex-shrink: 0; }
-        .term-input { width: 100%; background: transparent; color: #1cf843; border: none; outline: none; font-family: inherit; font-size: inherit; font-weight: inherit; text-shadow: 0 0 6px rgba(28, 248, 67, 0.8); margin-left: 10px; }
-
-        .sys-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; z-index: 2; position: relative; border-bottom: 2px dashed rgba(28, 248, 67, 0.5); padding-bottom: 20px; margin-bottom: 20px; flex-shrink: 0; }
-        .sys-block { margin-bottom: 5px; }
-        .ascii-bar { color: #1cf843; letter-spacing: 2px; }
         .website-iframe { flex-grow: 1; border: none; width: 100%; height: 100%; background: #fff; z-index: 2; position: relative; }
+
+        /* --- SLIDER FABRICATION UI --- */
+        .slider-controls {
+            display: flex; align-items: center; justify-content: center; gap: 40px; 
+            flex-grow: 1; z-index: 2; position: relative; padding: 20px 0;
+        }
+        
+        .slider-btn {
+            font-size: 2.5em; cursor: pointer; color: #1cf843; 
+            transition: transform 0.1s; user-select: none;
+        }
+        .slider-btn:hover { text-shadow: 0 0 15px #1cf843; transform: scale(1.1); }
+        .slider-btn:active { transform: scale(0.9); }
+        
+        .robot-display {
+            display: flex; flex-direction: column; align-items: center; 
+            border: 2px dashed #1cf843; padding: 30px; width: 400px; 
+            background: rgba(28, 248, 67, 0.05); box-shadow: inset 0 0 20px rgba(28, 248, 67, 0.1);
+        }
+        .robot-large-thumb {
+            width: 250px; height: 250px; background-size: contain; 
+            background-repeat: no-repeat; background-position: center; image-rendering: pixelated;
+        }
+        .robot-large-name { font-size: 1.2em; text-align: center; margin-top: 20px; letter-spacing: 2px; }
+
+        /* Target Selector Buttons */
+        .target-selection {
+            display: flex; gap: 20px; align-items: center; justify-content: center; 
+            margin-bottom: 30px; z-index: 2; position: relative; font-size: 1.1em;
+        }
+        .target-btn {
+            cursor: pointer; padding: 5px 15px; border: 2px solid transparent; 
+            transition: all 0.2s; user-select: none;
+        }
+        .target-btn:hover { background: rgba(28, 248, 67, 0.2); }
+        .target-btn.selected {
+            border-color: #1cf843; background: #1cf843; color: #040c04; text-shadow: none; font-weight: bold;
+        }
+
+        .deploy-btn {
+            border: 2px solid #1cf843; padding: 10px 20px; cursor: pointer; transition: all 0.2s;
+            font-size: 1em; text-align: center; width: max-content; background: rgba(28, 248, 67, 0.1);
+        }
+        .deploy-btn:hover { background: #1cf843; color: #040c04; text-shadow: none; box-shadow: 0 0 15px #1cf843; }
+        .deploy-btn.disabled { opacity: 0.3; pointer-events: none; }
+
 
         /* --- MINIGAME / MENU STYLES --- */
         .hack-container { display: flex; gap: 2em; letter-spacing: 2px; height: 100%; z-index: 2; position: relative; overflow: hidden; }
@@ -248,6 +283,38 @@
 </div>
 
 <script>
+    // ============================================================================
+    // ⚙️ ROBOT DATABASE: CONFIGURE YOUR NEW ROBOT FOLDERS HERE!
+    // ============================================================================
+    const ROBOT_DATABASE = [
+        {
+            id: 'robot_base',
+            name: 'WORKER UNIT (BASE)',
+            thumb: 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png',
+            paths: [
+                'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png',
+                'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_001.png',
+                'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_002.png',
+                'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_003.png'
+            ]
+        },
+        {
+            id: 'robot_v1',
+            name: 'SECURITY UNIT (V1)',
+            thumb: 'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_000.png', 
+            paths: [
+             'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_000.png', 
+             'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_001.png', 
+             'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_002.png', 
+             'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_003.png', 
+            ]
+        },
+    ];
+    // ============================================================================
+
+    // Global state for deferred fabrication
+    window.pendingDeployment = null;
+
     // --- 1. PIXI INITIALIZATION ---
     PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
     const app = new PIXI.Application({ resizeTo: window, backgroundColor: 0x121214 });
@@ -320,7 +387,7 @@
         div.id = id;
 
         div.innerHTML = `
-            <div class="monitor-cover">${label}</div>
+            <div class="monitor-cover"> ${label}</div>
             
             <div class="hardware-bezel">
                 <div class="monitor-header"><span>IBEX OS // ${label}</span></div>
@@ -375,6 +442,11 @@
                 if(id === 'mon-security' && !document.getElementById('hack-container-id')) {
                     startHackingGame();
                 }
+                
+                // Initialize the slider if it's the fab terminal
+                if(id === 'mon-terminal' && document.getElementById('robot-display').innerHTML.trim() === '') {
+                    window.updateRobotDisplay();
+                }
             }, 650); 
         };
 
@@ -399,6 +471,17 @@
                 
                 monitorData.state = 'docked';
                 syncMonitors(); 
+                
+                // --- TRIGGER DEFERRED CLAW ANIMATION ---
+                if (id === 'mon-terminal' && window.pendingDeployment) {
+                    window.startAutomatedClawSwap(window.pendingDeployment.target, window.pendingDeployment.config);
+                    window.pendingDeployment = null; // Clear the queue
+                    
+                    // Reset the UI button internally
+                    document.getElementById('deploy-btn').classList.remove('disabled');
+                    document.getElementById('fabrication-status').innerText = `STATUS: AWAITING SELECTION...`;
+                }
+
             }, 500);
         };
 
@@ -409,46 +492,100 @@
     }
 
     // --- INSTANTIATE MONITORS ---
-    createMonitorOverlay("mon-terminal", "TERMINAL", -990, 305, 160, 120, `
+    // Monitor 1: The New SLIDER Robot Fabrication UI
+    createMonitorOverlay("mon-terminal", "FACTORY", -990, 305, 160, 120, `
         <div class="retro-wrapper">
-            <div class="retro-title">IBEX-OS(TM) V3.1.4 - MASTER TERMINAL</div>
-            <div class="sys-grid">
-                <div class="sys-block">
-                    <div>STATUS: <span style="color:#1cf843; font-weight:bold;">ONLINE</span></div>
-                    <div>UPTIME: <span id="info-uptime">00:00:00</span></div>
-                    <div>ACTIVE UNITS: <span id="info-units">0</span></div>
-                    <div>SECTOR: <span id="info-loc">LOCATING...</span></div>
-                </div>
-                <div class="sys-block">
-                    <div>MEMORY USAGE</div>
-                    <div class="ascii-bar"><span id="info-ram-bar">[----------]</span> <span id="info-ram">16</span>%</div>
-                    <div>CPU LOAD</div>
-                    <div class="ascii-bar"><span id="info-cpu-bar">[----------]</span> <span id="info-cpu">42</span>%</div>
-                </div>
+            <div class="retro-title">ROBOT FABRICATION PROTOCOL v4.0</div>
+            
+            <div class="slider-controls">
+                <div class="slider-btn" onclick="prevRobot()">&#9664;</div>
+                <div class="robot-display" id="robot-display">
+                    </div>
+                <div class="slider-btn" onclick="nextRobot()">&#9654;</div>
             </div>
-            <div id="term-log" class="term-log">
-                Root access granted. Welcome back, SYS_ADMIN.<br>Type 'help' for system commands.<br><br>
+
+            <div class="target-selection">
+                <span>TARGET UNIT:</span>
+                <div class="target-btn selected" id="tgt-0" onclick="selectTarget(0)">[ 1 ]</div>
+                <div class="target-btn" id="tgt-1" onclick="selectTarget(1)">[ 2 ]</div>
+                <div class="target-btn" id="tgt-2" onclick="selectTarget(2)">[ 3 ]</div>
+                <div class="target-btn" id="tgt-3" onclick="selectTarget(3)">[ 4 ]</div>
             </div>
-            <div class="term-input-row">
-                > <input type="text" id="term-input" class="term-input" autocomplete="off" spellcheck="false" />
+
+            <div style="margin-top: auto; border-top: 2px dashed #1cf843; padding-top: 15px; display: flex; justify-content: space-between; align-items: center; z-index: 2; position: relative;">
+                <div id="fabrication-status" style="font-size: 0.8em;">STATUS: AWAITING SELECTION...</div>
+                <div class="deploy-btn" id="deploy-btn" onclick="queueFabrication()">INITIATE REPLACEMENT</div>
             </div>
         </div>
     `, 'perspective(800px) rotateY(20deg) skewY(-5deg)');
 
-createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
+    // Monitor 2 & 3
+    createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
         <div class="retro-wrapper" style="padding: 0;">
             <iframe src="https://goibex.it" class="website-iframe"></iframe>
         </div>
     `, 'none');
 
-
-    createMonitorOverlay("mon-security", "SYSTEM", -515, 325, 160, 120, `
+    createMonitorOverlay("mon-security", "SECURITY", -515, 325, 160, 120, `
         <div class="retro-wrapper">
             <div class="retro-title">RESTRICTED AREA // PASSWORD REQUIRED</div>
             <div id="security-content" style="flex-grow: 1; position: relative;">
             </div>
         </div>
     `, 'perspective(800px) rotateY(-20deg) skewY(8deg)');
+
+
+    // --- FABRICATION SLIDER UI LOGIC ---
+    let currentRobotIndex = 0;
+    let selectedTargetIndex = 0;
+
+    window.updateRobotDisplay = function() {
+        const robot = ROBOT_DATABASE[currentRobotIndex];
+        document.getElementById('robot-display').innerHTML = `
+            <div class="robot-large-thumb" style="background-image: url('${robot.thumb}')"></div>
+            <div class="robot-large-name">${robot.name}</div>
+        `;
+    };
+
+    window.prevRobot = function() {
+        currentRobotIndex = (currentRobotIndex - 1 + ROBOT_DATABASE.length) % ROBOT_DATABASE.length;
+        updateRobotDisplay();
+    };
+
+    window.nextRobot = function() {
+        currentRobotIndex = (currentRobotIndex + 1) % ROBOT_DATABASE.length;
+        updateRobotDisplay();
+    };
+
+    window.selectTarget = function(idx) {
+        selectedTargetIndex = idx;
+        document.querySelectorAll('.target-btn').forEach(btn => btn.classList.remove('selected'));
+        document.getElementById('tgt-' + idx).classList.add('selected');
+    };
+
+    window.queueFabrication = function() {
+        const selectedConfig = ROBOT_DATABASE[currentRobotIndex];
+        
+        // Find existing robots on the belt and sort them by X position (Left to Right)
+        const robotsOnBelt = entityLayer.children.filter(c => c.type === 'robot').sort((a, b) => a.x - b.x);
+        
+        if (robotsOnBelt.length <= selectedTargetIndex) {
+            document.getElementById('fabrication-status').innerText = `ERROR: TARGET UNIT NOT FOUND ON BELT.`;
+            return;
+        }
+
+        const targetEntity = robotsOnBelt[selectedTargetIndex];
+
+        // Disable button and update UI status
+        document.getElementById('deploy-btn').classList.add('disabled');
+        document.getElementById('fabrication-status').innerText = `STATUS: QUEUED. CLOSE TERMINAL TO DEPLOY.`;
+
+        // Queue the deployment for when the monitor physically closes
+        window.pendingDeployment = {
+            target: targetEntity,
+            config: selectedConfig
+        };
+    }
 
 
     // --- 6. HACKING MINIGAME LOGIC ---
@@ -644,78 +781,6 @@ createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
         `;
     };
 
-
-    // --- 8. WIDGET LOGIC & UPDATES ---
-    const termInput = document.getElementById('term-input');
-    const termLog = document.getElementById('term-log');
-    termInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            const cmd = termInput.value.toUpperCase().trim();
-            termLog.innerHTML += `<div>> ${cmd}</div>`;
-
-            if (cmd === 'HELP') termLog.innerHTML += `<div style="color:#aaa;">CMDS: HELP, CLEAR, STATUS, PING, WHOAMI, OVERRIDE, EXIT</div>`;
-            else if (cmd === 'CLEAR') termLog.innerHTML = ``;
-            else if (cmd === 'STATUS') termLog.innerHTML += `<div>IBEX systems nominal. Conveyors active. No anomalies detected.</div>`;
-            else if (cmd === 'PING') termLog.innerHTML += `<div>Host reachable. 0ms latency to mainframe.</div>`;
-            else if (cmd === 'WHOAMI') termLog.innerHTML += `<div>SYS_ADMIN</div>`;
-            else if (cmd === 'OVERRIDE') termLog.innerHTML += `<div><span style="color:red; text-shadow:0 0 5px red;">ACCESS DENIED.</span> Security credentials required.</div>`;
-            else if (cmd === 'EXIT' || cmd === 'QUIT') {
-                termLog.innerHTML += `<div>Terminating connection...</div>`;
-                setTimeout(() => document.querySelector('.close-btn').click(), 500);
-            }
-            else if (cmd !== '') termLog.innerHTML += `<div>Bad command or file name.</div>`;
-
-            termInput.value = ''; 
-            setTimeout(() => termLog.scrollTop = termLog.scrollHeight, 10);
-        }
-    });
-
-    function getAsciiBar(percentage) {
-        const totalBlocks = 10;
-        const filled = Math.round((percentage / 100) * totalBlocks);
-        let bar = "[";
-        for(let i=0; i<totalBlocks; i++) { bar += (i < filled) ? "|" : "-"; }
-        bar += "]";
-        return bar;
-    }
-
-    let uptimeSeconds = 0;
-    setInterval(() => {
-        uptimeSeconds++;
-        let h = Math.floor(uptimeSeconds / 3600).toString().padStart(2, '0');
-        let m = Math.floor((uptimeSeconds % 3600) / 60).toString().padStart(2, '0');
-        let s = (uptimeSeconds % 60).toString().padStart(2, '0');
-        document.getElementById('info-uptime').innerText = `${h}:${m}:${s}`;
-
-        let currCpu = parseInt(document.getElementById('info-cpu').innerText);
-        let currRam = parseInt(document.getElementById('info-ram').innerText);
-        let newCpu = Math.max(5, Math.min(99, currCpu + (Math.floor(Math.random() * 15) - 7))); 
-        let newRam = Math.max(10, Math.min(99, currRam + (Math.floor(Math.random() * 5) - 2)));
-        
-        document.getElementById('info-cpu').innerText = newCpu.toString().padStart(2, '0');
-        document.getElementById('info-ram').innerText = newRam.toString().padStart(2, '0');
-        
-        document.getElementById('info-cpu-bar').innerText = getAsciiBar(newCpu);
-        document.getElementById('info-ram-bar').innerText = getAsciiBar(newRam);
-
-        let unitCount = 0;
-        entityLayer.children.forEach(c => { if(c.type) unitCount++; });
-        document.getElementById('info-units').innerText = unitCount;
-
-    }, 1000);
-
-    async function fetchWeatherAndLocation() {
-        const locEl = document.getElementById('info-loc');
-        try {
-            const geoRes = await fetch('https://freeipapi.com/api/json');
-            const geoData = await geoRes.json();
-            locEl.innerText = `${geoData.cityName.toUpperCase()}`;
-        } catch (e) {
-            locEl.innerText = "UNKNOWN SECTOR";
-        }
-    }
-    fetchWeatherAndLocation();
-
     function syncMonitors() {
         const scale = bgSprite.scale.x;
         const centerX = app.screen.width / 2;
@@ -865,28 +930,34 @@ createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
         bgSprite.addChild(customToggleBtn);
     });
 
- // --- 10. ENTITY SYSTEM ---
+    // --- 10. ASSET PRE-LOADING & ENTITY SYSTEM ---
     const swPaths = [ 'animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_003.png' ];
     const nePaths = [ 'animations/Breathing_Idle-c1b5dcec/north-east/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_003.png' ];
-    const robotSEPaths = [ 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_001.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_002.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_003.png' ];
+    
+    // Dynamically gather all robot images for preloading
+    let allAssetsToLoad = [...swPaths, ...nePaths, 'hook-remove.png'];
+    ROBOT_DATABASE.forEach(robot => {
+        allAssetsToLoad = allAssetsToLoad.concat(robot.paths);
+    });
 
-    PIXI.Assets.load([...swPaths, ...nePaths, ...robotSEPaths, 'hook-remove.png']).then((textures) => {
+    PIXI.Assets.load(allAssetsToLoad).then((textures) => {
         const hookTex = textures['hook-remove.png'];
         const frameW = hookTex.width / 4; const frameH = hookTex.height / 2;
         const openClawTex = new PIXI.Texture(hookTex.baseTexture, new PIXI.Rectangle(0, 0, frameW, frameH));
         const closedClawTex = new PIXI.Texture(hookTex.baseTexture, new PIXI.Rectangle(frameW, 0, frameW, frameH));
 
-        // 1. Create the dynamic metal chain
         const chain = new PIXI.Graphics();
         fxLayer.addChild(chain);
 
-        // 2. Setup the Claw with animation properties
         const claw = new PIXI.Sprite(openClawTex);
         claw.anchor.set(0.6, 1.2); claw.scale.set(1.5); claw.visible = false;
-        claw.isDropping = false;
-        claw.isRetracting = false;
+        
+        claw.mode = 'idle'; 
         claw.targetY = 0;
-        fxLayer.addChild(claw); // Ensure claw renders in front of the chain
+        claw.autoTarget = null;
+        claw.newRobotConfig = null;
+        
+        fxLayer.addChild(claw);
 
         function createEntity(paths, gridX, gridY, type) {
             const entity = new PIXI.AnimatedSprite(paths.map(p => textures[p]));
@@ -907,19 +978,17 @@ createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
             let dragging = false, dragOffset = { x: 0, y: 0 };
 
             entity.on('pointerdown', (e) => {
-                if(easterEggTriggered) return;
+                if(easterEggTriggered || claw.mode !== 'idle') return;
                 dragging = true; entity.isDragging = true;
                 entity.cursor = 'grabbing'; entity.alpha = 0.8; entity.zIndex = 10000;
                 dragOffset.x = entity.x - e.data.global.x; dragOffset.y = entity.y - e.data.global.y;
                 
-                // Shoot claw down from the ceiling
                 claw.texture = openClawTex; 
                 claw.visible = true;
                 claw.x = entity.x; 
-                claw.y = -300; // Start offscreen
-                claw.targetY = entity.y - 30; // The character's head
-                claw.isDropping = true;
-                claw.isRetracting = false;
+                claw.y = -300; 
+                claw.targetY = entity.y - 30; 
+                claw.mode = 'manual_dropping';
             });
 
             const endDrag = () => {
@@ -927,11 +996,9 @@ createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
                 dragging = false; entity.isDragging = false;
                 entity.cursor = 'grab'; entity.alpha = 1;
                 
-                // Release character and shoot back to ceiling
                 claw.texture = openClawTex;
-                claw.isDropping = false;
-                claw.isRetracting = true;
-                claw.targetY = -300; // Fly back up to ceiling
+                claw.mode = 'manual_retracting';
+                claw.targetY = -300;
 
                 if (!easterEggTriggered) {
                     let robotsOnBelt = 0; let humansOnBelt = 0;
@@ -953,10 +1020,10 @@ createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
                     entity.x = e.data.global.x + dragOffset.x; entity.y = e.data.global.y + dragOffset.y;
                     
                     claw.x = entity.x;
-                    if (claw.isDropping) {
-                        claw.targetY = entity.y - 30; // Update target dynamically if user drags immediately
+                    if (claw.mode === 'manual_dropping') {
+                        claw.targetY = entity.y - 30;
                     } else {
-                        claw.y = entity.y - 30; // Follow perfectly once grabbed
+                        claw.y = entity.y - 30; 
                     }
 
                     const cart = toCart(entity.x, entity.y);
@@ -967,59 +1034,110 @@ createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
             return entity;
         }
 
+        // Create humans
         createEntity(swPaths, -1.5, 2.6, 'human');
         createEntity(swPaths, 4.3, 3.0, 'human');
         createEntity(nePaths, 0.0, 8.0, 'human');
         createEntity(nePaths, 6.8, 8.1, 'human');
-        createEntity(robotSEPaths, -1.3, 4.5, 'robot');
-        createEntity(robotSEPaths, 1.0, 4.6, 'robot');
-        createEntity(robotSEPaths, 3.5, 4.8, 'robot');
-        createEntity(robotSEPaths, 6.6, 4.8, 'robot');
+        
+        // Setup initial base robots
+        const baseRobotConfig = ROBOT_DATABASE.find(r => r.id === 'robot_base');
+        createEntity(baseRobotConfig.paths, -1.3, 4.5, 'robot');
+        createEntity(baseRobotConfig.paths, 1.0, 4.6, 'robot');
+        createEntity(baseRobotConfig.paths, 3.5, 4.8, 'robot');
+        createEntity(baseRobotConfig.paths, 6.6, 4.8, 'robot');
 
-        // --- 11. GLOBAL TICKER FOR ANIMATIONS ---
+        // --- GLOBAL AUTOMATED CLAW TRIGGER ---
+        window.startAutomatedClawSwap = function(targetEntity, newConfig) {
+            claw.autoTarget = targetEntity;
+            claw.newRobotConfig = newConfig;
+            
+            claw.texture = openClawTex;
+            claw.visible = true;
+            claw.x = targetEntity.x;
+            claw.y = -300; 
+            claw.targetY = targetEntity.y - 30; 
+            
+            claw.mode = 'auto_fetch';
+        }
+
+        // --- 11. GLOBAL TICKER FOR ANIMATIONS (MANUAL + AUTOMATIC) ---
         app.ticker.add(() => {
-            // Sort entities for 3D depth
             entityLayer.children.forEach(c => { if (!c.isDragging) c.zIndex = c.y; });
 
-            // Handle Claw Animations
-            if (claw.visible) {
-                if (claw.isDropping) {
-                    claw.y += (claw.targetY - claw.y) * 0.4; // High speed drop
-                    if (Math.abs(claw.targetY - claw.y) < 5) { // Snaps closed when close
+            if (claw.visible && claw.mode !== 'idle') {
+                
+                // MANUAL DRAG MODES
+                if (claw.mode === 'manual_dropping') {
+                    claw.y += (claw.targetY - claw.y) * 0.4;
+                    if (Math.abs(claw.targetY - claw.y) < 5) {
                         claw.y = claw.targetY;
-                        claw.isDropping = false;
+                        claw.mode = 'manual_holding';
                         claw.texture = closedClawTex;
                     }
-                } else if (claw.isRetracting) {
-                    claw.y += (claw.targetY - claw.y) * 0.2; // Smooth fly up
-                    if (claw.y < -100) { // Once fully offscreen
-                        claw.isRetracting = false;
+                } else if (claw.mode === 'manual_retracting') {
+                    claw.y += (claw.targetY - claw.y) * 0.2;
+                    if (claw.y < -100) {
+                        claw.mode = 'idle';
                         claw.visible = false;
-                        chain.clear(); // Hide chain
+                        chain.clear();
+                    }
+                } 
+                
+                // AUTOMATED SWAP MODES
+                else if (claw.mode === 'auto_fetch') {
+                    claw.y += (claw.targetY - claw.y) * 0.3;
+                    if (Math.abs(claw.targetY - claw.y) < 5) {
+                        claw.y = claw.targetY;
+                        claw.texture = closedClawTex;
+                        claw.autoTarget.visible = false; 
+                        
+                        claw.mode = 'auto_retract_old';
+                        claw.targetY = -300; 
+                    }
+                } else if (claw.mode === 'auto_retract_old') {
+                    claw.y += (claw.targetY - claw.y) * 0.15; 
+                    if (claw.y < -100) {
+                        const newTextures = claw.newRobotConfig.paths.map(p => textures[p]);
+                        claw.autoTarget.textures = newTextures;
+                        claw.autoTarget.play(); 
+
+                        claw.mode = 'auto_drop_new';
+                        claw.targetY = claw.autoTarget.y - 30; 
+                    }
+                } else if (claw.mode === 'auto_drop_new') {
+                    claw.y += (claw.targetY - claw.y) * 0.3;
+                    if (Math.abs(claw.targetY - claw.y) < 5) {
+                        claw.y = claw.targetY;
+                        claw.autoTarget.visible = true; 
+                        claw.texture = openClawTex;
+                        
+                        claw.mode = 'auto_retract_final';
+                        claw.targetY = -300; 
+                    }
+                } else if (claw.mode === 'auto_retract_final') {
+                    claw.y += (claw.targetY - claw.y) * 0.2;
+                    if (claw.y < -100) {
+                        claw.mode = 'idle';
+                        claw.visible = false;
+                        chain.clear();
                     }
                 }
 
-                // Dynamically draw the Pixel-Art Metal Chain
                 if (claw.visible) {
                     chain.clear();
-                    
-                    // Shift the chain 12 pixels left to perfectly align with the grabber hinge
                     const chainX = claw.x - 12; 
 
-                    // Draw interlocking chain links from ceiling down to the claw
                     for (let cy = -300; cy < claw.y - 180; cy += 14) {
-                        
-                        // 1. Draw Vertical Link (Silver ring with a dark hollow center)
-                        chain.beginFill(0xaaaaaa); // Bright silver outer edge
+                        chain.beginFill(0xaaaaaa); 
                         chain.drawRect(chainX - 3, cy, 6, 10);
-                        chain.beginFill(0x1a1a1a); // Dark "hollow" center hole
+                        chain.beginFill(0x1a1a1a); 
                         chain.drawRect(chainX - 1, cy + 2, 2, 6);
                         chain.endFill();
 
-                        // 2. Draw Horizontal Link (Dark metal connecting the rings)
-                        chain.beginFill(0x333333); // Dark shadow base
+                        chain.beginFill(0x333333); 
                         chain.drawRect(chainX - 5, cy + 8, 10, 4);
-                        chain.beginFill(0x777777); // Bright top highlight for metallic shine
+                        chain.beginFill(0x777777); 
                         chain.drawRect(chainX - 5, cy + 8, 10, 2);
                         chain.endFill();
                     }
@@ -1027,8 +1145,6 @@ createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
             }
         });
     });
-</script>
-</script>
 </script>
 </body>
 </html>
