@@ -168,7 +168,6 @@
         .hw-power-btn:active { box-shadow: inset 4px 4px 0 #990000, inset -4px -4px 0 #ff6666; transform: translateY(2px); }
         .monitor-header { display: none; }
 
-
         /* --- 4. RETRO UI STYLES --- */
         .retro-wrapper {
             background-color: #040c04; color: #1cf843;
@@ -283,7 +282,7 @@
 
 <script>
     // ============================================================================
-    // ⚙️ ROBOT DATABASE: CONFIGURE YOUR NEW ROBOT FOLDERS HERE!
+    // ⚙️ ROBOT DATABASE
     // ============================================================================
     const ROBOT_DATABASE = [
         {
@@ -318,33 +317,33 @@
     document.getElementById('app-wrapper').appendChild(app.view);
 
     const backgroundLayer = new PIXI.Container();
-    const entityLayer = new PIXI.Container();
-    entityLayer.sortableChildren = true;
     
-    // NEW FOREGROUND LAYER
-    const foregroundLayer = new PIXI.Container(); 
+    // 🌟 THE NEW MASTER "WORLD LAYER" FOR Y-SORTING
+    const entityLayer = new PIXI.Container();
+    entityLayer.sortableChildren = true; 
     
     const fxLayer = new PIXI.Container();
 
-// ORDER DICTATES Z-INDEX
+    // Z-INDEX ORDERING: Floor -> Sorted World (Robots & Structures) -> Claw
     app.stage.addChild(backgroundLayer);
     app.stage.addChild(entityLayer);
-    
-    // MOVE THE CLAW BELOW THE BANNER:
-    app.stage.addChild(fxLayer);         
-    
-    // THE BANNER IS NOW ON TOP OF EVERYTHING:
-    app.stage.addChild(foregroundLayer);
+    app.stage.addChild(fxLayer); 
 
-    // Background Image
-    const bgSprite = PIXI.Sprite.from('gemini_image.png');
+    // Background Image (Floor)
+    const bgSprite = PIXI.Sprite.from('gemini_image1.png');
     bgSprite.anchor.set(0.5, 0.5);
     backgroundLayer.addChild(bgSprite);
 
-    // Foreground Banner Image
+    // 🌟 ADDING STRUCTURES TO THE WORLD LAYER
     const fgSprite = PIXI.Sprite.from('ibex-banner.png');
-    fgSprite.anchor.set(0, 0); // Top-left anchor for precise Photoshop coordinates
-    foregroundLayer.addChild(fgSprite);
+    // Anchor changed to bottom-center!
+    fgSprite.anchor.set(0.5, 1.0); 
+    entityLayer.addChild(fgSprite);
+
+    const pillarSprite = PIXI.Sprite.from('pillars.png');
+    // Anchor changed to bottom-center!
+    pillarSprite.anchor.set(0.5, 1.0);
+    entityLayer.addChild(pillarSprite);
 
     // --- 3. ISOMETRIC ENGINE ---
     let TILE_W = 128, TILE_H = 64;
@@ -359,27 +358,6 @@
         return { x: (adjX / (TILE_W / 2) + adjY / (TILE_H / 2)) / 2, y: (adjY / (TILE_H / 2) - adjX / (TILE_W / 2)) / 2 };
     }
 
- // --- 3.5 DEBUG RECTANGULAR FENCE ---
-    const debugRect = new PIXI.Graphics();
-    fxLayer.addChild(debugRect); 
-    
-    // 🛑 DANGER ZONE SETTINGS:
-    const UI_BLOCK_HEIGHT = 250;       // How tall the box is from the bottom
-    const UI_BLOCK_LEFT_MARGIN = 100;  // Empty space on the LEFT side (in pixels)
-    const UI_BLOCK_RIGHT_MARGIN = 1100; // Empty space on the RIGHT side (in pixels)
-
-    function drawDebugRect() {
-        debugRect.clear();
-        debugRect.lineStyle(4, 0xff0000, 1); 
-        debugRect.beginFill(0xff0000, 0.2);  
-        
-        const topEdge = app.screen.height - UI_BLOCK_HEIGHT;
-        const startX = UI_BLOCK_LEFT_MARGIN;
-        const boxWidth = app.screen.width - UI_BLOCK_LEFT_MARGIN - UI_BLOCK_RIGHT_MARGIN;
-        
-        debugRect.drawRect(startX, topEdge, boxWidth, UI_BLOCK_HEIGHT);
-        debugRect.endFill();
-    }
 
     function resizeBackground() {
         // Base Background
@@ -390,26 +368,31 @@
         const finalScale = Math.max(scaleX, scaleY);
         bgSprite.scale.set(finalScale);
 
-        // Make sure the anchor is set to the top-left corner!
-        fgSprite.anchor.set(0, 0); 
-
-        // 🛠️ TWEAK THESE TWO NUMBERS:
-        // Increase X to move RIGHT. Decrease Y to move UP.
-        const BANNER_X = 1115; // Example: Try 800, 1000, 1200...
-        const BANNER_Y = 5;  // Example: Try 50, 0, or even -50 if it needs to go higher!
-
-        // Calculate where the top-left corner of the floor is currently
         const bgTopLeftX = bgSprite.x - (bgSprite.texture.width / 2 * finalScale);
         const bgTopLeftY = bgSprite.y - (bgSprite.texture.height / 2 * finalScale);
 
-        // Glue the banner to that spot, scaled perfectly
+        // -------------------------------------------------------------
+        // ⚙️ STRUCTURE POSITIONING (BOTTOM-CENTER COORDINATES!)
+        // -------------------------------------------------------------
+        // WARNING: Since we changed the anchor to (0.5, 1.0) for depth sorting, 
+        // you MUST find the X and Y coordinates of the BOTTOM-CENTER of these objects 
+        // in Photoshop instead of the top-left!
+        const BANNER_X = 1445; // Change this to Bottom-Center X
+        const BANNER_Y = 1005;    // Change this to Bottom-Center Y
+
         fgSprite.x = bgTopLeftX + (BANNER_X * finalScale);
         fgSprite.y = bgTopLeftY + (BANNER_Y * finalScale);
         fgSprite.scale.set(finalScale);
+
+        const PILLAR_X = 1845; // Change this to Bottom-Center X
+        const PILLAR_Y = 1305;  // Change this to Bottom-Center Y
+
+        pillarSprite.x = bgTopLeftX + (PILLAR_X * finalScale);
+        pillarSprite.y = bgTopLeftY + (PILLAR_Y * finalScale);
+        pillarSprite.scale.set(finalScale);
         // -------------------------------------------------------------
 
         syncMonitors();
-        
     }
     bgSprite.texture.baseTexture.on('loaded', resizeBackground);
     window.addEventListener('resize', resizeBackground);
@@ -830,7 +813,7 @@
                     c.x = pos.x; c.y = pos.y; c.zIndex = c.y; c.interactive = true;
                 });
                 isAnimating = true; isFast = false;
-                entityLayer.children.forEach(e => { e.animationSpeed = 0.1; e.play(); });
+                entityLayer.children.forEach(e => { if (e.animationSpeed) { e.animationSpeed = 0.1; e.play(); } });
                 document.querySelectorAll('.monitor-overlay').forEach(el => el.classList.remove('power-off'));
                 document.getElementById('coords-display').innerText = "SYSTEM: REBOOTED";
                 document.getElementById('coords-display').style.color = "#4CAF50";
@@ -924,7 +907,7 @@
         customToggleBtn.on('pointerup', () => {
             releaseButton();
             isAnimating = !isAnimating;
-            entityLayer.children.forEach(e => { if (isAnimating) e.play(); else e.stop(); });
+            entityLayer.children.forEach(e => { if (e.play) { if (isAnimating) e.play(); else e.stop(); } });
             document.getElementById('coords-display').innerText = `SYSTEM: ${isAnimating ? 'RESUMED' : 'PAUSED'}`;
             document.getElementById('coords-display').style.color = isAnimating ? "#4CAF50" : "#ffb74d";
         });
@@ -948,7 +931,7 @@
         const closedClawTex = new PIXI.Texture(hookTex.baseTexture, new PIXI.Rectangle(frameW, 0, frameW, frameH));
 
         const chain = new PIXI.Graphics();
-        fxLayer.addChild(chain);
+        entityLayer.addChild(chain);
 
         const claw = new PIXI.Sprite(openClawTex);
         claw.anchor.set(0.6, 1.2); claw.scale.set(1.5); claw.visible = false;
@@ -958,12 +941,15 @@
         claw.autoTarget = null;
         claw.newRobotConfig = null;
         
-        fxLayer.addChild(claw);
+        entityLayer.addChild(claw);
 
         function createEntity(paths, gridX, gridY, type) {
             const entity = new PIXI.AnimatedSprite(paths.map(p => textures[p]));
             entity.animationSpeed = 0.1; entity.play();
-            entity.anchor.set(0.5, 1); entity.scale.set(3);
+            
+            // Anchored to bottom-center for perfect depth sorting!
+            entity.anchor.set(0.5, 1); 
+            entity.scale.set(3);
 
             const hitWidth = textures[paths[0]].width * 0.30; 
             const hitHeight = textures[paths[0]].height * 0.80;
@@ -973,6 +959,8 @@
 
             const pos = toIso(gridX, gridY);
             entity.x = pos.x; entity.y = pos.y; entity.zIndex = entity.y;
+            
+            // Add to the sorted World Layer!
             entityLayer.addChild(entity);
 
             entity.interactive = true; entity.cursor = 'grab';
@@ -981,7 +969,11 @@
             entity.on('pointerdown', (e) => {
                 if(easterEggTriggered || claw.mode !== 'idle') return;
                 dragging = true; entity.isDragging = true;
-                entity.cursor = 'grabbing'; entity.alpha = 0.8; entity.zIndex = 10000;
+                entity.cursor = 'grabbing'; entity.alpha = 0.8; 
+                
+                // Keep it on top of everything while dragging
+                //entity.zIndex = 10000;
+                
                 dragOffset.x = entity.x - e.data.global.x; dragOffset.y = entity.y - e.data.global.y;
                 
                 claw.texture = openClawTex; 
@@ -1004,7 +996,7 @@
                 if (!easterEggTriggered) {
                     let robotsOnBelt = 0; let humansOnBelt = 0;
                     entityLayer.children.forEach(c => {
-                        if (c.gridY >= 3.5 && c.gridY <= 6.0 && c.gridX >= -4 && c.gridX <= 12) {
+                        if (c.type && c.gridY >= 3.5 && c.gridY <= 6.0 && c.gridX >= -4 && c.gridX <= 12) {
                             if (c.type === 'robot') robotsOnBelt++;
                             if (c.type === 'human') humansOnBelt++;
                         }
@@ -1021,19 +1013,7 @@
                     let rawX = e.data.global.x + dragOffset.x;
                     let rawY = e.data.global.y + dragOffset.y;
                     
-                    // --- 🚧 FLAT RECTANGULAR FENCE ---
-                    // --- 🚧 FLAT RECTANGULAR FENCE ---
-                    const topEdge = app.screen.height - UI_BLOCK_HEIGHT;
-                    const leftEdge = UI_BLOCK_LEFT_MARGIN;
-                    const rightEdge = app.screen.width - UI_BLOCK_RIGHT_MARGIN;
-
-                    // ONLY stop the robot if it drops below the top edge AND is between the left/right edges!
-                    if (rawY > topEdge && rawX > leftEdge && rawX < rightEdge) {
-                        rawY = topEdge; 
-                    }
-                    // ---------------------------------
-                    // ---------------------------------
-
+                    // Apply smooth coordinates directly to Entity and Claw
                     entity.x = rawX; 
                     entity.y = rawY;
                     
@@ -1044,12 +1024,13 @@
                         claw.y = entity.y - 30; 
                     }
 
+                    // Keep updating the UI Readout smoothly
                     const cart = toCart(rawX, rawY);
                     entity.gridX = cart.x; 
                     entity.gridY = cart.y;
                     document.getElementById('coords-display').innerText = `X: ${cart.x.toFixed(1)} | Y: ${cart.y.toFixed(1)}`;
                 }
-            });
+            }); 
             return entity;
         }
 
@@ -1082,10 +1063,19 @@
 
         // --- 11. GLOBAL TICKER FOR ANIMATIONS (MANUAL + AUTOMATIC) ---
         app.ticker.add(() => {
-            entityLayer.children.forEach(c => { if (!c.isDragging) c.zIndex = c.y; });
+            
+            // 🌟 THIS IS THE Y-SORTING MAGIC! 🌟
+            // Every frame, it checks every object in the entityLayer (Robots, Banners, Pillars)
+            // and sets their 3D depth to match their exact Y pixel on the screen!
+            entityLayer.children.forEach(c => { 
+                c.zIndex = c.y;  // <-- Now it sorts them 60 times a second, even in mid-air!
+            });
 
             if (claw.visible && claw.mode !== 'idle') {
                 
+                claw.zIndex = claw.targetY; 
+                chain.zIndex = claw.targetY;
+
                 // MANUAL DRAG MODES
                 if (claw.mode === 'manual_dropping') {
                     claw.y += (claw.targetY - claw.y) * 0.4;
