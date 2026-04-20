@@ -344,6 +344,7 @@
         autoDensity: true 
     });
 
+    
     document.getElementById('app-wrapper').appendChild(app.view);
 
     const backgroundLayer = new PIXI.Container();
@@ -354,6 +355,33 @@
     app.stage.addChild(backgroundLayer);
     app.stage.addChild(entityLayer);
     app.stage.addChild(uiLayer); 
+
+
+    // --- 🌟 CUSTOM 16-BIT COLOR SHADER 🌟 ---
+    const colorShader = `
+        varying vec2 vTextureCoord;
+        uniform sampler2D uSampler;
+        uniform float colorSteps;
+
+        void main(void) {
+            // Get the original high-def pixel color
+            vec4 color = texture2D(uSampler, vTextureCoord);
+            
+            // Crush the RGB values into strict steps
+            color.r = floor(color.r * colorSteps) / colorSteps;
+            color.g = floor(color.g * colorSteps) / colorSteps;
+            color.b = floor(color.b * colorSteps) / colorSteps;
+            
+            gl_FragColor = color;
+        }
+    `;
+
+    // 16.0 steps per channel = 4,096 colors (True 16-bit Retro Era)
+    const retroColorFilter = new PIXI.Filter(null, colorShader, { colorSteps: 16.0 });
+
+    // Apply the filter to the entire 3D world!
+    entityLayer.filters = [retroColorFilter];
+    backgroundLayer.filters = [retroColorFilter];
 
     // --- 2. DYNAMIC GRID SYSTEM ---
     const gridGraphics = new PIXI.Graphics();
