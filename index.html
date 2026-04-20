@@ -781,7 +781,7 @@
     };
 
 
-    // --- 9. ASSET PRE-LOADING & UNIVERSAL DRAGGABLE SYSTEM ---
+  // --- 9. ASSET PRE-LOADING & UNIVERSAL DRAGGABLE SYSTEM ---
     const swPaths = [ 'animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_003.png' ];
     
     let allAssetsToLoad = [...swPaths, 'hook-remove.png', 'ibex-banner.png', 'pillars.png'];
@@ -798,14 +798,14 @@
 
         const claw = new PIXI.Sprite(openClawTex);
         claw.anchor.set(0.6, 1.2); claw.scale.set(1.5); claw.visible = false;
-        claw.mode = 'idle'; claw.targetY = 0;
+        claw.mode = 'idle'; claw.targetY = 0; 
+        claw.baseY = 0; // NEW: Memory for the depth of the item it's holding!
         entityLayer.addChild(claw);
 
         // 🌟 THE NEW UNIVERSAL DRAG-AND-DROP BUILDER FUNCTION 🌟
         function createDraggable(textureData, gridX, gridY, type, scale = 1, grabOffset = 30) {
             let entity;
             
-            // Checks if we passed an array (animations) or a single string (structures)
             if (Array.isArray(textureData)) {
                 entity = new PIXI.AnimatedSprite(textureData.map(p => textures[p]));
                 entity.animationSpeed = 0.1; 
@@ -817,7 +817,6 @@
             entity.anchor.set(0.5, 1); 
             entity.scale.set(scale);
 
-            // Save properties for the physics & claw system
             entity.initialGridX = gridX; 
             entity.initialGridY = gridY; 
             entity.gridX = gridX; 
@@ -837,7 +836,6 @@
             let dragging = false, dragOffset = { x: 0, y: 0 };
 
             entity.on('pointerdown', (e) => {
-                // Prevent overlapping grabs if claw is already busy
                 if(claw.mode !== 'idle' && claw.visible) return; 
                 
                 dragging = true; entity.isDragging = true;
@@ -846,13 +844,14 @@
                 dragOffset.x = entity.x - e.data.global.x; 
                 dragOffset.y = entity.y - e.data.global.y;
                 
-                // ONLY deploy the claw if it's a worker or robot!
-                if (entity.type === 'human' || entity.type === 'robot') {
-                    claw.texture = openClawTex; claw.visible = true;
-                    claw.x = entity.x; claw.y = -300; 
-                    claw.targetY = entity.y - entity.grabOffset; 
-                    claw.mode = 'manual_dropping';
-                }
+                claw.texture = openClawTex; claw.visible = true;
+                claw.x = entity.x; claw.y = -300; 
+                claw.targetY = entity.y - entity.grabOffset; 
+                
+                // NEW: Tell the claw the actual depth of the item!
+                claw.baseY = entity.y; 
+                
+                claw.mode = 'manual_dropping';
             });
 
             const endDrag = () => {
@@ -860,10 +859,7 @@
                 dragging = false; entity.isDragging = false;
                 entity.cursor = 'grab'; entity.alpha = 1;
                 
-                // ONLY retract the claw if it was actually deployed
-                if (entity.type === 'human' || entity.type === 'robot') {
-                    claw.texture = openClawTex; claw.mode = 'manual_retracting'; claw.targetY = -300;
-                }
+                claw.texture = openClawTex; claw.mode = 'manual_retracting'; claw.targetY = -300;
             };
 
             entity.on('pointerup', endDrag);
@@ -877,12 +873,12 @@
                     entity.x = rawX; 
                     entity.y = rawY;
                     
-                    // ONLY update claw position if it belongs to a worker/robot
-                    if (entity.type === 'human' || entity.type === 'robot') {
-                        claw.x = entity.x;
-                        if (claw.mode === 'manual_dropping') claw.targetY = entity.y - entity.grabOffset;
-                        else claw.y = entity.y - entity.grabOffset; 
-                    }
+                    claw.x = entity.x;
+                    if (claw.mode === 'manual_dropping') claw.targetY = entity.y - entity.grabOffset;
+                    else claw.y = entity.y - entity.grabOffset; 
+                    
+                    // NEW: Update the depth tracking while dragging!
+                    claw.baseY = entity.y; 
 
                     const cart = toCart(rawX, rawY);
                     entity.gridX = cart.x; entity.gridY = cart.y;
@@ -894,16 +890,11 @@
 
         const baseRobotConfig = ROBOT_DATABASE.find(r => r.id === 'robot_base');
         
-        // -------------------------------------------------------------
-        // ⚙️ SPAWN EVERYTHING INTO THE SANDBOX HERE:
-        // Format: createDraggable(texture, Grid X, Grid Y, type, scale, grabOffset);
-        // -------------------------------------------------------------
-        
-        // Structures (Claw ignores these!)
-        createDraggable('ibex-banner.png', 2.7, 9.9, 'structure', 0.7, 100);
-        createDraggable('pillars.png', 9.9, 2.6, 'structure', 0.7, 130);
+        // Structures 
+        createDraggable('ibex-banner.png', 3.2, 10.8, 'structure', 0.7, 450); 
+        createDraggable('pillars.png', 10.4, 4.7, 'structure', 0.7, 280);
 
-        // Workers & Robots (Claw grabs these!)
+        // Workers & Robots 
         createDraggable(baseRobotConfig.paths, 0, 0, 'robot', 3, 30);
         createDraggable(baseRobotConfig.paths, 2, 2, 'robot', 3, 30);
         createDraggable(swPaths, -2, 2, 'human', 3, 30);
@@ -914,6 +905,7 @@
             claw.texture = openClawTex; claw.visible = true;
             claw.x = targetEntity.x; claw.y = -300; 
             claw.targetY = targetEntity.y - targetEntity.grabOffset; 
+            claw.baseY = targetEntity.y; // Update depth for auto-swaps too
             claw.mode = 'auto_fetch';
         }
 
@@ -922,8 +914,10 @@
             entityLayer.children.forEach(c => { c.zIndex = c.y; });
 
             if (claw.visible && claw.mode !== 'idle') {
-                claw.zIndex = claw.targetY; 
-                chain.zIndex = claw.targetY;
+                
+                // 🌟 FIX: Force claw depth to the item's base, +1 so it overlaps it!
+                claw.zIndex = claw.baseY + 1; 
+                chain.zIndex = claw.baseY + 1;
 
                 if (claw.mode === 'manual_dropping') {
                     claw.y += (claw.targetY - claw.y) * 0.4;
@@ -963,6 +957,4 @@
         
         resizeApp();
     });
-</script>
-</body>
-</html>
+</script> 
