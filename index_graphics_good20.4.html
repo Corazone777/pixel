@@ -9,7 +9,7 @@
         /* --- 1. GLOBAL & UI STYLES --- */
         body {
             margin: 0; padding: 0; overflow: hidden;
-            background-color: #0a0a0c; 
+            background-color: #0a0a0c; /* Sleek Dark Canvas Color */
             color: #e0e0e0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
@@ -19,18 +19,28 @@
             position: relative; transform-origin: center center;
         }
 
-        /* --- CRT / PHOSPHOR MASK OVERLAY --- */
+      /* --- CRT / PHOSPHOR MASK OVERLAY --- */
         #app-wrapper::after {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            z-index: 8000; pointer-events: none;
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 8000;
+            pointer-events: none;
+            
+            /* 1. Horizontal Scanlines, 2. Vertical RGB Phosphor dots */
             background: 
                 linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), 
                 linear-gradient(90deg, rgba(255, 0, 0, 0.08), rgba(0, 255, 0, 0.04), rgba(0, 0, 255, 0.08));
             background-size: 100% 4px, 6px 100%;
+            
+            /* Vignette to make it look like a curved glass tube */
             box-shadow: inset 0 0 100px rgba(0,0,0,0.9), inset 0 0 40px rgba(0,0,0,0.8);
         }
         
-        canvas { image-rendering: pixelated; } 
+        /* Force the PixiJS canvas to stay crunchy when we stretch it! */
+        canvas {
+            image-rendering: pixelated;
+        } 
 
         #ui-panel {
             position: absolute; top: 20px; left: 20px;
@@ -41,8 +51,14 @@
             pointer-events: none; z-index: 100;
             backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
         }
-        .panel-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #81C784; margin-bottom: 6px; }
-        .panel-data { font-size: 22px; font-weight: bold; color: #4CAF50; font-family: 'Courier New', Courier, monospace; }
+        .panel-title {
+            font-size: 11px; text-transform: uppercase;
+            letter-spacing: 1.5px; color: #81C784; margin-bottom: 6px;
+        }
+        .panel-data {
+            font-size: 22px; font-weight: bold;
+            color: #4CAF50; font-family: 'Courier New', Courier, monospace;
+        }
 
         /* --- EASTER EGG OVERLAY --- */
         #easter-egg-overlay {
@@ -56,118 +72,190 @@
             text-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000;
             animation: warning-blink 1.2s steps(2, start) infinite;
         }
-        @keyframes warning-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
-
-        /* --- 2. THE NEW CONTROL DESK --- */
-        #control-desk {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            height: 80px; background: #1a1a17;
-            border-top: 4px solid #3a3a35;
-            display: flex; align-items: center; justify-content: center; gap: 40px;
-            z-index: 9000; box-shadow: 0 -10px 40px rgba(0,0,0,0.9);
-            font-family: 'Courier New', Courier, monospace;
+        @keyframes warning-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
         }
 
-        .desk-group {
-            display: flex; gap: 15px; align-items: center; background: #0f0f0d; padding: 10px 20px;
-            border-radius: 8px; border: 2px solid #2a2a26; box-shadow: inset 0 0 15px rgba(0,0,0,1);
+        .crt-shutdown { animation: crt-power-off 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+        .crt-turn-on { animation: crt-power-on 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+        @keyframes crt-power-off {
+            0% { transform: scale(1, 1); opacity: 1; filter: brightness(1) contrast(1); }
+            30% { transform: scale(1, 0.005); opacity: 1; filter: brightness(5) contrast(3); }
+            70% { transform: scale(0.005, 0.005); opacity: 1; filter: brightness(5); }
+            100% { transform: scale(0, 0); opacity: 0; filter: brightness(0); }
+        }
+        @keyframes crt-power-on {
+            0% { transform: scale(0, 0); opacity: 0; filter: brightness(0); }
+            40% { transform: scale(0.005, 0.005); opacity: 1; filter: brightness(5); }
+            70% { transform: scale(1, 0.005); opacity: 1; filter: brightness(5) contrast(3); }
+            100% { transform: scale(1, 1); opacity: 1; filter: brightness(1) contrast(1); }
         }
 
-        .desk-label { color: #8a8a83; font-size: 12px; font-weight: bold; letter-spacing: 2px; margin-right: 10px; }
-
-        .desk-btn {
-            background: #c4c4bc; color: #111; 
-            border: 3px solid; border-color: #e8e8e3 #8a8a83 #8a8a83 #e8e8e3;
-            padding: 8px 16px; font-weight: bold; font-size: 14px; cursor: pointer;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.5); font-family: 'Courier New', Courier, monospace;
-            transition: all 0.1s; outline: none;
-        }
-        .desk-btn:active {
-            border-color: #8a8a83 #e8e8e3 #e8e8e3 #8a8a83; 
-            transform: translate(2px, 2px); box-shadow: 0px 0px 2px rgba(0,0,0,0.5);
-        }
-        .desk-btn.btn-red { background: #a00; color: #fff; border-color: #f55 #400 #400 #f55; }
-        .desk-btn.btn-red:active { border-color: #400 #f55 #f55 #400; }
-
-        /* --- 3. HEAVY INDUSTRIAL MONITOR CSS --- */
+        /* --- 2. DOCKED MONITOR OVERLAYS --- */
         .monitor-overlay {
-            position: absolute; background: #c4c4bc; 
-            border: 6px solid; border-color: #e8e8e3 #8a8a83 #8a8a83 #e8e8e3; 
-            border-radius: 12px; padding: 12px; box-sizing: border-box; overflow: hidden;
-            pointer-events: auto; z-index: 50; display: flex; flex-direction: column;
-            box-shadow: 15px 25px 40px rgba(0, 0, 0, 0.9);
-            top: -150vh; left: 50%; transform: translateX(-50%);
-            width: 80vw; max-width: 1400px; height: 80vh; max-height: 900px;
-            transition: top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: absolute;
+            background: #020602;
+            border: 4px solid #113311;
+            box-sizing: border-box; overflow: hidden;
+            pointer-events: auto; z-index: 50;
+            display: flex; flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 40px rgba(0,0,0,1);
+            transform-origin: center center;
         }
 
-        .monitor-overlay.is-centered { top: 5vh; z-index: 200; }
+        .monitor-overlay.power-off {
+            background: rgba(5, 5, 5, 0.95) !important;
+            border-color: rgba(30, 30, 30, 0.8) !important;
+            box-shadow: inset 0 0 50px rgba(0,0,0,1) !important;
+            pointer-events: none !important;
+        }
+
+        .monitor-overlay > * { transition: opacity 0.3s ease; }
+        .monitor-overlay.power-off > * { opacity: 0 !important; }
+
+        .monitor-cover {
+            position: absolute; inset: 0; background: #050a05;
+            z-index: 60; display: flex; align-items: center; justify-content: center; text-align: center;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 2.2em; font-weight: bold; letter-spacing: 2px; color: #1cf843;
+            text-shadow: 0 0 10px rgba(28, 248, 67, 0.8);
+            border: 2px solid #113311;
+            box-shadow: inset 0 0 20px rgba(28, 248, 67, 0.1);
+            transition: opacity 0.2s ease; cursor: pointer;
+        }
+        .monitor-cover:hover {
+            background: #0a140a;
+            box-shadow: inset 0 0 30px rgba(28, 248, 67, 0.3);
+        }
+
+        /* --- 3. IMMERSIVE HARDWARE STYLING --- */
+        .monitor-overlay.is-centered {
+            width: 90vw !important; max-width: 1800px;
+            height: 90vh !important; max-height: 1200px;
+            left: 5vw !important;
+            
+            border: 6px solid #000;
+            border-radius: 12px;
+            background-color: #556b47;
+            padding: 1.5rem 1.5rem 6rem 1.5rem; 
+            
+            box-shadow: 
+                inset 8px 8px 0 rgba(255,255,255,0.2), 
+                inset -8px -8px 0 rgba(0,0,0,0.4),
+                30px 30px 0 rgba(0,0,0,0.6);
+            transform: none !important;
+        }
+        
+        .monitor-overlay.is-centered#mon-web { background-color: #b0b0a0; }
+        .monitor-overlay.is-centered#mon-security { background-color: #3b3d40; }
 
         .hardware-bezel {
-            flex-grow: 1; display: flex; flex-direction: column; background: #111; 
-            border: 8px solid; border-color: #050505 #333 #333 #050505;
-            border-radius: 8px; padding: 8px; box-shadow: inset 0 0 20px rgba(0,0,0,1);
-            position: relative;
+            flex-grow: 1; display: flex; flex-direction: column;
+            background: #000;
+            border: 6px solid #000;
+            border-radius: 8px;
+            box-shadow: inset 0 0 50px rgba(0,0,0,1);
+            overflow: hidden; position: relative;
         }
 
         .monitor-body { 
             flex-grow: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; 
-            border-radius: 4px; box-shadow: inset 0 0 15px rgba(0,0,0,1);
+            opacity: 1; transition: opacity 0.6s ease;
+        }
+        .is-booting .monitor-body {
+            opacity: 0; pointer-events: none;
+            transition: none !important;
         }
 
         .hardware-controls {
-            height: 3rem; display: flex; align-items: center; justify-content: space-between; 
-            padding: 10px 5px 0 5px; margin-top: 5px; border-top: 2px solid #8a8a83;
+            position: absolute; bottom: 0; left: 0; right: 0; height: 6rem;
+            display: none; align-items: center; justify-content: space-between; padding: 0 3rem;
         }
+        .monitor-overlay.is-centered .hardware-controls { display: flex; }
 
-        .hw-logo { font-family: 'Courier New', Courier, monospace; font-weight: bold; font-size: 1.2rem; color: #5a5a53; text-shadow: 1px 1px 0px #fff; letter-spacing: 2px; }
-        
-        .led-indicator {
-            width: 12px; height: 12px; border-radius: 50%; background: #ff3333; border: 2px solid #5a5a53;
-            box-shadow: 0 0 10px #ff3333, inset 2px 2px 2px rgba(255,255,255,0.4); animation: led-blink 1.5s infinite;
+        .hw-logo {
+            font-family: 'Courier New', Courier, monospace; font-weight: bold; font-size: 1.5rem;
+            color: rgba(0,0,0,0.5); text-shadow: 1px 1px 0px rgba(255,255,255,0.2); letter-spacing: 2px;
         }
-        @keyframes led-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .hw-vent {
+            width: 15rem; height: 1.5rem; opacity: 0.7;
+            background: repeating-linear-gradient(to right, #000, #000 4px, transparent 4px, transparent 10px);
+        }
+        .hw-power-btn {
+            background: #d32f2f; color: #fff; font-family: 'Courier New', Courier, monospace;
+            border: 4px solid #000; padding: 0.5rem 1rem; font-weight: bold; font-size: 1rem; cursor: pointer;
+            box-shadow: inset 4px 4px 0 #ff6666, inset -4px -4px 0 #990000;
+            transition: all 0.1s;
+        }
+        .hw-power-btn:active { box-shadow: inset 4px 4px 0 #990000, inset -4px -4px 0 #ff6666; transform: translateY(2px); }
+        .monitor-header { display: none; }
 
-        /* --- 4. RETRO UI STYLES (RESPONSIVE) --- */
+        /* --- 4. RETRO UI STYLES --- */
         .retro-wrapper {
-            background-color: #040c04; color: #1cf843; font-family: 'Courier New', Courier, monospace; font-weight: bold;
-            text-shadow: 0 0 6px rgba(28, 248, 67, 0.8); height: 100%; width: 100%; position: relative;
-            padding: 2vh 3vw; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; 
-            font-size: clamp(12px, 1.8vh, 22px); line-height: 1.3;
+            background-color: #040c04; color: #1cf843;
+            font-family: 'Courier New', Courier, monospace; font-weight: bold;
+            text-shadow: 0 0 6px rgba(28, 248, 67, 0.8);
+            height: 100%; width: 100%; position: relative;
+            padding: 30px; box-sizing: border-box; overflow: hidden;
+            display: flex; flex-direction: column; 
+            font-size: 2.5em; 
+            line-height: 1.3;
         }
 
         .retro-wrapper::after {
             content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
                         linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 10; background-size: 100% 4px, 3px 100%; pointer-events: none; box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
+            z-index: 10; background-size: 100% 4px, 3px 100%; pointer-events: none;
+            box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
         }
 
-        .retro-title { margin-bottom: 2vh; border-bottom: 2px solid #1cf843; padding-bottom: 10px; font-size: 1.2em; text-transform: uppercase; flex-shrink: 0; }
+        .retro-title { margin-bottom: 15px; border-bottom: 2px solid #1cf843; padding-bottom: 10px; font-size: 1.1em; text-transform: uppercase; flex-shrink: 0; padding-right: 80px; }
         .website-iframe { flex-grow: 1; border: none; width: 100%; height: 100%; background: #fff; z-index: 2; position: relative; }
 
         /* --- SLIDER FABRICATION UI --- */
-        .slider-controls { display: flex; align-items: center; justify-content: center; gap: 4vw; flex-grow: 1; z-index: 2; position: relative; padding: 1vh 0; min-height: 0; }
-        .slider-btn { font-size: 2.5em; cursor: pointer; color: #1cf843; transition: transform 0.1s; user-select: none; }
+        .slider-controls {
+            display: flex; align-items: center; justify-content: center; gap: 40px; 
+            flex-grow: 1; z-index: 2; position: relative; padding: 20px 0;
+        }
+        
+        .slider-btn {
+            font-size: 2.5em; cursor: pointer; color: #1cf843; 
+            transition: transform 0.1s; user-select: none;
+        }
         .slider-btn:hover { text-shadow: 0 0 15px #1cf843; transform: scale(1.1); }
         .slider-btn:active { transform: scale(0.9); }
         
         .robot-display {
-            display: flex; flex-direction: column; align-items: center; border: 2px dashed #1cf843; padding: 2vh 2vw; 
-            width: clamp(200px, 30vw, 400px); background: rgba(28, 248, 67, 0.05); box-shadow: inset 0 0 20px rgba(28, 248, 67, 0.1);
+            display: flex; flex-direction: column; align-items: center; 
+            border: 2px dashed #1cf843; padding: 30px; width: 400px; 
+            background: rgba(28, 248, 67, 0.05); box-shadow: inset 0 0 20px rgba(28, 248, 67, 0.1);
         }
         .robot-large-thumb {
-            width: 20vh; height: 20vh; min-width: 120px; min-height: 120px; max-width: 250px; max-height: 250px;
-            background-size: contain; background-repeat: no-repeat; background-position: center; image-rendering: pixelated;
+            width: 250px; height: 250px; background-size: contain; 
+            background-repeat: no-repeat; background-position: center; image-rendering: pixelated;
         }
-        .robot-large-name { font-size: 1.1em; text-align: center; margin-top: 2vh; letter-spacing: 2px; }
+        .robot-large-name { font-size: 1.2em; text-align: center; margin-top: 20px; letter-spacing: 2px; }
 
-        .target-selection { display: flex; gap: 20px; align-items: center; justify-content: center; margin-bottom: 2vh; z-index: 2; position: relative; font-size: 1.1em; }
-        .target-btn { cursor: pointer; padding: 5px 15px; border: 2px solid transparent; transition: all 0.2s; user-select: none; }
+        /* Target Selector Buttons */
+        .target-selection {
+            display: flex; gap: 20px; align-items: center; justify-content: center; 
+            margin-bottom: 30px; z-index: 2; position: relative; font-size: 1.1em;
+        }
+        .target-btn {
+            cursor: pointer; padding: 5px 15px; border: 2px solid transparent; 
+            transition: all 0.2s; user-select: none;
+        }
         .target-btn:hover { background: rgba(28, 248, 67, 0.2); }
-        .target-btn.selected { border-color: #1cf843; background: #1cf843; color: #040c04; text-shadow: none; font-weight: bold; }
+        .target-btn.selected {
+            border-color: #1cf843; background: #1cf843; color: #040c04; text-shadow: none; font-weight: bold;
+        }
 
-        .deploy-btn { border: 2px solid #1cf843; padding: 10px 20px; cursor: pointer; transition: all 0.2s; font-size: 1em; text-align: center; width: max-content; background: rgba(28, 248, 67, 0.1); }
+        .deploy-btn {
+            border: 2px solid #1cf843; padding: 10px 20px; cursor: pointer; transition: all 0.2s;
+            font-size: 1em; text-align: center; width: max-content; background: rgba(28, 248, 67, 0.1);
+        }
         .deploy-btn:hover { background: #1cf843; color: #040c04; text-shadow: none; box-shadow: 0 0 15px #1cf843; }
         .deploy-btn.disabled { opacity: 0.3; pointer-events: none; }
 
@@ -182,6 +270,7 @@
         .hack-word:hover { background: #1cf843; color: #040c04; text-shadow: none; box-shadow: 0 0 8px #1cf843; }
         
         .hack-log-panel { width: 18em; min-width: 250px; border-left: 2px dashed rgba(28, 248, 67, 0.5); padding-left: 1.5em; display: flex; flex-direction: column; }
+        
         .hack-attempts { margin-bottom: 1em; }
         .hack-output { flex-grow: 1; overflow-y: auto; font-size: 0.9em; line-height: 1.5; word-wrap: break-word; }
         .hack-hover-display { margin-top: auto; border-top: 1px solid #1cf843; padding-top: 0.8em; min-height: 1.5em; font-weight: bold; }
@@ -207,21 +296,6 @@
         <div class="panel-data" id="coords-display">X: -- | Y: --</div>
     </div>
 
-    <div id="control-desk">
-        <div class="desk-group">
-            <div class="desk-label">MODULES</div>
-            <button class="desk-btn" onclick="toggleMonitor('mon-terminal')">FACTORY</button>
-            <button class="desk-btn" onclick="toggleMonitor('mon-web')">WEBSITE</button>
-            <button class="desk-btn" onclick="toggleMonitor('mon-security')">SECURITY</button>
-        </div>
-        
-        <div class="desk-group">
-            <div class="desk-label">SYSTEM</div>
-            <button class="desk-btn" onclick="toggleEnginePause()">RESUME/PAUSE</button>
-            <button class="desk-btn btn-red" onclick="closeAllMonitors()">CLOSE ALL</button>
-        </div>
-    </div>
-
     <div id="easter-egg-overlay">
         <div class="warning-text">
             ROBOTS HAVE ASSUMED CONTROL.<br><br>SHUTTING THE SYSTEMS DOWN<br>AND REBOOTING...
@@ -235,55 +309,77 @@
     // ============================================================================
     const ROBOT_DATABASE = [
         {
-            id: 'robot_base', name: 'WORKER UNIT (BASE)',
+            id: 'robot_base',
+            name: 'WORKER UNIT (BASE)',
             thumb: 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png',
-            paths: [ 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_001.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_002.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_003.png' ]
+            paths: [
+                'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png',
+                'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_001.png',
+                'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_002.png',
+                'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_003.png'
+            ]
         },
         {
-            id: 'robot_v1', name: 'SECURITY UNIT (V1)',
+            id: 'robot_v1',
+            name: 'SECURITY UNIT (V1)',
             thumb: 'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_000.png', 
-            paths: [ 'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_000.png', 'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_001.png', 'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_002.png', 'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_003.png' ]
-        }
+            paths: [
+             'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_000.png', 
+             'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_001.png', 
+             'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_002.png', 
+             'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_003.png', 
+            ]
+        },
     ];
 
     window.pendingDeployment = null;
-    let isAnimating = true;
 
     // --- 1. PIXI INITIALIZATION & LAYERS ---
     PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
     
-    // YOUR EXACT CHUNKY ENGINE RESOLUTION
     const app = new PIXI.Application({ 
         resizeTo: window, 
         backgroundColor: 0x0a0a0c,
-        resolution: 0.35,  
+        resolution: 0.35,  /* <-- THIS IS THE MAGIC CHUNKY NUMBER! */
         autoDensity: true 
     });
+
     
     document.getElementById('app-wrapper').appendChild(app.view);
 
     const backgroundLayer = new PIXI.Container();
     const entityLayer = new PIXI.Container();
     entityLayer.sortableChildren = true; 
+    const uiLayer = new PIXI.Container(); 
 
     app.stage.addChild(backgroundLayer);
     app.stage.addChild(entityLayer);
+    app.stage.addChild(uiLayer); 
 
-    // --- 🌟 YOUR CUSTOM 16-BIT COLOR SHADER 🌟 ---
+
+    // --- 🌟 CUSTOM 16-BIT COLOR SHADER 🌟 ---
     const colorShader = `
         varying vec2 vTextureCoord;
         uniform sampler2D uSampler;
         uniform float colorSteps;
+
         void main(void) {
+            // Get the original high-def pixel color
             vec4 color = texture2D(uSampler, vTextureCoord);
+            
+            // Crush the RGB values into strict steps
             color.r = floor(color.r * colorSteps) / colorSteps;
             color.g = floor(color.g * colorSteps) / colorSteps;
             color.b = floor(color.b * colorSteps) / colorSteps;
+            
             gl_FragColor = color;
         }
     `;
 
+    // 16.0 steps per channel = 4,096 colors (True 16-bit Retro Era)
     const retroColorFilter = new PIXI.Filter(null, colorShader, { colorSteps: 16.0 });
+
+    // Apply the filter to the entire 3D world!
     entityLayer.filters = [retroColorFilter];
     backgroundLayer.filters = [retroColorFilter];
 
@@ -293,9 +389,13 @@
 
     let TILE_W = 128, TILE_H = 64;
     function getOrigin() { return { x: app.screen.width / 2, y: app.screen.height * 0.35 }; }
-    function toIso(cartX, cartY) { return { x: (cartX - cartY) * (TILE_W / 2) + getOrigin().x, y: (cartX + cartY) * (TILE_H / 2) + getOrigin().y }; }
+    function toIso(cartX, cartY) {
+        const origin = getOrigin();
+        return { x: (cartX - cartY) * (TILE_W / 2) + origin.x, y: (cartX + cartY) * (TILE_H / 2) + origin.y };
+    }
     function toCart(screenX, screenY) {
-        let adjX = screenX - getOrigin().x, adjY = screenY - getOrigin().y;
+        const origin = getOrigin();
+        let adjX = screenX - origin.x, adjY = screenY - origin.y;
         return { x: (adjX / (TILE_W / 2) + adjY / (TILE_H / 2)) / 2, y: (adjY / (TILE_H / 2) - adjX / (TILE_W / 2)) / 2 };
     }
 
@@ -303,6 +403,7 @@
         gridGraphics.clear();
         gridGraphics.lineStyle(2, 0x222226, 1); 
         const GRID_SIZE = 25; 
+        
         for (let i = -15; i <= GRID_SIZE; i++) {
             let p1 = toIso(i, -15); let p2 = toIso(i, GRID_SIZE);
             gridGraphics.moveTo(p1.x, p1.y); gridGraphics.lineTo(p2.x, p2.y);
@@ -314,33 +415,60 @@
     // --- 3. RESIZE HANDLER ---
     function resizeApp() {
         drawGrid();
+
+        // 🌟 DYNAMIC REPOSITIONING:
         if (entityLayer) {
             entityLayer.children.forEach(c => {
                 if (c.gridX !== undefined && c.gridY !== undefined) {
                     const pos = toIso(c.gridX, c.gridY);
-                    c.x = pos.x; c.y = pos.y;
+                    c.x = pos.x;
+                    c.y = pos.y;
                 }
             });
         }
+
+        if (typeof customStartBtn !== 'undefined' && customStartBtn) {
+            customStartBtn.x = 100; customStartBtn.y = app.screen.height - 120;
+            customStopBtn.x = 220; customStopBtn.y = app.screen.height - 120;
+            customToggleBtn.x = 340; customToggleBtn.y = app.screen.height - 120;
+        }
+
+        syncMonitors();
     }
     window.addEventListener('resize', resizeApp);
 
-    // --- 4. X-RAY VISION & ESC KEY LOGIC ---
+    // --- 4. ESCAPE KEY & MENU NAVIGATION ---
+
+    // --- X-RAY VISION (HOLD SHIFT TO GRAB THROUGH BUILDINGS) ---
     window.addEventListener('keydown', (e) => {
-        // Shift Key for X-Ray
         if (e.key === 'Shift') {
             entityLayer.children.forEach(c => {
-                if (c.type === 'structure') { c.interactive = false; c.alpha = 0.4; }
+                if (c.type === 'structure') {
+                    c.interactive = false; // Turn off the hitbox
+                    c.alpha = 0.4;         // Make it see-through!
+                }
             });
         }
+    });
 
-        // ESCAPE KEY RESTORED (Closes monitors)
+    window.addEventListener('keyup', (e) => {
+        if (e.key === 'Shift') {
+            entityLayer.children.forEach(c => {
+                if (c.type === 'structure') {
+                    c.interactive = true;  // Turn the hitbox back on
+                    c.alpha = 1.0;         // Make it solid again
+                }
+            });
+        }
+    });
+
+
+    window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            window.closeAllMonitors();
+            monitors.forEach(m => m.dock());
             return;
         }
 
-        // Minigame/Portal Navigation
         if (document.querySelector('.portal-menu')) {
             switch(e.key) {
                 case '1': loadPortalPage('COMPANY INFO'); break;
@@ -353,39 +481,132 @@
         } else if (document.querySelector('.portal-content') && e.key === 'Backspace') {
             showIntranetMenu();
         }
-    });
+    }, true);
 
-    window.addEventListener('keyup', (e) => {
-        if (e.key === 'Shift') {
-            entityLayer.children.forEach(c => {
-                if (c.type === 'structure') { c.interactive = true; c.alpha = 1.0; }
-            });
-        }
-    });
-
-    // --- 5. BRUTALIST MONITOR SYSTEM ---
+    // --- 5. FLOATING MONITOR SYSTEM ---
     const monitors = [];
-    function createMonitor(id, label, contentHTML) {
+    function createMonitorOverlay(id, label, offsetX, offsetY, localWidth, localHeight, contentHTML, baseTransform = 'none') {
         const div = document.createElement('div');
         div.className = 'monitor-overlay';
         div.id = id;
 
         div.innerHTML = `
+            <div class="monitor-cover">${label}</div>
             <div class="hardware-bezel">
+                <div class="monitor-header"><span>IBEX OS // ${label}</span></div>
                 <div class="monitor-body">${contentHTML}</div>
             </div>
             <div class="hardware-controls">
                 <div class="hw-logo">IBEX // ${label}</div>
-                <div class="led-indicator"></div>
-                <button class="desk-btn btn-red" onclick="closeAllMonitors()">PWR</button>
+                <div class="hw-vent"></div>
+                <div class="hw-power-btn close-btn">SHUT DOWN</div>
             </div>
         `;
         document.getElementById('app-wrapper').appendChild(div);
-        monitors.push({ id: id, element: div });
+
+        const closeBtn = div.querySelector('.close-btn');
+        const cover = div.querySelector('.monitor-cover');
+        
+        const monitorData = {
+            element: div, offsetX: offsetX, offsetY: offsetY,
+            baseW: localWidth, baseH: localHeight,
+            baseTransform: baseTransform, state: 'docked'
+        };
+        monitors.push(monitorData);
+
+        const focusMe = () => {
+            if (monitorData.state === 'centered' || monitorData.state === 'animating') return;
+            if (div.classList.contains('power-off')) return;
+            
+            monitorData.state = 'animating';
+            
+            div.classList.add('is-booting');
+            div.classList.add('is-centered'); 
+            
+            div.style.transition = 'none';
+            div.style.top = '-100vh'; 
+            div.style.zIndex = 200;
+            cover.style.display = 'none';
+            app.view.style.filter = 'blur(12px) brightness(0.3)';
+
+            void div.offsetWidth; 
+            
+            div.style.transition = 'top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)'; 
+            div.style.top = '5vh'; 
+
+            setTimeout(() => {
+                monitorData.state = 'centered';
+                div.classList.remove('is-booting'); 
+                
+                const input = div.querySelector('input');
+                if (input) input.focus();
+                
+                if(id === 'mon-security' && !document.getElementById('hack-container-id')) {
+                    startHackingGame();
+                }
+                
+                if(id === 'mon-terminal' && document.getElementById('robot-display').innerHTML.trim() === '') {
+                    window.updateRobotDisplay();
+                }
+            }, 650); 
+        };
+
+        const dockMe = (e) => {
+            if (e) e.stopPropagation();
+            if (monitorData.state === 'docked' || monitorData.state === 'animating') return;
+            monitorData.state = 'animating';
+            
+            div.classList.add('is-booting'); 
+            
+            div.style.transition = 'top 0.5s cubic-bezier(0.6, -0.28, 0.735, 0.045)'; 
+            div.style.top = '-100vh';
+            app.view.style.filter = 'none';
+
+            setTimeout(() => {
+                div.style.transition = 'none';
+                div.classList.remove('is-centered'); 
+                div.classList.remove('is-booting');
+                cover.style.display = 'flex';
+                div.style.zIndex = 50;
+                div.style.transform = monitorData.baseTransform;
+                
+                monitorData.state = 'docked';
+                syncMonitors(); 
+                
+                if (id === 'mon-terminal' && window.pendingDeployment) {
+                    window.startAutomatedClawSwap(window.pendingDeployment.target, window.pendingDeployment.config);
+                    window.pendingDeployment = null; 
+                    document.getElementById('deploy-btn').classList.remove('disabled');
+                    document.getElementById('fabrication-status').innerText = `STATUS: AWAITING SELECTION...`;
+                }
+
+            }, 500);
+        };
+
+        cover.addEventListener('click', focusMe);
+        closeBtn.addEventListener('click', dockMe);
+        monitorData.dock = dockMe;
+        return div;
     }
 
-    // THE FACTORY MONITOR (Target selection and Deploy buttons preserved)
-    createMonitor("mon-terminal", "FACTORY", `
+    function syncMonitors() {
+        const centerX = app.screen.width / 2;
+        const centerY = app.screen.height / 2;
+        const scale = Math.max(app.screen.width / 1920, 0.6); 
+
+        monitors.forEach(m => {
+            if (m.state === 'docked') {
+                m.element.style.left = `${centerX + (m.offsetX * scale)}px`;
+                m.element.style.top = `${centerY + (m.offsetY * scale)}px`;
+                m.element.style.width = `${m.baseW * scale}px`;
+                m.element.style.height = `${m.baseH * scale}px`;
+                m.element.style.fontSize = `${12 * scale}px`;
+                m.element.style.transform = m.baseTransform; 
+            }
+        });
+    }
+
+    createMonitorOverlay("mon-terminal", "FACTORY", -400, 200, 240, 180, `
         <div class="retro-wrapper"><div class="retro-title">ROBOT FABRICATION PROTOCOL v4.0</div>
             <div class="slider-controls">
                 <div class="slider-btn" onclick="prevRobot()">&#9664;</div>
@@ -402,44 +623,19 @@
                 <div class="deploy-btn" id="deploy-btn" onclick="queueFabrication()">INITIATE REPLACEMENT</div>
             </div>
         </div>
-    `);
+    `, 'perspective(800px) rotateY(20deg) skewY(-5deg)');
 
-    createMonitor("mon-web", "WEBSITE", `<div class="retro-wrapper" style="padding: 0;"><iframe src="https://goibex.it" class="website-iframe"></iframe></div>`);
+    createMonitorOverlay("mon-web", "WEBSITE", -100, 180, 320, 180, `
+        <div class="retro-wrapper" style="padding: 0;"><iframe src="https://goibex.it" class="website-iframe"></iframe></div>
+    `, 'none');
 
-    createMonitor("mon-security", "SECURITY", `
+    createMonitorOverlay("mon-security", "SECURITY", 280, 220, 240, 180, `
         <div class="retro-wrapper">
             <div class="retro-title">RESTRICTED AREA // PASSWORD REQUIRED</div>
             <div id="security-content" style="flex-grow: 1; position: relative;"></div>
         </div>
-    `);
+    `, 'perspective(800px) rotateY(-20deg) skewY(8deg)');
 
-    // UI BUTTON LOGIC
-    window.toggleMonitor = function(targetId) {
-        monitors.forEach(m => m.element.classList.remove('is-centered'));
-        const target = document.getElementById(targetId);
-        target.classList.add('is-centered');
-
-        if(targetId === 'mon-security' && !document.getElementById('hack-container-id')) startHackingGame();
-        if(targetId === 'mon-terminal' && document.getElementById('robot-display').innerHTML.trim() === '') window.updateRobotDisplay();
-    };
-
-    window.closeAllMonitors = function() {
-        monitors.forEach(m => m.element.classList.remove('is-centered'));
-        
-        if (window.pendingDeployment) {
-            window.startAutomatedClawSwap(window.pendingDeployment.target, window.pendingDeployment.config);
-            window.pendingDeployment = null; 
-            document.getElementById('deploy-btn').classList.remove('disabled');
-            document.getElementById('fabrication-status').innerText = `STATUS: AWAITING SELECTION...`;
-        }
-    };
-
-    window.toggleEnginePause = function() {
-        isAnimating = !isAnimating;
-        entityLayer.children.forEach(e => { if (e.play) { if (isAnimating) e.play(); else e.stop(); } });
-        document.getElementById('coords-display').innerText = `SYSTEM: ${isAnimating ? 'RESUMED' : 'PAUSED'}`;
-        document.getElementById('coords-display').style.color = isAnimating ? "#4CAF50" : "#ffb74d";
-    };
 
     // --- 6. FABRICATION SLIDER UI LOGIC ---
     let currentRobotIndex = 0;
@@ -475,7 +671,59 @@
         window.pendingDeployment = { target: targetEntity, config: selectedConfig };
     }
 
-    // --- 7. HACKING MINIGAME & PORTAL ---
+
+    // --- 7. PIXIJS HARDWARE BUTTONS ---
+    let customStartBtn, customStopBtn, customToggleBtn;
+    
+    PIXI.Assets.load(['pixilart-sprite.png', 'stop_btn.png', 'toggle_btn.png']).then((textures) => {
+        function createHardwareButton(textureName, actionCallback) {
+            const texture = textures[textureName];
+            const halfWidth = texture.width / 2;
+            const fullHeight = texture.height;
+            const normalTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(0, 0, halfWidth, fullHeight));
+            const pressedTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(halfWidth, 0, halfWidth, fullHeight));
+            
+            const btn = new PIXI.Sprite(normalTex);
+            btn.scale.set(3);
+            btn.interactive = true; btn.cursor = 'pointer';
+            btn.hitArea = new PIXI.Rectangle(25, 35, halfWidth - 45, fullHeight - 80);
+
+            let isPressed = false; const pressDepth = 4;
+            btn.on('pointerdown', () => {
+                if (!isPressed) { btn.texture = pressedTex; btn.y += (pressDepth * btn.scale.y); isPressed = true; }
+            });
+            const releaseButton = () => {
+                if (isPressed) { btn.texture = normalTex; btn.y -= (pressDepth * btn.scale.y); isPressed = false; }
+            };
+            btn.on('pointerup', () => { releaseButton(); actionCallback(); });
+            btn.on('pointerupoutside', releaseButton);
+            
+            uiLayer.addChild(btn);
+            return btn;
+        }
+
+        customStartBtn = createHardwareButton('pixilart-sprite.png', () => {
+            document.querySelectorAll('.monitor-overlay').forEach(el => el.classList.remove('power-off'));
+            document.getElementById('coords-display').innerText = "SYSTEM: MONITORS ON";
+            document.getElementById('coords-display').style.color = "#4CAF50";
+        });
+
+        customStopBtn = createHardwareButton('stop_btn.png', () => {
+            monitors.forEach(m => m.dock());
+            document.querySelectorAll('.monitor-overlay').forEach(el => el.classList.add('power-off'));
+            document.getElementById('coords-display').innerText = "SYSTEM: MONITORS OFF";
+            document.getElementById('coords-display').style.color = "#ff5252";
+        });
+
+        customToggleBtn = createHardwareButton('toggle_btn.png', () => {
+            isAnimating = !isAnimating;
+            entityLayer.children.forEach(e => { if (e.play) { if (isAnimating) e.play(); else e.stop(); } });
+            document.getElementById('coords-display').innerText = `SYSTEM: ${isAnimating ? 'RESUMED' : 'PAUSED'}`;
+            document.getElementById('coords-display').style.color = isAnimating ? "#4CAF50" : "#ffb74d";
+        });
+    });
+
+    // --- 8. HACKING MINIGAME & PORTAL ---
     let hackAttempts = 4; const targetWord = "IBEX";
     const decoyWords = ["CODE", "DATA", "HIRE", "WORK", "JOBS", "TEAM", "TECH", "CORE", "SYNC", "PLAN", "ROOT", "BOOT", "USER", "FILE", "NODE", "PORT", "NULL"];
     const garbageChars = "!@#$%^&*()_+-=[]{}|;':,./<>?`~";
@@ -557,7 +805,8 @@
             </div>`;
     };
 
-    // --- 8. ASSET PRE-LOADING & UNIVERSAL DRAGGABLE SYSTEM ---
+
+  // --- 9. ASSET PRE-LOADING & UNIVERSAL DRAGGABLE SYSTEM ---
     const swPaths = [ 'animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_003.png' ];
     
     let allAssetsToLoad = [...swPaths, 'hook-remove.png', 'ibex-banner.png', 'pillars.png'];
@@ -574,14 +823,17 @@
 
         const claw = new PIXI.Sprite(openClawTex);
         claw.anchor.set(0.6, 1.2); claw.scale.set(1.5); claw.visible = false;
-        claw.mode = 'idle'; claw.targetY = 0; claw.baseY = 0;
+        claw.mode = 'idle'; claw.targetY = 0; 
+        claw.baseY = 0; // NEW: Memory for the depth of the item it's holding!
         entityLayer.addChild(claw);
 
-        // 🌟 YOUR EXACT CUSTOM UNIVERSAL DRAG-AND-DROP BUILDER FUNCTION 🌟
+        // 🌟 THE NEW UNIVERSAL DRAG-AND-DROP BUILDER FUNCTION 🌟
+       // 🌟 THE NEW UNIVERSAL DRAG-AND-DROP BUILDER FUNCTION 🌟
         function createDraggable(textureData, gridX, gridY, type, scale = 1, grabOffset = 30) {
             let entity;
-            let tex; 
+            let tex; // We need this variable to measure the image for the hitbox!
             
+            // 1. Create the Sprite and grab the base texture
             if (Array.isArray(textureData)) {
                 tex = textures[textureData[0]];
                 entity = new PIXI.AnimatedSprite(textureData.map(p => textures[p]));
@@ -595,26 +847,38 @@
             entity.anchor.set(0.5, 1); 
             entity.scale.set(scale);
 
-            // YOUR CUSTOM HITBOXES
+            // 🎯 2. THE HITBOX FIX 🎯
             if (type === 'human' || type === 'robot') {
+                // Skinny hitbox for characters so you don't grab empty air next to them
                 entity.hitArea = new PIXI.Rectangle(-tex.width * 0.2, -tex.height * 0.9, tex.width * 0.4, tex.height * 0.9);
             } else {
+                // Massive, full-size hitbox for Banners and Pillars
                 entity.hitArea = new PIXI.Rectangle(-tex.width / 2, -tex.height, tex.width, tex.height);
             }
 
-            entity.initialGridX = gridX; entity.initialGridY = gridY; 
-            entity.gridX = gridX; entity.gridY = gridY; 
-            entity.type = type; entity.grabOffset = grabOffset; 
+            // 3. Save properties for the physics & claw system
+            entity.initialGridX = gridX; 
+            entity.initialGridY = gridY; 
+            entity.gridX = gridX; 
+            entity.gridY = gridY; 
+            entity.type = type;
+            entity.grabOffset = grabOffset; 
 
+            // 4. Initial Positioning
             const pos = toIso(gridX, gridY);
-            entity.x = pos.x; entity.y = pos.y; entity.zIndex = entity.y;
+            entity.x = pos.x; 
+            entity.y = pos.y; 
+            entity.zIndex = entity.y;
             
             entityLayer.addChild(entity);
 
-            entity.interactive = true; entity.cursor = 'grab';
+            // 5. Drag and Drop Interaction
+            entity.interactive = true; 
+            entity.cursor = 'grab';
             let dragging = false, dragOffset = { x: 0, y: 0 };
 
             entity.on('pointerdown', (e) => {
+                // Prevent overlapping grabs if claw is already busy
                 if(claw.mode !== 'idle' && claw.visible) return; 
                 
                 dragging = true; entity.isDragging = true;
@@ -623,10 +887,11 @@
                 dragOffset.x = entity.x - e.data.global.x; 
                 dragOffset.y = entity.y - e.data.global.y;
                 
+                // Deploy the claw!
                 claw.texture = openClawTex; claw.visible = true;
                 claw.x = entity.x; claw.y = -300; 
                 claw.targetY = entity.y - entity.grabOffset; 
-                claw.baseY = entity.y; 
+                claw.baseY = entity.y; // Tell the claw the actual depth of the item!
                 claw.mode = 'manual_dropping';
             });
 
@@ -635,6 +900,7 @@
                 dragging = false; entity.isDragging = false;
                 entity.cursor = 'grab'; entity.alpha = 1;
                 
+                // Retract the claw
                 claw.texture = openClawTex; claw.mode = 'manual_retracting'; claw.targetY = -300;
             };
 
@@ -649,12 +915,15 @@
                     entity.x = rawX; 
                     entity.y = rawY;
                     
+                    // The claw seamlessly follows whatever object you are holding.
                     claw.x = entity.x;
                     if (claw.mode === 'manual_dropping') claw.targetY = entity.y - entity.grabOffset;
                     else claw.y = entity.y - entity.grabOffset; 
                     
+                    // Update the depth tracking while dragging!
                     claw.baseY = entity.y; 
 
+                    // Update UI Coordinates
                     const cart = toCart(rawX, rawY);
                     entity.gridX = cart.x; entity.gridY = cart.y;
                     document.getElementById('coords-display').innerText = `X: ${cart.x.toFixed(1)} | Y: ${cart.y.toFixed(1)}`;
@@ -663,13 +932,13 @@
             
             return entity;
         } 
-        
         const baseRobotConfig = ROBOT_DATABASE.find(r => r.id === 'robot_base');
         
-        // YOUR EXACT CUSTOM OFFSETS AND LOCATIONS
+        // Structures 
         createDraggable('ibex-banner.png', 3.2, 10.8, 'structure', 0.7, 450); 
         createDraggable('pillars.png', 10.4, 4.7, 'structure', 0.7, 280);
 
+        // Workers & Robots 
         createDraggable(baseRobotConfig.paths, 0, 0, 'robot', 3, 30);
         createDraggable(baseRobotConfig.paths, 2, 2, 'robot', 3, 30);
         createDraggable(swPaths, -2, 2, 'human', 3, 30);
@@ -680,7 +949,7 @@
             claw.texture = openClawTex; claw.visible = true;
             claw.x = targetEntity.x; claw.y = -300; 
             claw.targetY = targetEntity.y - targetEntity.grabOffset; 
-            claw.baseY = targetEntity.y; 
+            claw.baseY = targetEntity.y; // Update depth for auto-swaps too
             claw.mode = 'auto_fetch';
         }
 
@@ -690,6 +959,7 @@
 
             if (claw.visible && claw.mode !== 'idle') {
                 
+                // 🌟 FIX: Force claw depth to the item's base, +1 so it overlaps it!
                 claw.zIndex = claw.baseY + 1; 
                 chain.zIndex = claw.baseY + 1;
 
@@ -719,7 +989,6 @@
 
                 if (claw.visible) {
                     chain.clear(); const chainX = claw.x - 12; 
-                    // YOUR EXACT CUSTOM CHAIN LENGTH
                     for (let cy = -300; cy < claw.y - 280; cy += 14) {
                         chain.beginFill(0xaaaaaa); chain.drawRect(chainX - 3, cy, 6, 10);
                         chain.beginFill(0x1a1a1a); chain.drawRect(chainX - 1, cy + 2, 2, 6); chain.endFill();
@@ -732,6 +1001,4 @@
         
         resizeApp();
     });
-</script>
-</body>
-</html>
+</script> 
