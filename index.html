@@ -12,7 +12,6 @@
             background-color: #0a0a0c; /* Sleek Dark Canvas Color */
             color: #e0e0e0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            image-rendering: pixelated;
         }
 
         #app-wrapper {
@@ -20,7 +19,7 @@
             position: relative; transform-origin: center center;
         }
 
-       /* --- CRT / PIXEL GRID OVERLAY --- */
+      /* --- CRT / PHOSPHOR MASK OVERLAY --- */
         #app-wrapper::after {
             content: '';
             position: absolute;
@@ -28,15 +27,20 @@
             z-index: 8000;
             pointer-events: none;
             
-            /* FEATHERED CRT SCANLINES */
+            /* 1. Horizontal Scanlines, 2. Vertical RGB Phosphor dots */
             background: 
-                repeating-linear-gradient(0deg, rgba(0,0,0,0.25) 0%, transparent 2px, transparent 4px),
-                repeating-linear-gradient(90deg, rgba(0,0,0,0.25) 0%, transparent 2px, transparent 4px);
-            background-size: 4px 4px;
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), 
+                linear-gradient(90deg, rgba(255, 0, 0, 0.08), rgba(0, 255, 0, 0.04), rgba(0, 0, 255, 0.08));
+            background-size: 100% 4px, 6px 100%;
             
-            /* Bonus: Adds a slight dark vignette around the edges of the screen! */
-            box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
+            /* Vignette to make it look like a curved glass tube */
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.9), inset 0 0 40px rgba(0,0,0,0.8);
         }
+        
+        /* Force the PixiJS canvas to stay crunchy when we stretch it! */
+        canvas {
+            image-rendering: pixelated;
+        } 
 
         #ui-panel {
             position: absolute; top: 20px; left: 20px;
@@ -332,7 +336,14 @@
 
     // --- 1. PIXI INITIALIZATION & LAYERS ---
     PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
-    const app = new PIXI.Application({ resizeTo: window, backgroundColor: 0x0a0a0c });
+    
+    const app = new PIXI.Application({ 
+        resizeTo: window, 
+        backgroundColor: 0x0a0a0c,
+        resolution: 0.35,  /* <-- THIS IS THE MAGIC CHUNKY NUMBER! */
+        autoDensity: true 
+    });
+
     document.getElementById('app-wrapper').appendChild(app.view);
 
     const backgroundLayer = new PIXI.Container();
