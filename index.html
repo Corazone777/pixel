@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IBEX Staffing Solutions - Factory Dashboard</title>
+    <title>IBEX Staffing Solutions - Factory Sandbox</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
     <style>
         /* --- 1. GLOBAL & UI STYLES --- */
         body {
             margin: 0; padding: 0; overflow: hidden;
-            background-color: #050505; color: #e0e0e0;
+            background-color: #0a0a0c; /* Sleek Dark Canvas Color */
+            color: #e0e0e0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             image-rendering: pixelated;
         }
@@ -313,41 +314,24 @@
 
     // --- 1. PIXI INITIALIZATION & LAYERS ---
     PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
-    const app = new PIXI.Application({ resizeTo: window, backgroundColor: 0x121214 });
+    const app = new PIXI.Application({ resizeTo: window, backgroundColor: 0x0a0a0c });
     document.getElementById('app-wrapper').appendChild(app.view);
 
     const backgroundLayer = new PIXI.Container();
-    
-    // 🌟 THE NEW MASTER "WORLD LAYER" FOR Y-SORTING
     const entityLayer = new PIXI.Container();
     entityLayer.sortableChildren = true; 
-    
-    const fxLayer = new PIXI.Container();
+    const uiLayer = new PIXI.Container(); 
 
-    // Z-INDEX ORDERING: Floor -> Sorted World (Robots & Structures) -> Claw
     app.stage.addChild(backgroundLayer);
     app.stage.addChild(entityLayer);
-    app.stage.addChild(fxLayer); 
+    app.stage.addChild(uiLayer); 
 
-    // Background Image (Floor)
-    const bgSprite = PIXI.Sprite.from('gemini_image1.png');
-    bgSprite.anchor.set(0.5, 0.5);
-    backgroundLayer.addChild(bgSprite);
+    // --- 2. DYNAMIC GRID SYSTEM ---
+    const gridGraphics = new PIXI.Graphics();
+    backgroundLayer.addChild(gridGraphics);
 
-    // 🌟 ADDING STRUCTURES TO THE WORLD LAYER
-    const fgSprite = PIXI.Sprite.from('ibex-banner.png');
-    // Anchor changed to bottom-center!
-    fgSprite.anchor.set(0.5, 1.0); 
-    entityLayer.addChild(fgSprite);
-
-    const pillarSprite = PIXI.Sprite.from('pillars.png');
-    // Anchor changed to bottom-center!
-    pillarSprite.anchor.set(0.5, 1.0);
-    entityLayer.addChild(pillarSprite);
-
-    // --- 3. ISOMETRIC ENGINE ---
     let TILE_W = 128, TILE_H = 64;
-    function getOrigin() { return { x: app.screen.width / 2, y: app.screen.height * 0.3 }; }
+    function getOrigin() { return { x: app.screen.width / 2, y: app.screen.height * 0.35 }; }
     function toIso(cartX, cartY) {
         const origin = getOrigin();
         return { x: (cartX - cartY) * (TILE_W / 2) + origin.x, y: (cartX + cartY) * (TILE_H / 2) + origin.y };
@@ -358,44 +342,43 @@
         return { x: (adjX / (TILE_W / 2) + adjY / (TILE_H / 2)) / 2, y: (adjY / (TILE_H / 2) - adjX / (TILE_W / 2)) / 2 };
     }
 
+    function drawGrid() {
+        gridGraphics.clear();
+        gridGraphics.lineStyle(2, 0x222226, 1); 
+        const GRID_SIZE = 25; 
+        
+        for (let i = -15; i <= GRID_SIZE; i++) {
+            let p1 = toIso(i, -15); let p2 = toIso(i, GRID_SIZE);
+            gridGraphics.moveTo(p1.x, p1.y); gridGraphics.lineTo(p2.x, p2.y);
+            p1 = toIso(-15, i); p2 = toIso(GRID_SIZE, i);
+            gridGraphics.moveTo(p1.x, p1.y); gridGraphics.lineTo(p2.x, p2.y);
+        }
+    }
 
-    function resizeBackground() {
-        // Base Background
-        bgSprite.x = app.screen.width / 2;
-        bgSprite.y = app.screen.height / 2;
-        const scaleX = app.screen.width / (bgSprite.texture.width || 1);
-        const scaleY = app.screen.height / (bgSprite.texture.height || 1);
-        const finalScale = Math.max(scaleX, scaleY);
-        bgSprite.scale.set(finalScale);
+    // --- 3. RESIZE HANDLER ---
+    function resizeApp() {
+        drawGrid();
 
-        const bgTopLeftX = bgSprite.x - (bgSprite.texture.width / 2 * finalScale);
-        const bgTopLeftY = bgSprite.y - (bgSprite.texture.height / 2 * finalScale);
+        // 🌟 DYNAMIC REPOSITIONING:
+        if (entityLayer) {
+            entityLayer.children.forEach(c => {
+                if (c.gridX !== undefined && c.gridY !== undefined) {
+                    const pos = toIso(c.gridX, c.gridY);
+                    c.x = pos.x;
+                    c.y = pos.y;
+                }
+            });
+        }
 
-        // -------------------------------------------------------------
-        // ⚙️ STRUCTURE POSITIONING (BOTTOM-CENTER COORDINATES!)
-        // -------------------------------------------------------------
-        // WARNING: Since we changed the anchor to (0.5, 1.0) for depth sorting, 
-        // you MUST find the X and Y coordinates of the BOTTOM-CENTER of these objects 
-        // in Photoshop instead of the top-left!
-        const BANNER_X = 1445; // Change this to Bottom-Center X
-        const BANNER_Y = 1005;    // Change this to Bottom-Center Y
-
-        fgSprite.x = bgTopLeftX + (BANNER_X * finalScale);
-        fgSprite.y = bgTopLeftY + (BANNER_Y * finalScale);
-        fgSprite.scale.set(finalScale);
-
-        const PILLAR_X = 1845; // Change this to Bottom-Center X
-        const PILLAR_Y = 1305;  // Change this to Bottom-Center Y
-
-        pillarSprite.x = bgTopLeftX + (PILLAR_X * finalScale);
-        pillarSprite.y = bgTopLeftY + (PILLAR_Y * finalScale);
-        pillarSprite.scale.set(finalScale);
-        // -------------------------------------------------------------
+        if (typeof customStartBtn !== 'undefined' && customStartBtn) {
+            customStartBtn.x = 100; customStartBtn.y = app.screen.height - 120;
+            customStopBtn.x = 220; customStopBtn.y = app.screen.height - 120;
+            customToggleBtn.x = 340; customToggleBtn.y = app.screen.height - 120;
+        }
 
         syncMonitors();
     }
-    bgSprite.texture.baseTexture.on('loaded', resizeBackground);
-    window.addEventListener('resize', resizeBackground);
+    window.addEventListener('resize', resizeApp);
 
     // --- 4. ESCAPE KEY & MENU NAVIGATION ---
     window.addEventListener('keydown', (e) => {
@@ -418,22 +401,19 @@
         }
     }, true);
 
-
-    // --- 5. NEW HARDWARE MONITOR SYSTEM ---
+    // --- 5. FLOATING MONITOR SYSTEM ---
     const monitors = [];
-    function createMonitorOverlay(id, label, localX, localY, localWidth, localHeight, contentHTML, baseTransform = 'none') {
+    function createMonitorOverlay(id, label, offsetX, offsetY, localWidth, localHeight, contentHTML, baseTransform = 'none') {
         const div = document.createElement('div');
         div.className = 'monitor-overlay';
         div.id = id;
 
         div.innerHTML = `
             <div class="monitor-cover">${label}</div>
-            
             <div class="hardware-bezel">
                 <div class="monitor-header"><span>IBEX OS // ${label}</span></div>
                 <div class="monitor-body">${contentHTML}</div>
             </div>
-
             <div class="hardware-controls">
                 <div class="hw-logo">IBEX // ${label}</div>
                 <div class="hw-vent"></div>
@@ -446,7 +426,7 @@
         const cover = div.querySelector('.monitor-cover');
         
         const monitorData = {
-            element: div, baseX: localX, baseY: localY,
+            element: div, offsetX: offsetX, offsetY: offsetY,
             baseW: localWidth, baseH: localHeight,
             baseTransform: baseTransform, state: 'docked'
         };
@@ -511,11 +491,9 @@
                 monitorData.state = 'docked';
                 syncMonitors(); 
                 
-                // --- TRIGGER DEFERRED CLAW ANIMATION ---
                 if (id === 'mon-terminal' && window.pendingDeployment) {
                     window.startAutomatedClawSwap(window.pendingDeployment.target, window.pendingDeployment.config);
                     window.pendingDeployment = null; 
-                    
                     document.getElementById('deploy-btn').classList.remove('disabled');
                     document.getElementById('fabrication-status').innerText = `STATUS: AWAITING SELECTION...`;
                 }
@@ -529,26 +507,35 @@
         return div;
     }
 
-    // --- INSTANTIATE MONITORS ---
-    createMonitorOverlay("mon-terminal", "FACTORY", -990, 305, 160, 120, `
-        <div class="retro-wrapper">
-            <div class="retro-title">ROBOT FABRICATION PROTOCOL v4.0</div>
-            
+    function syncMonitors() {
+        const centerX = app.screen.width / 2;
+        const centerY = app.screen.height / 2;
+        const scale = Math.max(app.screen.width / 1920, 0.6); 
+
+        monitors.forEach(m => {
+            if (m.state === 'docked') {
+                m.element.style.left = `${centerX + (m.offsetX * scale)}px`;
+                m.element.style.top = `${centerY + (m.offsetY * scale)}px`;
+                m.element.style.width = `${m.baseW * scale}px`;
+                m.element.style.height = `${m.baseH * scale}px`;
+                m.element.style.fontSize = `${12 * scale}px`;
+                m.element.style.transform = m.baseTransform; 
+            }
+        });
+    }
+
+    createMonitorOverlay("mon-terminal", "FACTORY", -400, 200, 240, 180, `
+        <div class="retro-wrapper"><div class="retro-title">ROBOT FABRICATION PROTOCOL v4.0</div>
             <div class="slider-controls">
                 <div class="slider-btn" onclick="prevRobot()">&#9664;</div>
-                <div class="robot-display" id="robot-display">
-                </div>
+                <div class="robot-display" id="robot-display"></div>
                 <div class="slider-btn" onclick="nextRobot()">&#9654;</div>
             </div>
-
             <div class="target-selection">
                 <span>TARGET UNIT:</span>
                 <div class="target-btn selected" id="tgt-0" onclick="selectTarget(0)">[ 1 ]</div>
                 <div class="target-btn" id="tgt-1" onclick="selectTarget(1)">[ 2 ]</div>
-                <div class="target-btn" id="tgt-2" onclick="selectTarget(2)">[ 3 ]</div>
-                <div class="target-btn" id="tgt-3" onclick="selectTarget(3)">[ 4 ]</div>
             </div>
-
             <div style="margin-top: auto; border-top: 2px dashed #1cf843; padding-top: 15px; display: flex; justify-content: space-between; align-items: center; z-index: 2; position: relative;">
                 <div id="fabrication-status" style="font-size: 0.8em;">STATUS: AWAITING SELECTION...</div>
                 <div class="deploy-btn" id="deploy-btn" onclick="queueFabrication()">INITIATE REPLACEMENT</div>
@@ -556,22 +543,19 @@
         </div>
     `, 'perspective(800px) rotateY(20deg) skewY(-5deg)');
 
-    createMonitorOverlay("mon-web", "WEBSITE", -784, 300, 220, 120, `
-        <div class="retro-wrapper" style="padding: 0;">
-            <iframe src="https://goibex.it" class="website-iframe"></iframe>
-        </div>
+    createMonitorOverlay("mon-web", "WEBSITE", -100, 180, 320, 180, `
+        <div class="retro-wrapper" style="padding: 0;"><iframe src="https://goibex.it" class="website-iframe"></iframe></div>
     `, 'none');
 
-    createMonitorOverlay("mon-security", "SECURITY", -515, 325, 160, 120, `
+    createMonitorOverlay("mon-security", "SECURITY", 280, 220, 240, 180, `
         <div class="retro-wrapper">
             <div class="retro-title">RESTRICTED AREA // PASSWORD REQUIRED</div>
-            <div id="security-content" style="flex-grow: 1; position: relative;">
-            </div>
+            <div id="security-content" style="flex-grow: 1; position: relative;"></div>
         </div>
     `, 'perspective(800px) rotateY(-20deg) skewY(8deg)');
 
 
-    // --- FABRICATION SLIDER UI LOGIC ---
+    // --- 6. FABRICATION SLIDER UI LOGIC ---
     let currentRobotIndex = 0;
     let selectedTargetIndex = 0;
 
@@ -582,47 +566,83 @@
             <div class="robot-large-name">${robot.name}</div>
         `;
     };
-
-    window.prevRobot = function() {
-        currentRobotIndex = (currentRobotIndex - 1 + ROBOT_DATABASE.length) % ROBOT_DATABASE.length;
-        updateRobotDisplay();
-    };
-
-    window.nextRobot = function() {
-        currentRobotIndex = (currentRobotIndex + 1) % ROBOT_DATABASE.length;
-        updateRobotDisplay();
-    };
-
+    window.prevRobot = function() { currentRobotIndex = (currentRobotIndex - 1 + ROBOT_DATABASE.length) % ROBOT_DATABASE.length; updateRobotDisplay(); };
+    window.nextRobot = function() { currentRobotIndex = (currentRobotIndex + 1) % ROBOT_DATABASE.length; updateRobotDisplay(); };
     window.selectTarget = function(idx) {
         selectedTargetIndex = idx;
         document.querySelectorAll('.target-btn').forEach(btn => btn.classList.remove('selected'));
         document.getElementById('tgt-' + idx).classList.add('selected');
     };
-
     window.queueFabrication = function() {
         const selectedConfig = ROBOT_DATABASE[currentRobotIndex];
         const robotsOnBelt = entityLayer.children.filter(c => c.type === 'robot').sort((a, b) => a.x - b.x);
         
         if (robotsOnBelt.length <= selectedTargetIndex) {
-            document.getElementById('fabrication-status').innerText = `ERROR: TARGET UNIT NOT FOUND ON BELT.`;
+            document.getElementById('fabrication-status').innerText = `ERROR: TARGET UNIT NOT FOUND.`;
             return;
         }
 
         const targetEntity = robotsOnBelt[selectedTargetIndex];
-
         document.getElementById('deploy-btn').classList.add('disabled');
         document.getElementById('fabrication-status').innerText = `STATUS: QUEUED. CLOSE TERMINAL TO DEPLOY.`;
 
-        window.pendingDeployment = {
-            target: targetEntity,
-            config: selectedConfig
-        };
+        window.pendingDeployment = { target: targetEntity, config: selectedConfig };
     }
 
 
-    // --- 6. HACKING MINIGAME LOGIC ---
-    let hackAttempts = 4;
-    const targetWord = "IBEX";
+    // --- 7. PIXIJS HARDWARE BUTTONS ---
+    let customStartBtn, customStopBtn, customToggleBtn;
+    
+    PIXI.Assets.load(['pixilart-sprite.png', 'stop_btn.png', 'toggle_btn.png']).then((textures) => {
+        function createHardwareButton(textureName, actionCallback) {
+            const texture = textures[textureName];
+            const halfWidth = texture.width / 2;
+            const fullHeight = texture.height;
+            const normalTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(0, 0, halfWidth, fullHeight));
+            const pressedTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(halfWidth, 0, halfWidth, fullHeight));
+            
+            const btn = new PIXI.Sprite(normalTex);
+            btn.scale.set(3);
+            btn.interactive = true; btn.cursor = 'pointer';
+            btn.hitArea = new PIXI.Rectangle(25, 35, halfWidth - 45, fullHeight - 80);
+
+            let isPressed = false; const pressDepth = 4;
+            btn.on('pointerdown', () => {
+                if (!isPressed) { btn.texture = pressedTex; btn.y += (pressDepth * btn.scale.y); isPressed = true; }
+            });
+            const releaseButton = () => {
+                if (isPressed) { btn.texture = normalTex; btn.y -= (pressDepth * btn.scale.y); isPressed = false; }
+            };
+            btn.on('pointerup', () => { releaseButton(); actionCallback(); });
+            btn.on('pointerupoutside', releaseButton);
+            
+            uiLayer.addChild(btn);
+            return btn;
+        }
+
+        customStartBtn = createHardwareButton('pixilart-sprite.png', () => {
+            document.querySelectorAll('.monitor-overlay').forEach(el => el.classList.remove('power-off'));
+            document.getElementById('coords-display').innerText = "SYSTEM: MONITORS ON";
+            document.getElementById('coords-display').style.color = "#4CAF50";
+        });
+
+        customStopBtn = createHardwareButton('stop_btn.png', () => {
+            monitors.forEach(m => m.dock());
+            document.querySelectorAll('.monitor-overlay').forEach(el => el.classList.add('power-off'));
+            document.getElementById('coords-display').innerText = "SYSTEM: MONITORS OFF";
+            document.getElementById('coords-display').style.color = "#ff5252";
+        });
+
+        customToggleBtn = createHardwareButton('toggle_btn.png', () => {
+            isAnimating = !isAnimating;
+            entityLayer.children.forEach(e => { if (e.play) { if (isAnimating) e.play(); else e.stop(); } });
+            document.getElementById('coords-display').innerText = `SYSTEM: ${isAnimating ? 'RESUMED' : 'PAUSED'}`;
+            document.getElementById('coords-display').style.color = isAnimating ? "#4CAF50" : "#ffb74d";
+        });
+    });
+
+    // --- 8. HACKING MINIGAME & PORTAL ---
+    let hackAttempts = 4; const targetWord = "IBEX";
     const decoyWords = ["CODE", "DATA", "HIRE", "WORK", "JOBS", "TEAM", "TECH", "CORE", "SYNC", "PLAN", "ROOT", "BOOT", "USER", "FILE", "NODE", "PORT", "NULL"];
     const garbageChars = "!@#$%^&*()_+-=[]{}|;':,./<>?`~";
 
@@ -632,79 +652,42 @@
         let shuffledDecoys = decoyWords.sort(() => 0.5 - Math.random()).slice(0, 14);
         let allWords = [...shuffledDecoys, targetWord].sort(() => 0.5 - Math.random());
         
-        let html = `
-            <div class="hack-container" id="hack-container-id">
-                <div class="hack-main">
-                    <div class="hack-column" id="hack-col-1"></div>
-                    <div class="hack-column" id="hack-col-2"></div>
-                </div>
-                <div class="hack-log-panel">
-                    <div class="hack-attempts">ATTEMPTS REMAINING: <span id="hack-attempt-count">4</span> <span id="hack-blocks">■ ■ ■ ■</span></div>
-                    <div class="hack-output" id="hack-output-log">
-                        > INITIATING LOGIN...<br>
-                        > ENTER PASSWORD.<br>
-                    </div>
-                    <div class="hack-hover-display" id="hack-hover-display">> <span class="cursor-block">█</span></div>
-                </div>
-            </div>
-        `;
+        let html = `<div class="hack-container" id="hack-container-id"><div class="hack-main"><div class="hack-column" id="hack-col-1"></div><div class="hack-column" id="hack-col-2"></div></div><div class="hack-log-panel"><div class="hack-attempts">ATTEMPTS: <span id="hack-attempt-count">4</span> <span id="hack-blocks">■ ■ ■ ■</span></div><div class="hack-output" id="hack-output-log">> INITIATING LOGIN...<br>> ENTER PASSWORD.<br></div><div class="hack-hover-display" id="hack-hover-display">> <span class="cursor-block">█</span></div></div></div>`;
         container.innerHTML = html;
 
-        const col1 = document.getElementById('hack-col-1');
-        const col2 = document.getElementById('hack-col-2');
+        const col1 = document.getElementById('hack-col-1'); const col2 = document.getElementById('hack-col-2');
         let wordIndex = 0;
-
         for(let i=0; i<40; i++) {
             const hex = "0x" + Math.floor(Math.random()*65535).toString(16).toUpperCase().padStart(4, '0');
-            let rowStr = "";
-            for(let j=0; j<14; j++) rowStr += garbageChars.charAt(Math.floor(Math.random() * garbageChars.length));
+            let rowStr = ""; for(let j=0; j<14; j++) rowStr += garbageChars.charAt(Math.floor(Math.random() * garbageChars.length));
 
             if (wordIndex < allWords.length && Math.random() > 0.4) {
-                const word = allWords[wordIndex];
-                const insertPos = Math.floor(Math.random() * (14 - word.length));
+                const word = allWords[wordIndex]; const insertPos = Math.floor(Math.random() * (14 - word.length));
                 const pre = rowStr.substring(0, insertPos).replace(/</g, "&lt;").replace(/>/g, "&gt;");
                 const post = rowStr.substring(insertPos + word.length).replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                
-                rowStr = `${pre}<span class="hack-word" 
-                    onmouseenter="document.getElementById('hack-hover-display').innerHTML = '> ${word} <span class=\\'cursor-block\\'>█</span>'" 
-                    onmouseleave="document.getElementById('hack-hover-display').innerHTML = '> <span class=\\'cursor-block\\'>█</span>'" 
-                    onclick="handleHackAttempt('${word}')">${word}</span>${post}`;
+                rowStr = `${pre}<span class="hack-word" onmouseenter="document.getElementById('hack-hover-display').innerHTML = '> ${word} <span class=\\'cursor-block\\'>█</span>'" onmouseleave="document.getElementById('hack-hover-display').innerHTML = '> <span class=\\'cursor-block\\'>█</span>'" onclick="handleHackAttempt('${word}')">${word}</span>${post}`;
                 wordIndex++;
-            } else {
-                rowStr = rowStr.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            }
-
-            let delayIndex = i < 20 ? i : i - 20;
-            let delay = delayIndex * 0.03;
-
+            } else { rowStr = rowStr.replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+            let delay = (i < 20 ? i : i - 20) * 0.03;
             const rowHtml = `<div class="hack-row" style="animation-delay: ${delay}s"><span class="hack-hex">${hex}</span> <span>${rowStr}</span></div>`;
-            if(i < 20) col1.innerHTML += rowHtml;
-            else col2.innerHTML += rowHtml;
+            if(i < 20) col1.innerHTML += rowHtml; else col2.innerHTML += rowHtml;
         }
     }
 
     window.handleHackAttempt = function(word) {
         if(hackAttempts <= 0) return;
-
         const log = document.getElementById('hack-output-log');
         log.innerHTML += `> ${word}<br>`;
 
         if(word === targetWord) {
             log.innerHTML += `<span style="color:#fff; text-shadow: 0 0 10px #fff;">> EXACT MATCH!</span><br>> ACCESS GRANTED.<br>`;
-            setTimeout(() => { showIntranetMenu(); }, 1200);
-            return;
+            setTimeout(() => { showIntranetMenu(); }, 1200); return;
         }
-
-        let likeness = 0;
-        for(let i=0; i<4; i++) { if(word[i] === targetWord[i]) likeness++; }
+        let likeness = 0; for(let i=0; i<4; i++) { if(word[i] === targetWord[i]) likeness++; }
         
-        hackAttempts--;
-        log.innerHTML += `> ENTRY DENIED.<br>> LIKENESS=${likeness}<br>`;
-        
+        hackAttempts--; log.innerHTML += `> ENTRY DENIED.<br>> LIKENESS=${likeness}<br>`;
         document.getElementById('hack-attempt-count').innerText = hackAttempts;
-        let blocks = "";
-        for(let i=0; i<hackAttempts; i++) blocks += "■ ";
-        document.getElementById('hack-blocks').innerText = blocks;
+        document.getElementById('hack-blocks').innerText = "■ ".repeat(hackAttempts);
 
         if(hackAttempts <= 0) {
             log.innerHTML += `<span style="color:red; text-shadow: 0 0 10px red;">> TERMINAL LOCKED.</span><br>> REBOOTING...<br>`;
@@ -713,216 +696,39 @@
         log.scrollTop = log.scrollHeight;
     };
 
-    // --- 7. INTRANET MENU SYSTEM ---
     function showIntranetMenu() {
-        const container = document.getElementById('security-content');
-        container.innerHTML = `
+        document.getElementById('security-content').innerHTML = `
             <div class="portal-menu">
-                <div style="margin-bottom: 20px; border-bottom: 1px dashed #1cf843; padding-bottom: 10px;">
-                    WELCOME TO THE IBEX SECURE INTRANET.<br>PLEASE SELECT A MODULE OR USE KEYBOARD (1-6):
-                </div>
+                <div style="margin-bottom: 20px; border-bottom: 1px dashed #1cf843; padding-bottom: 10px;">WELCOME TO THE IBEX SECURE INTRANET.<br>PLEASE SELECT A MODULE OR USE KEYBOARD (1-6):</div>
                 <div class="portal-item" onclick="loadPortalPage('COMPANY INFO')">[1] COMPANY INFO</div>
                 <div class="portal-item" onclick="loadPortalPage('TALENT SOLUTIONS')">[2] TALENT SOLUTIONS</div>
                 <div class="portal-item" onclick="loadPortalPage('CONTACT')">[3] CONTACT</div>
-                <div class="portal-item" onclick="loadPortalPage('CUSTOMER CARE')">[4] CUSTOMER CARE</div>
-                <div class="portal-item" onclick="loadPortalPage('BLOG')">[5] LOGS / BLOG</div>
                 <div class="portal-item" style="margin-top:20px; color:#aaa;" onclick="startHackingGame()">[6] LOGOUT</div>
-            </div>
-        `;
+            </div>`;
     }
 
     const portalData = {
-        'COMPANY INFO': {
-            text: "IBEX Staffing Solutions.<br><br>Founded on the principle that the right talent unlocks exponential growth. We specialize in sourcing, vetting, and deploying top-tier professionals across multiple sectors.<br><br>Our robust facility ensures high-efficiency processing and unparalleled synergy between worker and objective.",
-            art: `       /\\\n      // \\\n     //   \\\n    //IBEX \\\n   //_______\\\n  /          \\`
-        },
-        'TALENT SOLUTIONS': {
-            text: "Whether you need temporary contractors for immediate project scaling or long-term executive placements, IBEX delivers.<br><br>Our predictive algorithm matches skill sets with corporate culture to ensure a 99.8% retention rate over the first fiscal year.",
-            art: `    _____     _____\n   /     \\   /     \\\n  |  ___  |_|  ___  |\n  | |   |__ __|   | |\n  |_|      V      |_|\n   Handshake Protocol\n      Engaged.`
-        },
-        'CONTACT': {
-            text: "REACH THE IBEX HUB:<br><br>Direct Line: 555-IBEX-HIRE<br>Encrypted Mail: secure@goibex.it<br><br>Global Headquarters located in Sector 4. Authorized personnel only beyond the lobby.",
-            art: `   _________________\n  / \\             / \\\n |   \\           /   |\n |    \\_________/    |\n |      S E C U R E  |\n  \\_________________/`
-        },
-        'CUSTOMER CARE': {
-            text: "We stand by our placements.<br><br>If a unit fails to meet efficiency standards within the 30-day grace period, IBEX provides a frictionless replacement protocol at zero extra corporate cost.<br><br>Your satisfaction is our primary directive.",
-            art: `    _  _\n   / \\/ \\\n   \\    /\n    \\  /\n     \\/\n Client Loyalty.`
-        },
-        'BLOG': {
-            text: "LATEST ENTRIES:<br><br>- Q3 Hiring Trends Shift Towards Automation.<br>- How to optimize your resume for Machine Learning parsers.<br>- IBEX wins 'Agency of the Year' in Sector 7.<br>- The benefits of isometric factory monitoring.",
-            art: `   _________\n  | |_____| |\n  |  _____  |\n  | | IBX | |\n  |_|_____|_|\n Data Saved.`
-        }
+        'COMPANY INFO': { text: "IBEX Staffing Solutions.<br><br>Founded on the principle that the right talent unlocks exponential growth.", art: `       /\\\n      // \\\n     //   \\\n    //IBEX \\\n   //_______\\\n  /          \\` },
+        'TALENT SOLUTIONS': { text: "Whether you need temporary contractors for immediate project scaling or long-term executive placements, IBEX delivers.", art: `    _____     _____\n   /     \\   /     \\\n  |  ___  |_|  ___  |\n  | |   |__ __|   | |\n  |_|      V      |_|\n   Handshake Protocol\n      Engaged.` },
+        'CONTACT': { text: "REACH THE IBEX HUB:<br><br>Direct Line: 555-IBEX-HIRE<br>Encrypted Mail: secure@goibex.it", art: `   _________________\n  / \\             / \\\n |   \\           /   |\n |    \\_________/    |\n |      S E C U R E  |\n  \\_________________/` }
     };
 
     window.loadPortalPage = function(pageId) {
-        const container = document.getElementById('security-content');
         const data = portalData[pageId];
-        container.innerHTML = `
+        document.getElementById('security-content').innerHTML = `
             <div class="portal-content">
                 <div style="border-bottom: 1px dashed #1cf843; padding-bottom: 10px;">MODULE :: ${pageId}</div>
-                <div class="portal-body">
-                    <div class="portal-text">${data.text}</div>
-                    <div class="portal-art">${data.art}</div>
-                </div>
+                <div class="portal-body"><div class="portal-text">${data.text}</div><div class="portal-art">${data.art}</div></div>
                 <div class="portal-back" onclick="showIntranetMenu()">[ < RETURN TO MENU (BACKSPACE) ]</div>
-            </div>
-        `;
+            </div>`;
     };
 
-    function syncMonitors() {
-        const scale = bgSprite.scale.x;
-        const centerX = app.screen.width / 2;
-        const centerY = app.screen.height / 2;
-        if (scale === 0) return;
 
-        monitors.forEach(m => {
-            if (m.state === 'docked') {
-                m.element.style.left = `${centerX + (m.baseX * scale)}px`;
-                m.element.style.top = `${centerY + (m.baseY * scale)}px`;
-                m.element.style.width = `${m.baseW * scale}px`;
-                m.element.style.height = `${m.baseH * scale}px`;
-                m.element.style.fontSize = `${12 * scale}px`;
-                m.element.style.transform = m.baseTransform; 
-            }
-        });
-    }
-
-    let loadSyncCount = 0;
-    const loadSyncInterval = setInterval(() => {
-        syncMonitors(); if (++loadSyncCount > 30) clearInterval(loadSyncInterval);
-    }, 100);
-
-    // --- 9. BUTTON HITBOXES & EASTER EGG ---
-    let isAnimating = true, isFast = false;
-    let easterEggTriggered = false;
-
-    function triggerEasterEgg() {
-        easterEggTriggered = true;
-        entityLayer.children.forEach(c => c.interactive = false);
-        monitors.forEach(m => m.dock());
-        const overlay = document.getElementById('easter-egg-overlay');
-        overlay.style.display = 'flex';
-
-        setTimeout(() => {
-            const appWrapper = document.getElementById('app-wrapper');
-            appWrapper.classList.add('crt-shutdown');
-            setTimeout(() => {
-                entityLayer.children.forEach(c => {
-                    c.gridX = c.initialGridX; c.gridY = c.initialGridY;
-                    let pos = toIso(c.gridX, c.gridY);
-                    c.x = pos.x; c.y = pos.y; c.zIndex = c.y; c.interactive = true;
-                });
-                isAnimating = true; isFast = false;
-                entityLayer.children.forEach(e => { if (e.animationSpeed) { e.animationSpeed = 0.1; e.play(); } });
-                document.querySelectorAll('.monitor-overlay').forEach(el => el.classList.remove('power-off'));
-                document.getElementById('coords-display').innerText = "SYSTEM: REBOOTED";
-                document.getElementById('coords-display').style.color = "#4CAF50";
-
-                overlay.style.display = 'none';
-                appWrapper.classList.remove('crt-shutdown');
-                appWrapper.classList.add('crt-turn-on');
-                setTimeout(() => {
-                    appWrapper.classList.remove('crt-turn-on');
-                    easterEggTriggered = false;
-                }, 1000);
-            }, 2800);
-        }, 3500); 
-    }
-
-    // --- GREEN BUTTON: POWER ON ---
-    PIXI.Assets.load('pixilart-sprite.png').then((texture) => {
-        const halfWidth = texture.width / 2;
-        const fullHeight = texture.height;
-        const normalTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(0, 0, halfWidth, fullHeight));
-        const pressedTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(halfWidth, 0, halfWidth, fullHeight));
-        const customStartBtn = new PIXI.Sprite(normalTex);
-        customStartBtn.x = -1350; customStartBtn.y = 430; customStartBtn.scale.set(3);
-        customStartBtn.interactive = true; customStartBtn.cursor = 'pointer';
-        customStartBtn.hitArea = new PIXI.Rectangle(25, 35, halfWidth - 45, fullHeight - 80);
-
-        let isPressed = false; const pressDepth = 4;
-        customStartBtn.on('pointerdown', () => {
-            if (!isPressed) { customStartBtn.texture = pressedTex; customStartBtn.y += (pressDepth * customStartBtn.scale.y); isPressed = true; }
-        });
-        const releaseButton = () => {
-            if (isPressed) { customStartBtn.texture = normalTex; customStartBtn.y -= (pressDepth * customStartBtn.scale.y); isPressed = false; }
-        };
-        customStartBtn.on('pointerup', () => {
-            releaseButton();
-            document.querySelectorAll('.monitor-overlay').forEach(el => el.classList.remove('power-off'));
-            document.getElementById('coords-display').innerText = "SYSTEM: MONITORS ON";
-            document.getElementById('coords-display').style.color = "#4CAF50";
-        });
-        customStartBtn.on('pointerupoutside', releaseButton);
-        bgSprite.addChild(customStartBtn);
-    });
-
-    // --- RED BUTTON: POWER OFF ---
-    PIXI.Assets.load('stop_btn.png').then((texture) => {
-        const halfWidth = texture.width / 2;
-        const fullHeight = texture.height;
-        const normalTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(0, 0, halfWidth, fullHeight));
-        const pressedTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(halfWidth, 0, halfWidth, fullHeight));
-        const customStopBtn = new PIXI.Sprite(normalTex);
-        customStopBtn.x = -1025; customStopBtn.y = 430; customStopBtn.scale.set(3);
-        customStopBtn.interactive = true; customStopBtn.cursor = 'pointer';
-        customStopBtn.hitArea = new PIXI.Rectangle(25, 35, halfWidth - 45, fullHeight - 80);
-
-        let isPressed = false; const pressDepth = 4;
-        customStopBtn.on('pointerdown', () => {
-            if (!isPressed) { customStopBtn.texture = pressedTex; customStopBtn.y += (pressDepth * customStopBtn.scale.y); isPressed = true; }
-        });
-        const releaseButton = () => {
-            if (isPressed) { customStopBtn.texture = normalTex; customStopBtn.y -= (pressDepth * customStopBtn.scale.y); isPressed = false; }
-        };
-        customStopBtn.on('pointerup', () => {
-            releaseButton();
-            monitors.forEach(m => m.dock());
-            document.querySelectorAll('.monitor-overlay').forEach(el => el.classList.add('power-off'));
-            document.getElementById('coords-display').innerText = "SYSTEM: MONITORS OFF";
-            document.getElementById('coords-display').style.color = "#ff5252";
-        });
-        customStopBtn.on('pointerupoutside', releaseButton);
-        bgSprite.addChild(customStopBtn);
-    });
-
-    // --- TOGGLE ANIMATION BUTTON ---
-    PIXI.Assets.load('toggle_btn.png').then((texture) => {
-        const halfWidth = texture.width / 2;
-        const fullHeight = texture.height;
-        const normalTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(0, 0, halfWidth, fullHeight));
-        const pressedTex = new PIXI.Texture(texture.baseTexture, new PIXI.Rectangle(halfWidth, 0, halfWidth, fullHeight));
-        const customToggleBtn = new PIXI.Sprite(normalTex);
-        customToggleBtn.x = -690; customToggleBtn.y = 430; customToggleBtn.scale.set(3);
-        customToggleBtn.interactive = true; customToggleBtn.cursor = 'pointer';
-        customToggleBtn.hitArea = new PIXI.Rectangle(25, 35, halfWidth - 45, fullHeight - 80);
-
-        let isPressed = false; const pressDepth = 4;
-        customToggleBtn.on('pointerdown', () => {
-            if (!isPressed) { customToggleBtn.texture = pressedTex; customToggleBtn.y += (pressDepth * customToggleBtn.scale.y); isPressed = true; }
-        });
-        const releaseButton = () => {
-            if (isPressed) { customToggleBtn.texture = normalTex; customToggleBtn.y -= (pressDepth * customToggleBtn.scale.y); isPressed = false; }
-        };
-        customToggleBtn.on('pointerup', () => {
-            releaseButton();
-            isAnimating = !isAnimating;
-            entityLayer.children.forEach(e => { if (e.play) { if (isAnimating) e.play(); else e.stop(); } });
-            document.getElementById('coords-display').innerText = `SYSTEM: ${isAnimating ? 'RESUMED' : 'PAUSED'}`;
-            document.getElementById('coords-display').style.color = isAnimating ? "#4CAF50" : "#ffb74d";
-        });
-        customToggleBtn.on('pointerupoutside', releaseButton);
-        bgSprite.addChild(customToggleBtn);
-    });
-
-    // --- 10. ASSET PRE-LOADING & ENTITY SYSTEM ---
+    // --- 9. ASSET PRE-LOADING & UNIVERSAL DRAGGABLE SYSTEM ---
     const swPaths = [ 'animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_003.png' ];
-    const nePaths = [ 'animations/Breathing_Idle-c1b5dcec/north-east/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/north-east/frame_003.png' ];
     
-    let allAssetsToLoad = [...swPaths, ...nePaths, 'hook-remove.png'];
-    ROBOT_DATABASE.forEach(robot => {
-        allAssetsToLoad = allAssetsToLoad.concat(robot.paths);
-    });
+    let allAssetsToLoad = [...swPaths, 'hook-remove.png', 'ibex-banner.png', 'pillars.png'];
+    ROBOT_DATABASE.forEach(robot => { allAssetsToLoad = allAssetsToLoad.concat(robot.paths); });
 
     PIXI.Assets.load(allAssetsToLoad).then((textures) => {
         const hookTex = textures['hook-remove.png'];
@@ -935,53 +741,61 @@
 
         const claw = new PIXI.Sprite(openClawTex);
         claw.anchor.set(0.6, 1.2); claw.scale.set(1.5); claw.visible = false;
-        
-        claw.mode = 'idle'; 
-        claw.targetY = 0;
-        claw.autoTarget = null;
-        claw.newRobotConfig = null;
-        
+        claw.mode = 'idle'; claw.targetY = 0;
         entityLayer.addChild(claw);
 
-        function createEntity(paths, gridX, gridY, type) {
-            const entity = new PIXI.AnimatedSprite(paths.map(p => textures[p]));
-            entity.animationSpeed = 0.1; entity.play();
+        // 🌟 THE NEW UNIVERSAL DRAG-AND-DROP BUILDER FUNCTION 🌟
+        function createDraggable(textureData, gridX, gridY, type, scale = 1, grabOffset = 30) {
+            let entity;
             
-            // Anchored to bottom-center for perfect depth sorting!
+            // Checks if we passed an array (animations) or a single string (structures)
+            if (Array.isArray(textureData)) {
+                entity = new PIXI.AnimatedSprite(textureData.map(p => textures[p]));
+                entity.animationSpeed = 0.1; 
+                if (typeof isAnimating !== 'undefined' && isAnimating) entity.play();
+            } else {
+                entity = new PIXI.Sprite(textures[textureData]);
+            }
+            
             entity.anchor.set(0.5, 1); 
-            entity.scale.set(3);
+            entity.scale.set(scale);
 
-            const hitWidth = textures[paths[0]].width * 0.30; 
-            const hitHeight = textures[paths[0]].height * 0.80;
-            entity.hitArea = new PIXI.Rectangle(-hitWidth / 2, -hitHeight, hitWidth, hitHeight);
-
-            entity.initialGridX = gridX; entity.initialGridY = gridY; entity.type = type;
+            // Save properties for the physics & claw system
+            entity.initialGridX = gridX; 
+            entity.initialGridY = gridY; 
+            entity.gridX = gridX; 
+            entity.gridY = gridY; 
+            entity.type = type;
+            entity.grabOffset = grabOffset; 
 
             const pos = toIso(gridX, gridY);
-            entity.x = pos.x; entity.y = pos.y; entity.zIndex = entity.y;
+            entity.x = pos.x; 
+            entity.y = pos.y; 
+            entity.zIndex = entity.y;
             
-            // Add to the sorted World Layer!
             entityLayer.addChild(entity);
 
-            entity.interactive = true; entity.cursor = 'grab';
+            entity.interactive = true; 
+            entity.cursor = 'grab';
             let dragging = false, dragOffset = { x: 0, y: 0 };
 
             entity.on('pointerdown', (e) => {
-                if(easterEggTriggered || claw.mode !== 'idle') return;
+                // Prevent overlapping grabs if claw is already busy
+                if(claw.mode !== 'idle' && claw.visible) return; 
+                
                 dragging = true; entity.isDragging = true;
                 entity.cursor = 'grabbing'; entity.alpha = 0.8; 
                 
-                // Keep it on top of everything while dragging
-                //entity.zIndex = 10000;
+                dragOffset.x = entity.x - e.data.global.x; 
+                dragOffset.y = entity.y - e.data.global.y;
                 
-                dragOffset.x = entity.x - e.data.global.x; dragOffset.y = entity.y - e.data.global.y;
-                
-                claw.texture = openClawTex; 
-                claw.visible = true;
-                claw.x = entity.x; 
-                claw.y = -300; 
-                claw.targetY = entity.y - 30; 
-                claw.mode = 'manual_dropping';
+                // ONLY deploy the claw if it's a worker or robot!
+                if (entity.type === 'human' || entity.type === 'robot') {
+                    claw.texture = openClawTex; claw.visible = true;
+                    claw.x = entity.x; claw.y = -300; 
+                    claw.targetY = entity.y - entity.grabOffset; 
+                    claw.mode = 'manual_dropping';
+                }
             });
 
             const endDrag = () => {
@@ -989,19 +803,9 @@
                 dragging = false; entity.isDragging = false;
                 entity.cursor = 'grab'; entity.alpha = 1;
                 
-                claw.texture = openClawTex;
-                claw.mode = 'manual_retracting';
-                claw.targetY = -300;
-
-                if (!easterEggTriggered) {
-                    let robotsOnBelt = 0; let humansOnBelt = 0;
-                    entityLayer.children.forEach(c => {
-                        if (c.type && c.gridY >= 3.5 && c.gridY <= 6.0 && c.gridX >= -4 && c.gridX <= 12) {
-                            if (c.type === 'robot') robotsOnBelt++;
-                            if (c.type === 'human') humansOnBelt++;
-                        }
-                    });
-                    if (robotsOnBelt === 0 && humansOnBelt >= 4) triggerEasterEgg();
+                // ONLY retract the claw if it was actually deployed
+                if (entity.type === 'human' || entity.type === 'robot') {
+                    claw.texture = openClawTex; claw.mode = 'manual_retracting'; claw.targetY = -300;
                 }
             };
 
@@ -1013,146 +817,94 @@
                     let rawX = e.data.global.x + dragOffset.x;
                     let rawY = e.data.global.y + dragOffset.y;
                     
-                    // Apply smooth coordinates directly to Entity and Claw
                     entity.x = rawX; 
                     entity.y = rawY;
                     
-                    claw.x = entity.x;
-                    if (claw.mode === 'manual_dropping') {
-                        claw.targetY = entity.y - 30;
-                    } else {
-                        claw.y = entity.y - 30; 
+                    // ONLY update claw position if it belongs to a worker/robot
+                    if (entity.type === 'human' || entity.type === 'robot') {
+                        claw.x = entity.x;
+                        if (claw.mode === 'manual_dropping') claw.targetY = entity.y - entity.grabOffset;
+                        else claw.y = entity.y - entity.grabOffset; 
                     }
 
-                    // Keep updating the UI Readout smoothly
                     const cart = toCart(rawX, rawY);
-                    entity.gridX = cart.x; 
-                    entity.gridY = cart.y;
+                    entity.gridX = cart.x; entity.gridY = cart.y;
                     document.getElementById('coords-display').innerText = `X: ${cart.x.toFixed(1)} | Y: ${cart.y.toFixed(1)}`;
                 }
             }); 
             return entity;
         }
 
-        // Create humans
-        createEntity(swPaths, -1.5, 2.6, 'human');
-        createEntity(swPaths, 4.3, 3.0, 'human');
-        createEntity(nePaths, 0.0, 8.0, 'human');
-        createEntity(nePaths, 6.8, 8.1, 'human');
-        
-        // Setup initial base robots
         const baseRobotConfig = ROBOT_DATABASE.find(r => r.id === 'robot_base');
-        createEntity(baseRobotConfig.paths, -1.3, 4.5, 'robot');
-        createEntity(baseRobotConfig.paths, 1.0, 4.6, 'robot');
-        createEntity(baseRobotConfig.paths, 3.5, 4.8, 'robot');
-        createEntity(baseRobotConfig.paths, 6.6, 4.8, 'robot');
+        
+        // -------------------------------------------------------------
+        // ⚙️ SPAWN EVERYTHING INTO THE SANDBOX HERE:
+        // Format: createDraggable(texture, Grid X, Grid Y, type, scale, grabOffset);
+        // -------------------------------------------------------------
+        
+        // Structures (Claw ignores these!)
+        createDraggable('ibex-banner.png', 2.7, 9.9, 'structure', 0.7, 100);
+        createDraggable('pillars.png', 9.9, 2.6, 'structure', 0.7, 130);
 
-        // --- GLOBAL AUTOMATED CLAW TRIGGER ---
+        // Workers & Robots (Claw grabs these!)
+        createDraggable(baseRobotConfig.paths, 0, 0, 'robot', 3, 30);
+        createDraggable(baseRobotConfig.paths, 2, 2, 'robot', 3, 30);
+        createDraggable(swPaths, -2, 2, 'human', 3, 30);
+
+
         window.startAutomatedClawSwap = function(targetEntity, newConfig) {
-            claw.autoTarget = targetEntity;
-            claw.newRobotConfig = newConfig;
-            
-            claw.texture = openClawTex;
-            claw.visible = true;
-            claw.x = targetEntity.x;
-            claw.y = -300; 
-            claw.targetY = targetEntity.y - 30; 
-            
+            claw.autoTarget = targetEntity; claw.newRobotConfig = newConfig;
+            claw.texture = openClawTex; claw.visible = true;
+            claw.x = targetEntity.x; claw.y = -300; 
+            claw.targetY = targetEntity.y - targetEntity.grabOffset; 
             claw.mode = 'auto_fetch';
         }
 
-        // --- 11. GLOBAL TICKER FOR ANIMATIONS (MANUAL + AUTOMATIC) ---
+        // --- 10. GLOBAL TICKER FOR Y-SORTING ---
         app.ticker.add(() => {
-            
-            // 🌟 THIS IS THE Y-SORTING MAGIC! 🌟
-            // Every frame, it checks every object in the entityLayer (Robots, Banners, Pillars)
-            // and sets their 3D depth to match their exact Y pixel on the screen!
-            entityLayer.children.forEach(c => { 
-                c.zIndex = c.y;  // <-- Now it sorts them 60 times a second, even in mid-air!
-            });
+            entityLayer.children.forEach(c => { c.zIndex = c.y; });
 
             if (claw.visible && claw.mode !== 'idle') {
-                
                 claw.zIndex = claw.targetY; 
                 chain.zIndex = claw.targetY;
 
-                // MANUAL DRAG MODES
                 if (claw.mode === 'manual_dropping') {
                     claw.y += (claw.targetY - claw.y) * 0.4;
-                    if (Math.abs(claw.targetY - claw.y) < 5) {
-                        claw.y = claw.targetY;
-                        claw.mode = 'manual_holding';
-                        claw.texture = closedClawTex;
-                    }
+                    if (Math.abs(claw.targetY - claw.y) < 5) { claw.y = claw.targetY; claw.mode = 'manual_holding'; claw.texture = closedClawTex; }
                 } else if (claw.mode === 'manual_retracting') {
                     claw.y += (claw.targetY - claw.y) * 0.2;
-                    if (claw.y < -100) {
-                        claw.mode = 'idle';
-                        claw.visible = false;
-                        chain.clear();
-                    }
-                } 
-                
-                // AUTOMATED SWAP MODES
-                else if (claw.mode === 'auto_fetch') {
+                    if (claw.y < -100) { claw.mode = 'idle'; claw.visible = false; chain.clear(); }
+                } else if (claw.mode === 'auto_fetch') {
                     claw.y += (claw.targetY - claw.y) * 0.3;
-                    if (Math.abs(claw.targetY - claw.y) < 5) {
-                        claw.y = claw.targetY;
-                        claw.texture = closedClawTex;
-                        claw.autoTarget.visible = false; 
-                        
-                        claw.mode = 'auto_retract_old';
-                        claw.targetY = -300; 
-                    }
+                    if (Math.abs(claw.targetY - claw.y) < 5) { claw.y = claw.targetY; claw.texture = closedClawTex; claw.autoTarget.visible = false; claw.mode = 'auto_retract_old'; claw.targetY = -300; }
                 } else if (claw.mode === 'auto_retract_old') {
                     claw.y += (claw.targetY - claw.y) * 0.15; 
                     if (claw.y < -100) {
                         const newTextures = claw.newRobotConfig.paths.map(p => textures[p]);
-                        claw.autoTarget.textures = newTextures;
-                        claw.autoTarget.play(); 
-
-                        claw.mode = 'auto_drop_new';
-                        claw.targetY = claw.autoTarget.y - 30; 
+                        claw.autoTarget.textures = newTextures; claw.autoTarget.play(); 
+                        claw.mode = 'auto_drop_new'; claw.targetY = claw.autoTarget.y - claw.autoTarget.grabOffset; 
                     }
                 } else if (claw.mode === 'auto_drop_new') {
                     claw.y += (claw.targetY - claw.y) * 0.3;
-                    if (Math.abs(claw.targetY - claw.y) < 5) {
-                        claw.y = claw.targetY;
-                        claw.autoTarget.visible = true; 
-                        claw.texture = openClawTex;
-                        
-                        claw.mode = 'auto_retract_final';
-                        claw.targetY = -300; 
-                    }
+                    if (Math.abs(claw.targetY - claw.y) < 5) { claw.y = claw.targetY; claw.autoTarget.visible = true; claw.texture = openClawTex; claw.mode = 'auto_retract_final'; claw.targetY = -300; }
                 } else if (claw.mode === 'auto_retract_final') {
                     claw.y += (claw.targetY - claw.y) * 0.2;
-                    if (claw.y < -100) {
-                        claw.mode = 'idle';
-                        claw.visible = false;
-                        chain.clear();
-                    }
+                    if (claw.y < -100) { claw.mode = 'idle'; claw.visible = false; chain.clear(); }
                 }
 
                 if (claw.visible) {
-                    chain.clear();
-                    const chainX = claw.x - 12; 
-
-                    for (let cy = -300; cy < claw.y - 180; cy += 14) {
-                        chain.beginFill(0xaaaaaa); 
-                        chain.drawRect(chainX - 3, cy, 6, 10);
-                        chain.beginFill(0x1a1a1a); 
-                        chain.drawRect(chainX - 1, cy + 2, 2, 6);
-                        chain.endFill();
-
-                        chain.beginFill(0x333333); 
-                        chain.drawRect(chainX - 5, cy + 8, 10, 4);
-                        chain.beginFill(0x777777); 
-                        chain.drawRect(chainX - 5, cy + 8, 10, 2);
-                        chain.endFill();
+                    chain.clear(); const chainX = claw.x - 12; 
+                    for (let cy = -300; cy < claw.y - 280; cy += 14) {
+                        chain.beginFill(0xaaaaaa); chain.drawRect(chainX - 3, cy, 6, 10);
+                        chain.beginFill(0x1a1a1a); chain.drawRect(chainX - 1, cy + 2, 2, 6); chain.endFill();
+                        chain.beginFill(0x333333); chain.drawRect(chainX - 5, cy + 8, 10, 4);
+                        chain.beginFill(0x777777); chain.drawRect(chainX - 5, cy + 8, 10, 2); chain.endFill();
                     }
                 }
             }
         });
+        
+        resizeApp();
     });
 </script>
 </body>
