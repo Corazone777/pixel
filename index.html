@@ -438,6 +438,31 @@
     window.addEventListener('resize', resizeApp);
 
     // --- 4. ESCAPE KEY & MENU NAVIGATION ---
+
+    // --- X-RAY VISION (HOLD SHIFT TO GRAB THROUGH BUILDINGS) ---
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Shift') {
+            entityLayer.children.forEach(c => {
+                if (c.type === 'structure') {
+                    c.interactive = false; // Turn off the hitbox
+                    c.alpha = 0.4;         // Make it see-through!
+                }
+            });
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.key === 'Shift') {
+            entityLayer.children.forEach(c => {
+                if (c.type === 'structure') {
+                    c.interactive = true;  // Turn the hitbox back on
+                    c.alpha = 1.0;         // Make it solid again
+                }
+            });
+        }
+    });
+
+
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             monitors.forEach(m => m.dock());
@@ -803,20 +828,35 @@
         entityLayer.addChild(claw);
 
         // 🌟 THE NEW UNIVERSAL DRAG-AND-DROP BUILDER FUNCTION 🌟
+       // 🌟 THE NEW UNIVERSAL DRAG-AND-DROP BUILDER FUNCTION 🌟
         function createDraggable(textureData, gridX, gridY, type, scale = 1, grabOffset = 30) {
             let entity;
+            let tex; // We need this variable to measure the image for the hitbox!
             
+            // 1. Create the Sprite and grab the base texture
             if (Array.isArray(textureData)) {
+                tex = textures[textureData[0]];
                 entity = new PIXI.AnimatedSprite(textureData.map(p => textures[p]));
                 entity.animationSpeed = 0.1; 
                 if (typeof isAnimating !== 'undefined' && isAnimating) entity.play();
             } else {
-                entity = new PIXI.Sprite(textures[textureData]);
+                tex = textures[textureData];
+                entity = new PIXI.Sprite(tex);
             }
             
             entity.anchor.set(0.5, 1); 
             entity.scale.set(scale);
 
+            // 🎯 2. THE HITBOX FIX 🎯
+            if (type === 'human' || type === 'robot') {
+                // Skinny hitbox for characters so you don't grab empty air next to them
+                entity.hitArea = new PIXI.Rectangle(-tex.width * 0.2, -tex.height * 0.9, tex.width * 0.4, tex.height * 0.9);
+            } else {
+                // Massive, full-size hitbox for Banners and Pillars
+                entity.hitArea = new PIXI.Rectangle(-tex.width / 2, -tex.height, tex.width, tex.height);
+            }
+
+            // 3. Save properties for the physics & claw system
             entity.initialGridX = gridX; 
             entity.initialGridY = gridY; 
             entity.gridX = gridX; 
@@ -824,6 +864,7 @@
             entity.type = type;
             entity.grabOffset = grabOffset; 
 
+            // 4. Initial Positioning
             const pos = toIso(gridX, gridY);
             entity.x = pos.x; 
             entity.y = pos.y; 
@@ -831,11 +872,13 @@
             
             entityLayer.addChild(entity);
 
+            // 5. Drag and Drop Interaction
             entity.interactive = true; 
             entity.cursor = 'grab';
             let dragging = false, dragOffset = { x: 0, y: 0 };
 
             entity.on('pointerdown', (e) => {
+                // Prevent overlapping grabs if claw is already busy
                 if(claw.mode !== 'idle' && claw.visible) return; 
                 
                 dragging = true; entity.isDragging = true;
@@ -844,13 +887,11 @@
                 dragOffset.x = entity.x - e.data.global.x; 
                 dragOffset.y = entity.y - e.data.global.y;
                 
+                // Deploy the claw!
                 claw.texture = openClawTex; claw.visible = true;
                 claw.x = entity.x; claw.y = -300; 
                 claw.targetY = entity.y - entity.grabOffset; 
-                
-                // NEW: Tell the claw the actual depth of the item!
-                claw.baseY = entity.y; 
-                
+                claw.baseY = entity.y; // Tell the claw the actual depth of the item!
                 claw.mode = 'manual_dropping';
             });
 
@@ -859,6 +900,7 @@
                 dragging = false; entity.isDragging = false;
                 entity.cursor = 'grab'; entity.alpha = 1;
                 
+                // Retract the claw
                 claw.texture = openClawTex; claw.mode = 'manual_retracting'; claw.targetY = -300;
             };
 
@@ -873,21 +915,23 @@
                     entity.x = rawX; 
                     entity.y = rawY;
                     
+                    // The claw seamlessly follows whatever object you are holding.
                     claw.x = entity.x;
                     if (claw.mode === 'manual_dropping') claw.targetY = entity.y - entity.grabOffset;
                     else claw.y = entity.y - entity.grabOffset; 
                     
-                    // NEW: Update the depth tracking while dragging!
+                    // Update the depth tracking while dragging!
                     claw.baseY = entity.y; 
 
+                    // Update UI Coordinates
                     const cart = toCart(rawX, rawY);
                     entity.gridX = cart.x; entity.gridY = cart.y;
                     document.getElementById('coords-display').innerText = `X: ${cart.x.toFixed(1)} | Y: ${cart.y.toFixed(1)}`;
                 }
             }); 
+            
             return entity;
-        }
-
+        } 
         const baseRobotConfig = ROBOT_DATABASE.find(r => r.id === 'robot_base');
         
         // Structures 
