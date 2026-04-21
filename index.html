@@ -37,8 +37,9 @@
         
         canvas { image-rendering: pixelated; } 
 
+        
         #ui-panel {
-            position: absolute; top: 20px; left: 20px;
+            position: absolute; top: 20px; right: 20px;
             background: rgba(11, 12, 16, 0.85); padding: 15px 25px;
             border-radius: 8px; font-size: 14px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.5);
@@ -46,6 +47,7 @@
             pointer-events: none; z-index: 8010;
             backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
         }
+
         .panel-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #81C784; margin-bottom: 6px; }
         .panel-data { font-size: 22px; font-weight: bold; color: #4CAF50; font-family: 'Courier New', Courier, monospace; }
 
@@ -817,7 +819,7 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
             `${item.animBase}/${dir}/frame_003.png`
         ];
 
-        window.createDraggable(bannerItem.textureData, 0.7, 10.1, bannerItem.type, bannerItem.scale, bannerItem.grabOffset, true); 
+        window.createDraggable(bannerItem.textureData, -2.2, 10.4, bannerItem.type, bannerItem.scale, bannerItem.grabOffset, true); 
         window.createDraggable(pillarItem.textureData, 10.4, 4.7, pillarItem.type, pillarItem.scale, pillarItem.grabOffset);
 
         // Spawn using directions we explicitly declared as animated
