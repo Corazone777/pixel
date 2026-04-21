@@ -19,6 +19,11 @@
             position: relative; transform-origin: center center;
         }
 
+        /* Demolish Mode Cursor Override */
+        body.demolish-mode canvas {
+            cursor: crosshair !important;
+        }
+
         /* --- CRT / PHOSPHOR MASK OVERLAY --- */
         #app-wrapper::after {
             content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -38,7 +43,7 @@
             border-radius: 8px; font-size: 14px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.5);
             border: 1px solid rgba(76, 175, 80, 0.2);
-            pointer-events: none; z-index: 100;
+            pointer-events: none; z-index: 8010;
             backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
         }
         .panel-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #81C784; margin-bottom: 6px; }
@@ -88,27 +93,42 @@
         }
         .desk-btn.btn-red { background: #a00; color: #fff; border-color: #f55 #400 #400 #f55; }
         .desk-btn.btn-red:active { border-color: #400 #f55 #f55 #400; }
+        
+        .desk-btn.btn-warning { background: #ffb74d; color: #000; border-color: #ffe0b2 #f57c00 #f57c00 #ffe0b2; }
+        .desk-btn.btn-warning.active { background: #f57c00; border-color: #e65100 #ffe0b2 #ffe0b2 #e65100; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); transform: translateY(2px); color: #fff; }
 
         /* --- 3. HEAVY INDUSTRIAL MONITOR CSS --- */
         .monitor-overlay {
             position: absolute; background: #c4c4bc; 
             border: 6px solid; border-color: #e8e8e3 #8a8a83 #8a8a83 #e8e8e3; 
             border-radius: 12px; padding: 12px; box-sizing: border-box; overflow: hidden;
-            pointer-events: auto; z-index: 50; display: flex; flex-direction: column;
+            pointer-events: auto; z-index: 8005; 
+            display: flex; flex-direction: column;
             box-shadow: 15px 25px 40px rgba(0, 0, 0, 0.9);
             top: -150vh; left: 50%; transform: translateX(-50%);
             width: 80vw; max-width: 1400px; height: 80vh; max-height: 900px;
             transition: top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        .monitor-overlay.is-centered { top: 5vh; z-index: 200; }
+        .monitor-overlay.is-centered { top: 5vh; z-index: 8005; }
 
         .hardware-bezel {
-            flex-grow: 1; display: flex; flex-direction: column; background: #111; 
+            flex-grow: 1; display: flex; flex-direction: column; background: #000000; 
             border: 8px solid; border-color: #050505 #333 #333 #050505;
             border-radius: 8px; padding: 8px; box-shadow: inset 0 0 20px rgba(0,0,0,1);
             position: relative;
         }
+        
+        /* NEW: MOBILE-FRIENDLY CLOSE BUTTON */
+        .close-x-btn {
+            position: absolute; top: 12px; right: 15px; z-index: 100;
+            color: #d32f2f; font-family: 'Courier New', Courier, monospace; font-size: 18px; font-weight: bold;
+            background: #050505; border: 2px solid #333; padding: 2px 8px; border-radius: 4px;
+            cursor: pointer; transition: all 0.2s; box-shadow: inset 0 0 5px rgba(0,0,0,1);
+            display: none; /* Hide when docked */
+        }
+        .monitor-overlay.is-centered .close-x-btn { display: block; }
+        .close-x-btn:hover { background: #330000; border-color: #d32f2f; color: #ff3333; text-shadow: 0 0 5px #ff3333; }
 
         .monitor-body { 
             flex-grow: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; 
@@ -128,44 +148,66 @@
         }
         @keyframes led-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-        /* --- 4. RETRO UI STYLES (RESPONSIVE) --- */
+        /* --- 4. RETRO UI STYLES --- */
         .retro-wrapper {
-            background-color: #040c04; color: #1cf843; font-family: 'Courier New', Courier, monospace; font-weight: bold;
-            text-shadow: 0 0 6px rgba(28, 248, 67, 0.8); height: 100%; width: 100%; position: relative;
+            background-color: #000000; color: #1cf843; font-family: 'Courier New', Courier, monospace; font-weight: bold;
+            /*text-shadow: 0 0 6px rgba(28, 248, 67, 0.8); height: 100%; width: 100%; position: relative;*/
             padding: 2vh 3vw; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; 
             font-size: clamp(12px, 1.8vh, 22px); line-height: 1.3;
         }
 
+        /*
         .retro-wrapper::after {
             content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
                         linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
             z-index: 10; background-size: 100% 4px, 3px 100%; pointer-events: none; box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
         }
+        */
 
-        .retro-title { margin-bottom: 2vh; border-bottom: 2px solid #1cf843; padding-bottom: 10px; font-size: 1.2em; text-transform: uppercase; flex-shrink: 0; }
+        .retro-title { margin-bottom: 2vh; border-bottom: 2px solid #1cf843; padding-bottom: 10px; font-size: 1.2em; text-transform: uppercase; flex-shrink: 0; padding-right: 40px; /* Space for the X button */ }
         .website-iframe { flex-grow: 1; border: none; width: 100%; height: 100%; background: #fff; z-index: 2; position: relative; }
 
-        /* --- SLIDER FABRICATION UI --- */
-        .slider-controls { display: flex; align-items: center; justify-content: center; gap: 4vw; flex-grow: 1; z-index: 2; position: relative; padding: 1vh 0; min-height: 0; }
-        .slider-btn { font-size: 2.5em; cursor: pointer; color: #1cf843; transition: transform 0.1s; user-select: none; }
-        .slider-btn:hover { text-shadow: 0 0 15px #1cf843; transform: scale(1.1); }
-        .slider-btn:active { transform: scale(0.9); }
+        /* --- NEW GRID BUILDER UI (TIGHTER COLUMNS FOR MOBILE) --- */
+        .build-grid {
+            display: grid;
+            /* Shrunk minmax from 140px to 90px so they pack much tighter together! */
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: 10px;
+            padding: 10px 0;
+            overflow-y: auto;
+            flex-grow: 1;
+            z-index: 2; position: relative;
+        }
         
-        .robot-display {
-            display: flex; flex-direction: column; align-items: center; border: 2px dashed #1cf843; padding: 2vh 2vw; 
-            width: clamp(200px, 30vw, 400px); background: rgba(28, 248, 67, 0.05); box-shadow: inset 0 0 20px rgba(28, 248, 67, 0.1);
-        }
-        .robot-large-thumb {
-            width: 20vh; height: 20vh; min-width: 120px; min-height: 120px; max-width: 250px; max-height: 250px;
-            background-size: contain; background-repeat: no-repeat; background-position: center; image-rendering: pixelated;
-        }
-        .robot-large-name { font-size: 1.1em; text-align: center; margin-top: 2vh; letter-spacing: 2px; }
+        .build-grid::-webkit-scrollbar { width: 8px; }
+        .build-grid::-webkit-scrollbar-track { background: rgba(28, 248, 67, 0.1); border: 1px solid #1cf843; }
+        .build-grid::-webkit-scrollbar-thumb { background: #1cf843; }
 
-        .target-selection { display: flex; gap: 20px; align-items: center; justify-content: center; margin-bottom: 2vh; z-index: 2; position: relative; font-size: 1.1em; }
-        .target-btn { cursor: pointer; padding: 5px 15px; border: 2px solid transparent; transition: all 0.2s; user-select: none; }
-        .target-btn:hover { background: rgba(28, 248, 67, 0.2); }
-        .target-btn.selected { border-color: #1cf843; background: #1cf843; color: #040c04; text-shadow: none; font-weight: bold; }
+        .build-item {
+            border: 2px dashed #1cf843;
+            background: rgba(28, 248, 67, 0.05);
+            padding: 10px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        .build-item:hover { background: rgba(28, 248, 67, 0.2); transform: scale(1.02); }
+        .build-item.selected {
+            background: rgba(28, 248, 67, 0.4);
+            border-style: solid;
+            box-shadow: inset 0 0 20px rgba(28, 248, 67, 0.8), 0 0 15px rgba(28, 248, 67, 0.5);
+            color: #fff;
+        }
+        
+        .build-item-thumb {
+            width: 8vh; height: 8vh; min-width: 40px; min-height: 40px;
+            background-size: contain; background-repeat: no-repeat; background-position: center; 
+            image-rendering: pixelated; margin-bottom: 5px;
+        }
+        .build-item-name { font-size: 0.7em; text-align: center; letter-spacing: 1px; }
 
         .deploy-btn { border: 2px solid #1cf843; padding: 10px 20px; cursor: pointer; transition: all 0.2s; font-size: 1em; text-align: center; width: max-content; background: rgba(28, 248, 67, 0.1); }
         .deploy-btn:hover { background: #1cf843; color: #040c04; text-shadow: none; box-shadow: 0 0 15px #1cf843; }
@@ -217,8 +259,7 @@
         
         <div class="desk-group">
             <div class="desk-label">SYSTEM</div>
-            <button class="desk-btn" onclick="toggleEnginePause()">RESUME/PAUSE</button>
-            <button class="desk-btn btn-red" onclick="closeAllMonitors()">CLOSE ALL</button>
+            <button class="desk-btn btn-warning" id="btn-demolish" onclick="toggleDemolishMode()">DEMOLISH: OFF</button>
         </div>
     </div>
 
@@ -231,23 +272,43 @@
 
 <script>
     // ============================================================================
-    // ⚙️ ROBOT DATABASE
+    // ⚙️ MASTER BUILD CATALOG
     // ============================================================================
-    const ROBOT_DATABASE = [
+    const BUILD_CATALOG = [
         {
-            id: 'robot_base', name: 'WORKER UNIT (BASE)',
-            thumb: 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png',
-            paths: [ 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_001.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_002.png', 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_003.png' ]
+            id: 'robot_base', name: 'WORKER UNIT', type: 'robot', scale: 3, grabOffset: 30,
+            hasRotation: true, folder: 'robot', 
+            animatedDirs: ['south', 'south-east'], // <--- 2 animations
+            animBase: 'robot/animations/Breathing_Idle-c693fd1f',
+            thumb: 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png'
         },
         {
-            id: 'robot_v1', name: 'SECURITY UNIT (V1)',
-            thumb: 'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_000.png', 
-            paths: [ 'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_000.png', 'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_001.png', 'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_002.png', 'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_003.png' ]
+            id: 'robot_v1', name: 'SECURITY UNIT', type: 'robot', scale: 3, grabOffset: 30,
+            hasRotation: true, folder: 'robot1', 
+            animatedDirs: ['south-east'], // <--- 1 animation
+            animBase: 'robot1/animations/Breathing_Idle-6d37f6f3',
+            thumb: 'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_000.png'
+        },
+        {
+            id: 'human_worker', name: 'HUMAN OPERATOR', type: 'human', scale: 3, grabOffset: 30,
+            hasRotation: true, folder: 'human', 
+            animatedDirs: ['north-east', 'south', 'south-west'], // <--- 3 animations
+            animBase: 'human/animations/Breathing_Idle-c1b5dcec',
+            thumb: 'human/animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png'
+        },
+        {
+            id: 'banner', name: 'IBEX BANNER', type: 'structure', scale: 0.7, grabOffset: 450,
+            hasRotation: false, thumb: 'static_assets/ibex-banner.png', textureData: 'static_assets/ibex-banner.png'
+        },
+        {
+            id: 'pillar', name: 'SUPPORT PILLAR', type: 'structure', scale: 0.7, grabOffset: 280,
+            hasRotation: false, thumb: 'static_assets/pillars.png', textureData: 'static_assets/pillars.png'
         }
     ];
 
-    window.pendingDeployment = null;
+
     let isAnimating = true;
+    let demolishMode = false;
 
     // --- 1. PIXI INITIALIZATION & LAYERS ---
     PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
@@ -327,20 +388,17 @@
 
     // --- 4. X-RAY VISION & ESC KEY LOGIC ---
     window.addEventListener('keydown', (e) => {
-        // Shift Key for X-Ray
         if (e.key === 'Shift') {
             entityLayer.children.forEach(c => {
                 if (c.type === 'structure') { c.interactive = false; c.alpha = 0.4; }
             });
         }
 
-        // ESCAPE KEY RESTORED (Closes monitors)
         if (e.key === 'Escape') {
             window.closeAllMonitors();
             return;
         }
 
-        // Minigame/Portal Navigation
         if (document.querySelector('.portal-menu')) {
             switch(e.key) {
                 case '1': loadPortalPage('COMPANY INFO'); break;
@@ -372,6 +430,7 @@
 
         div.innerHTML = `
             <div class="hardware-bezel">
+                <div class="close-x-btn" onclick="closeAllMonitors()">[X]</div>
                 <div class="monitor-body">${contentHTML}</div>
             </div>
             <div class="hardware-controls">
@@ -384,28 +443,32 @@
         monitors.push({ id: id, element: div });
     }
 
-    // THE FACTORY MONITOR (Target selection and Deploy buttons preserved)
-    createMonitor("mon-terminal", "FACTORY", `
-        <div class="retro-wrapper"><div class="retro-title">ROBOT FABRICATION PROTOCOL v4.0</div>
-            <div class="slider-controls">
-                <div class="slider-btn" onclick="prevRobot()">&#9664;</div>
-                <div class="robot-display" id="robot-display"></div>
-                <div class="slider-btn" onclick="nextRobot()">&#9654;</div>
+   createMonitor("mon-terminal", "FACTORY", `
+        <div class="retro-wrapper"><div class="retro-title">FABRICATION & DEPLOYMENT</div>
+            <div class="build-grid" id="build-grid-container"></div>
+            
+            <div id="rotation-container" style="display: none; justify-content: space-between; align-items: center; border-top: 2px dashed #1cf843; padding-top: 10px; margin-top: auto; font-size: 0.8em;">
+                <span>ORIENTATION:</span>
+                <select id="rotation-select" style="background: #040c04; color: #1cf843; border: 1px solid #1cf843; font-family: 'Courier New', monospace; font-weight: bold; padding: 4px; outline: none; cursor: pointer;">
+                    <option value="south-east">SOUTH-EAST</option>
+                    <option value="south">SOUTH</option>
+                    <option value="south-west">SOUTH-WEST</option>
+                    <option value="west">WEST</option>
+                    <option value="north-west">NORTH-WEST</option>
+                    <option value="north">NORTH</option>
+                    <option value="north-east">NORTH-EAST</option>
+                    <option value="east">EAST</option>
+                </select>
             </div>
-            <div class="target-selection">
-                <span>TARGET UNIT:</span>
-                <div class="target-btn selected" id="tgt-0" onclick="selectTarget(0)">[ 1 ]</div>
-                <div class="target-btn" id="tgt-1" onclick="selectTarget(1)">[ 2 ]</div>
-            </div>
-            <div style="margin-top: auto; border-top: 2px dashed #1cf843; padding-top: 15px; display: flex; justify-content: space-between; align-items: center; z-index: 2; position: relative;">
-                <div id="fabrication-status" style="font-size: 0.8em;">STATUS: AWAITING SELECTION...</div>
-                <div class="deploy-btn" id="deploy-btn" onclick="queueFabrication()">INITIATE REPLACEMENT</div>
+
+            <div style="border-top: 2px dashed #1cf843; padding-top: 15px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 2; position: relative;">
+                <div id="fabrication-status" style="font-size: 0.8em;">STATUS: SELECT AN ASSET</div>
+                <div class="deploy-btn disabled" id="deploy-btn" onclick="deployItem()">DEPLOY TO FLOOR</div>
             </div>
         </div>
     `);
 
-    createMonitor("mon-web", "WEBSITE", `<div class="retro-wrapper" style="padding: 0;"><iframe src="https://goibex.it" class="website-iframe"></iframe></div>`);
-
+createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="width: 100%; height: 100%; flex-grow: 1; border: none; display: block; background: #fff;"></iframe>`);
     createMonitor("mon-security", "SECURITY", `
         <div class="retro-wrapper">
             <div class="retro-title">RESTRICTED AREA // PASSWORD REQUIRED</div>
@@ -420,59 +483,91 @@
         target.classList.add('is-centered');
 
         if(targetId === 'mon-security' && !document.getElementById('hack-container-id')) startHackingGame();
-        if(targetId === 'mon-terminal' && document.getElementById('robot-display').innerHTML.trim() === '') window.updateRobotDisplay();
+        
+        if(targetId === 'mon-terminal' && document.getElementById('build-grid-container').innerHTML.trim() === '') {
+            window.populateBuildGrid();
+        }
     };
 
     window.closeAllMonitors = function() {
         monitors.forEach(m => m.element.classList.remove('is-centered'));
-        
-        if (window.pendingDeployment) {
-            window.startAutomatedClawSwap(window.pendingDeployment.target, window.pendingDeployment.config);
-            window.pendingDeployment = null; 
-            document.getElementById('deploy-btn').classList.remove('disabled');
-            document.getElementById('fabrication-status').innerText = `STATUS: AWAITING SELECTION...`;
+    };
+
+    // --- DEMOLISH MODE LOGIC ---
+    window.toggleDemolishMode = function() {
+        demolishMode = !demolishMode;
+        const btn = document.getElementById('btn-demolish');
+        if (demolishMode) {
+            btn.classList.add('active');
+            btn.innerText = "DEMOLISH: ON";
+            document.body.classList.add('demolish-mode');
+            document.getElementById('coords-display').innerText = `SYSTEM: DEMOLISH MODE ACTIVE`;
+            document.getElementById('coords-display').style.color = "#ff5252";
+        } else {
+            btn.classList.remove('active');
+            btn.innerText = "DEMOLISH: OFF";
+            document.body.classList.remove('demolish-mode');
+            document.getElementById('coords-display').innerText = `SYSTEM: READY`;
+            document.getElementById('coords-display').style.color = "#4CAF50";
         }
+    }
+
+    // --- 6. SANDBOX GRID BUILDER LOGIC ---
+    let currentBuildIndex = -1;
+
+    window.populateBuildGrid = function() {
+        const container = document.getElementById('build-grid-container');
+        container.innerHTML = BUILD_CATALOG.map((item, index) => `
+            <div class="build-item" id="build-item-${index}" onclick="selectBuildItem(${index})">
+                <div class="build-item-thumb" style="background-image: url('${item.thumb}')"></div>
+                <div class="build-item-name">${item.name}</div>
+            </div>
+        `).join('');
     };
 
-    window.toggleEnginePause = function() {
-        isAnimating = !isAnimating;
-        entityLayer.children.forEach(e => { if (e.play) { if (isAnimating) e.play(); else e.stop(); } });
-        document.getElementById('coords-display').innerText = `SYSTEM: ${isAnimating ? 'RESUMED' : 'PAUSED'}`;
-        document.getElementById('coords-display').style.color = isAnimating ? "#4CAF50" : "#ffb74d";
-    };
-
-    // --- 6. FABRICATION SLIDER UI LOGIC ---
-    let currentRobotIndex = 0;
-    let selectedTargetIndex = 0;
-
-    window.updateRobotDisplay = function() {
-        const robot = ROBOT_DATABASE[currentRobotIndex];
-        document.getElementById('robot-display').innerHTML = `
-            <div class="robot-large-thumb" style="background-image: url('${robot.thumb}')"></div>
-            <div class="robot-large-name">${robot.name}</div>
-        `;
-    };
-    window.prevRobot = function() { currentRobotIndex = (currentRobotIndex - 1 + ROBOT_DATABASE.length) % ROBOT_DATABASE.length; updateRobotDisplay(); };
-    window.nextRobot = function() { currentRobotIndex = (currentRobotIndex + 1) % ROBOT_DATABASE.length; updateRobotDisplay(); };
-    window.selectTarget = function(idx) {
-        selectedTargetIndex = idx;
-        document.querySelectorAll('.target-btn').forEach(btn => btn.classList.remove('selected'));
-        document.getElementById('tgt-' + idx).classList.add('selected');
-    };
-    window.queueFabrication = function() {
-        const selectedConfig = ROBOT_DATABASE[currentRobotIndex];
-        const robotsOnBelt = entityLayer.children.filter(c => c.type === 'robot').sort((a, b) => a.x - b.x);
+    window.selectBuildItem = function(index) {
+        currentBuildIndex = index;
+        document.querySelectorAll('.build-item').forEach(el => el.classList.remove('selected'));
+        document.getElementById(`build-item-${index}`).classList.add('selected');
         
-        if (robotsOnBelt.length <= selectedTargetIndex) {
-            document.getElementById('fabrication-status').innerText = `ERROR: TARGET UNIT NOT FOUND.`;
-            return;
+        // Show or hide the rotation dropdown based on the item type!
+        const item = BUILD_CATALOG[index];
+        document.getElementById('rotation-container').style.display = item.hasRotation ? 'flex' : 'none';
+        
+        document.getElementById('fabrication-status').innerText = `STATUS: READY TO DEPLOY`;
+        document.getElementById('deploy-btn').classList.remove('disabled');
+    };
+    
+   window.deployItem = function() {
+        if(currentBuildIndex === -1) return;
+        const item = BUILD_CATALOG[currentBuildIndex];
+        
+        let textureToSpawn = item.textureData; 
+        
+        if (item.hasRotation) {
+            const rot = document.getElementById('rotation-select').value;
+            
+            // Check if the picked direction has an animation
+            if (item.animatedDirs.includes(rot)) {
+                // Yes? Spawn the breathing ANIMATION array!
+                textureToSpawn = [
+                    `${item.animBase}/${rot}/frame_000.png`,
+                    `${item.animBase}/${rot}/frame_001.png`,
+                    `${item.animBase}/${rot}/frame_002.png`,
+                    `${item.animBase}/${rot}/frame_003.png`
+                ];
+            } else {
+                // No animation for this direction? Spawn the STATIC image!
+                textureToSpawn = `${item.folder}/rotations/${rot}.png`;
+            }
         }
-
-        const targetEntity = robotsOnBelt[selectedTargetIndex];
+        
+        document.getElementById('fabrication-status').innerText = `STATUS: DEPLOYED SECURELY.`;
         document.getElementById('deploy-btn').classList.add('disabled');
-        document.getElementById('fabrication-status').innerText = `STATUS: QUEUED. CLOSE TERMINAL TO DEPLOY.`;
+        
+        window.createDraggable(textureToSpawn, 0, 0, item.type, item.scale, item.grabOffset);
 
-        window.pendingDeployment = { target: targetEntity, config: selectedConfig };
+        setTimeout(() => { window.closeAllMonitors(); }, 800);
     }
 
     // --- 7. HACKING MINIGAME & PORTAL ---
@@ -558,13 +653,29 @@
     };
 
     // --- 8. ASSET PRE-LOADING & UNIVERSAL DRAGGABLE SYSTEM ---
-    const swPaths = [ 'animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_001.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_002.png', 'animations/Breathing_Idle-c1b5dcec/south-west/frame_003.png' ];
-    
-    let allAssetsToLoad = [...swPaths, 'hook-remove.png', 'ibex-banner.png', 'pillars.png'];
-    ROBOT_DATABASE.forEach(robot => { allAssetsToLoad = allAssetsToLoad.concat(robot.paths); });
+    const directions = ['east', 'north-east', 'north-west', 'north', 'south-east', 'south-west', 'south', 'west'];
+    let allAssetsToLoad = ['static_assets/hook-remove.png', 'static_assets/ibex-banner.png'];
+
+    BUILD_CATALOG.forEach(item => {
+        if (item.hasRotation) {
+            // 1. Load ALL 8 static images from the rotations folder
+            directions.forEach(dir => allAssetsToLoad.push(`${item.folder}/rotations/${dir}.png`));
+            
+            // 2. Load the 4 animated frames ONLY for the directions that actually exist!
+            item.animatedDirs.forEach(animDir => {
+                for(let i=0; i<=3; i++) {
+                    allAssetsToLoad.push(`${item.animBase}/${animDir}/frame_00${i}.png`);
+                }
+            });
+        } else {
+            allAssetsToLoad.push(item.textureData);
+        }
+    });
+    allAssetsToLoad = [...new Set(allAssetsToLoad)];
+
 
     PIXI.Assets.load(allAssetsToLoad).then((textures) => {
-        const hookTex = textures['hook-remove.png'];
+        const hookTex = textures['static_assets/hook-remove.png'];
         const frameW = hookTex.width / 4; const frameH = hookTex.height / 2;
         const openClawTex = new PIXI.Texture(hookTex.baseTexture, new PIXI.Rectangle(0, 0, frameW, frameH));
         const closedClawTex = new PIXI.Texture(hookTex.baseTexture, new PIXI.Rectangle(frameW, 0, frameW, frameH));
@@ -577,8 +688,8 @@
         claw.mode = 'idle'; claw.targetY = 0; claw.baseY = 0;
         entityLayer.addChild(claw);
 
-        // 🌟 YOUR EXACT CUSTOM UNIVERSAL DRAG-AND-DROP BUILDER FUNCTION 🌟
-        function createDraggable(textureData, gridX, gridY, type, scale = 1, grabOffset = 30) {
+        // 🌟 EXPOSED GLOBALLY FOR UI DEPLOYMENT 🌟
+        window.createDraggable = function(textureData, gridX, gridY, type, scale = 1, grabOffset = 30, isUndeletable = false) {
             let entity;
             let tex; 
             
@@ -595,7 +706,6 @@
             entity.anchor.set(0.5, 1); 
             entity.scale.set(scale);
 
-            // YOUR CUSTOM HITBOXES
             if (type === 'human' || type === 'robot') {
                 entity.hitArea = new PIXI.Rectangle(-tex.width * 0.2, -tex.height * 0.9, tex.width * 0.4, tex.height * 0.9);
             } else {
@@ -615,6 +725,37 @@
             let dragging = false, dragOffset = { x: 0, y: 0 };
 
             entity.on('pointerdown', (e) => {
+                // 🔥 DEMOLISH OVERRIDE 🔥
+                if (demolishMode) {
+                    if (isUndeletable) return;
+
+
+                    if (entity.isDemolishing) return; // Prevent double-clicking
+                    entity.isDemolishing = true;
+                    entity.interactive = false; // Stop it from being clicked again
+                    
+                    // The Classic Arcade Blink Effect
+                    let blinkTimer = 0;
+                    const blinkAnim = () => {
+                        blinkTimer++;
+                        
+                        // Toggle visibility every 4 frames to create the flashing effect
+                        if (blinkTimer % 4 === 0) {
+                            entity.alpha = entity.alpha === 1 ? 0 : 1;
+                        }
+                        
+                        // After 24 frames (a quick flash), delete it entirely
+                        if (blinkTimer > 24) {
+                            app.ticker.remove(blinkAnim);
+                            entity.destroy();
+                        }
+                    };
+                    
+                    // Attach the animation to the engine
+                    app.ticker.add(blinkAnim);
+                    return;
+                }
+
                 if(claw.mode !== 'idle' && claw.visible) return; 
                 
                 dragging = true; entity.isDragging = true;
@@ -634,7 +775,6 @@
                 if(!dragging) return;
                 dragging = false; entity.isDragging = false;
                 entity.cursor = 'grab'; entity.alpha = 1;
-                
                 claw.texture = openClawTex; claw.mode = 'manual_retracting'; claw.targetY = -300;
             };
 
@@ -642,14 +782,13 @@
             entity.on('pointerupoutside', endDrag);
 
             entity.on('globalpointermove', (e) => {
-                if (dragging) {
+                if (dragging && !demolishMode) {
                     let rawX = e.data.global.x + dragOffset.x;
                     let rawY = e.data.global.y + dragOffset.y;
                     
-                    entity.x = rawX; 
-                    entity.y = rawY;
-                    
+                    entity.x = rawX; entity.y = rawY;
                     claw.x = entity.x;
+                    
                     if (claw.mode === 'manual_dropping') claw.targetY = entity.y - entity.grabOffset;
                     else claw.y = entity.y - entity.grabOffset; 
                     
@@ -664,62 +803,49 @@
             return entity;
         } 
         
-        const baseRobotConfig = ROBOT_DATABASE.find(r => r.id === 'robot_base');
+        // --- INITIAL SCENE SETUP ---
+        const bannerItem = BUILD_CATALOG.find(i => i.id === 'banner');
+        const pillarItem = BUILD_CATALOG.find(i => i.id === 'pillar');
+        const robotBaseItem = BUILD_CATALOG.find(i => i.id === 'robot_base');
+        const humanWorkerItem = BUILD_CATALOG.find(i => i.id === 'human_worker');
         
-        // YOUR EXACT CUSTOM OFFSETS AND LOCATIONS
-        createDraggable('ibex-banner.png', 3.2, 10.8, 'structure', 0.7, 450); 
-        createDraggable('pillars.png', 10.4, 4.7, 'structure', 0.7, 280);
+        // Pass the specific direction we know works!
+        const getAnimFrames = (item, dir) => [
+            `${item.animBase}/${dir}/frame_000.png`,
+            `${item.animBase}/${dir}/frame_001.png`,
+            `${item.animBase}/${dir}/frame_002.png`,
+            `${item.animBase}/${dir}/frame_003.png`
+        ];
 
-        createDraggable(baseRobotConfig.paths, 0, 0, 'robot', 3, 30);
-        createDraggable(baseRobotConfig.paths, 2, 2, 'robot', 3, 30);
-        createDraggable(swPaths, -2, 2, 'human', 3, 30);
+        window.createDraggable(bannerItem.textureData, -2.4, 10.3, bannerItem.type, bannerItem.scale, bannerItem.grabOffset, true); 
+        window.createDraggable(pillarItem.textureData, 10.4, 4.7, pillarItem.type, pillarItem.scale, pillarItem.grabOffset);
+
+        // Spawn using directions we explicitly declared as animated
+        window.createDraggable(getAnimFrames(robotBaseItem, 'south-east'), 0, 0, robotBaseItem.type, robotBaseItem.scale, robotBaseItem.grabOffset);
+        window.createDraggable(getAnimFrames(robotBaseItem, 'south'), 2, 2, robotBaseItem.type, robotBaseItem.scale, robotBaseItem.grabOffset);
+        window.createDraggable(getAnimFrames(humanWorkerItem, 'south-west'), -2, 2, humanWorkerItem.type, humanWorkerItem.scale, humanWorkerItem.grabOffset);
 
 
-        window.startAutomatedClawSwap = function(targetEntity, newConfig) {
-            claw.autoTarget = targetEntity; claw.newRobotConfig = newConfig;
-            claw.texture = openClawTex; claw.visible = true;
-            claw.x = targetEntity.x; claw.y = -300; 
-            claw.targetY = targetEntity.y - targetEntity.grabOffset; 
-            claw.baseY = targetEntity.y; 
-            claw.mode = 'auto_fetch';
-        }
 
-        // --- 10. GLOBAL TICKER FOR Y-SORTING ---
+
+        // --- 10. GLOBAL TICKER FOR Y-SORTING & CLAW PHYSICS ---
         app.ticker.add(() => {
             entityLayer.children.forEach(c => { c.zIndex = c.y; });
 
             if (claw.visible && claw.mode !== 'idle') {
-                
                 claw.zIndex = claw.baseY + 1; 
                 chain.zIndex = claw.baseY + 1;
 
                 if (claw.mode === 'manual_dropping') {
-                    claw.y += (claw.targetY - claw.y) * 0.4;
+                    claw.y += (claw.targetY - claw.y) * 0.6;
                     if (Math.abs(claw.targetY - claw.y) < 5) { claw.y = claw.targetY; claw.mode = 'manual_holding'; claw.texture = closedClawTex; }
                 } else if (claw.mode === 'manual_retracting') {
-                    claw.y += (claw.targetY - claw.y) * 0.2;
-                    if (claw.y < -100) { claw.mode = 'idle'; claw.visible = false; chain.clear(); }
-                } else if (claw.mode === 'auto_fetch') {
                     claw.y += (claw.targetY - claw.y) * 0.3;
-                    if (Math.abs(claw.targetY - claw.y) < 5) { claw.y = claw.targetY; claw.texture = closedClawTex; claw.autoTarget.visible = false; claw.mode = 'auto_retract_old'; claw.targetY = -300; }
-                } else if (claw.mode === 'auto_retract_old') {
-                    claw.y += (claw.targetY - claw.y) * 0.15; 
-                    if (claw.y < -100) {
-                        const newTextures = claw.newRobotConfig.paths.map(p => textures[p]);
-                        claw.autoTarget.textures = newTextures; claw.autoTarget.play(); 
-                        claw.mode = 'auto_drop_new'; claw.targetY = claw.autoTarget.y - claw.autoTarget.grabOffset; 
-                    }
-                } else if (claw.mode === 'auto_drop_new') {
-                    claw.y += (claw.targetY - claw.y) * 0.3;
-                    if (Math.abs(claw.targetY - claw.y) < 5) { claw.y = claw.targetY; claw.autoTarget.visible = true; claw.texture = openClawTex; claw.mode = 'auto_retract_final'; claw.targetY = -300; }
-                } else if (claw.mode === 'auto_retract_final') {
-                    claw.y += (claw.targetY - claw.y) * 0.2;
                     if (claw.y < -100) { claw.mode = 'idle'; claw.visible = false; chain.clear(); }
                 }
 
                 if (claw.visible) {
                     chain.clear(); const chainX = claw.x - 12; 
-                    // YOUR EXACT CUSTOM CHAIN LENGTH
                     for (let cy = -300; cy < claw.y - 280; cy += 14) {
                         chain.beginFill(0xaaaaaa); chain.drawRect(chainX - 3, cy, 6, 10);
                         chain.beginFill(0x1a1a1a); chain.drawRect(chainX - 1, cy + 2, 2, 6); chain.endFill();
