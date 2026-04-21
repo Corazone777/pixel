@@ -445,13 +445,13 @@
         monitors.push({ id: id, element: div });
     }
 
-   createMonitor("mon-terminal", "FACTORY", `
+  createMonitor("mon-terminal", "FACTORY", `
         <div class="retro-wrapper"><div class="retro-title">FABRICATION & DEPLOYMENT</div>
             <div class="build-grid" id="build-grid-container"></div>
             
-            <div id="rotation-container" style="display: none; justify-content: space-between; align-items: center; border-top: 2px dashed #1cf843; padding-top: 10px; margin-top: auto; font-size: 0.8em;">
+            <div id="rotation-container" style="display: none; justify-content: space-between; align-items: center; border-top: 2px dashed #1cf843; padding-top: 15px; margin-top: auto; font-size: 1.2em; font-weight: bold;">
                 <span>ORIENTATION:</span>
-                <select id="rotation-select" style="background: #040c04; color: #1cf843; border: 1px solid #1cf843; font-family: 'Courier New', monospace; font-weight: bold; padding: 4px; outline: none; cursor: pointer;">
+                <select id="rotation-select" style="background: #040c04; color: #1cf843; border: 2px solid #1cf843; font-family: 'Courier New', monospace; font-weight: bold; font-size: 1em; padding: 6px; outline: none; cursor: pointer;">
                     <option value="south-east">SOUTH-EAST</option>
                     <option value="south">SOUTH</option>
                     <option value="south-west">SOUTH-WEST</option>
@@ -463,8 +463,8 @@
                 </select>
             </div>
 
-            <div style="border-top: 2px dashed #1cf843; padding-top: 15px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 2; position: relative;">
-                <div id="fabrication-status" style="font-size: 0.8em;">STATUS: SELECT AN ASSET</div>
+            <div style="border-top: 2px dashed #1cf843; padding-top: 15px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; z-index: 2; position: relative;">
+                <div id="fabrication-status" style="font-size: 1em;">STATUS: SELECT AN ASSET</div>
                 <div class="deploy-btn disabled" id="deploy-btn" onclick="deployItem()">DEPLOY TO FLOOR</div>
             </div>
         </div>
