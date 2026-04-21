@@ -817,16 +817,13 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
             `${item.animBase}/${dir}/frame_003.png`
         ];
 
-        window.createDraggable(bannerItem.textureData, -2.4, 10.3, bannerItem.type, bannerItem.scale, bannerItem.grabOffset, true); 
+        window.createDraggable(bannerItem.textureData, 0.7, 10.1, bannerItem.type, bannerItem.scale, bannerItem.grabOffset, true); 
         window.createDraggable(pillarItem.textureData, 10.4, 4.7, pillarItem.type, pillarItem.scale, pillarItem.grabOffset);
 
         // Spawn using directions we explicitly declared as animated
         window.createDraggable(getAnimFrames(robotBaseItem, 'south-east'), 0, 0, robotBaseItem.type, robotBaseItem.scale, robotBaseItem.grabOffset);
         window.createDraggable(getAnimFrames(robotBaseItem, 'south'), 2, 2, robotBaseItem.type, robotBaseItem.scale, robotBaseItem.grabOffset);
         window.createDraggable(getAnimFrames(humanWorkerItem, 'south-west'), -2, 2, humanWorkerItem.type, humanWorkerItem.scale, humanWorkerItem.grabOffset);
-
-
-
 
         // --- 10. GLOBAL TICKER FOR Y-SORTING & CLAW PHYSICS ---
         app.ticker.add(() => {
