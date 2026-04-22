@@ -273,45 +273,52 @@
 </div>
 
 <script>
-    // ============================================================================
-    // ⚙️ MASTER BUILD CATALOG
-    // ============================================================================
     const BUILD_CATALOG = [
         {
             id: 'robot_base', name: 'WORKER UNIT', type: 'robot', scale: 3, grabOffset: 30,
             hasRotation: true, folder: 'humanoid/robot', 
             animatedDirs: ['south', 'south-east'],
             animBase: 'humanoid/robot/animations/Breathing_Idle-c693fd1f',
-            thumb: 'humanoid/robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png'
+            thumb: 'humanoid/robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png',
+            hitbox: { x: -0.2, y: -0.9, w: 0.4, h: 0.9 }
         },
         {
             id: 'robot_v1', name: 'SECURITY UNIT', type: 'robot', scale: 3, grabOffset: 30,
             hasRotation: true, folder: 'humanoid/robot1', 
             animatedDirs: ['south-east'], 
             animBase: 'humanoid/robot1/animations/Breathing_Idle-6d37f6f3',
-            thumb: 'humanoid/robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_000.png'
+            thumb: 'humanoid/robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_000.png',
+            hitbox: { x: -0.2, y: -0.9, w: 0.4, h: 0.9 }
         },
         {
             id: 'human_worker', name: 'HUMAN OPERATOR', type: 'human', scale: 3, grabOffset: 30,
             hasRotation: true, folder: 'humanoid/human', 
             animatedDirs: ['north-east', 'south', 'south-west'],
             animBase: 'humanoid/human/animations/Breathing_Idle-c1b5dcec',
-            thumb: 'humanoid/human/animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png'
+            thumb: 'humanoid/human/animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png',
+            hitbox: { x: -0.2, y: -0.9, w: 0.4, h: 0.9 }
         },
         {
             id: 'banner', name: 'IBEX BANNER', type: 'structure', scale: 0.7, grabOffset: 450,
-            hasRotation: false, thumb: 'static_assets/ibex-banner.png', textureData: 'static_assets/ibex-banner.png'
+            hasRotation: false, thumb: 'static_assets/ibex-banner.png', textureData: 'static_assets/ibex-banner.png',
+            hitbox: { x: -0.5, y: -1, w: 1, h: 1 }
         },
         {
             id: 'pillar', name: 'SUPPORT PILLAR', type: 'structure', scale: 0.7, grabOffset: 280,
-            hasRotation: false, thumb: 'static_assets/pillars.png', textureData: 'static_assets/pillars.png'
+            hasRotation: false, thumb: 'static_assets/pillars.png', textureData: 'static_assets/pillars.png',
+            hitbox: { x: -0.5, y: -1, w: 1, h: 1 }
         },
-        {
+      {
             id: 'conveyor_belt', name: 'CONVEYOR BELT', type: 'structure', scale: 0.3, grabOffset: 120,
-            hasRotation: false, thumb: 'static_assets/conveyor-belt.png', textureData: 'static_assets/conveyor-belt.png'
+            hasRotation: false, thumb: 'static_assets/conveyor-belt.png', textureData: 'static_assets/conveyor-belt.png',
+            hitbox: [
+                {x: -0.60, y: -0.55}, // Point 1: Back-Left
+                {x: -0.25, y: -0.80}, // Point 2: Back-Right
+                {x: 0.60,  y: -0.40}, // Point 3: Front-Right
+                {x: 0.25,  y: -0.15}  // Point 4: Front-Left
+            ]
         }
     ];
-
 
     let isAnimating = true;
     let demolishMode = false;
@@ -576,7 +583,7 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
         document.getElementById('fabrication-status').innerText = `STATUS: DEPLOYED SECURELY.`;
         document.getElementById('deploy-btn').classList.add('disabled');
         
-        window.createDraggable(textureToSpawn, 0, 0, item.type, item.scale, item.grabOffset);
+        window.createDraggable(textureToSpawn, 0, 0, item.type, item.scale, item.grabOffset, false, item.hitbox);
 
         setTimeout(() => { window.closeAllMonitors(); }, 800);
     }
@@ -706,8 +713,8 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
         claw.mode = 'idle'; claw.targetY = 0; claw.baseY = 0;
         entityLayer.addChild(claw);
 
-        // 🌟 EXPOSED GLOBALLY FOR UI DEPLOYMENT 🌟
-        window.createDraggable = function(textureData, gridX, gridY, type, scale = 1, grabOffset = 30, isUndeletable = false) {
+       // 🌟 EXPOSED GLOBALLY FOR UI DEPLOYMENT 🌟
+        window.createDraggable = function(textureData, gridX, gridY, type, scale = 1, grabOffset = 30, isUndeletable = false, customHitbox = null) {
             let entity;
             let tex; 
             
@@ -724,11 +731,40 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
             entity.anchor.set(0.5, 1); 
             entity.scale.set(scale);
 
-            if (type === 'human' || type === 'robot') {
-                entity.hitArea = new PIXI.Rectangle(-tex.width * 0.2, -tex.height * 0.9, tex.width * 0.4, tex.height * 0.9);
+            // 🔥 APPLY THE CUSTOM HITBOX FROM THE CATALOG
+            if (customHitbox && Array.isArray(customHitbox)) {
+                // It's a Polygon! (Perfect for slanted isometric items)
+                const points = customHitbox.map(p => new PIXI.Point(p.x * tex.width, p.y * tex.height));
+                entity.hitArea = new PIXI.Polygon(points);
+            } else if (customHitbox) {
+                // It's a normal Rectangle
+                entity.hitArea = new PIXI.Rectangle(
+                    tex.width * customHitbox.x, 
+                    tex.height * customHitbox.y, 
+                    tex.width * customHitbox.w, 
+                    tex.height * customHitbox.h
+                );
             } else {
+                // Fallback 
                 entity.hitArea = new PIXI.Rectangle(-tex.width / 2, -tex.height, tex.width, tex.height);
             }
+
+            // ==========================================
+            // 🐛 HITBOX DEBUG VISUALIZER
+            // ==========================================
+            const debugBox = new PIXI.Graphics();
+            debugBox.lineStyle(2, 0xff00ff, 1); // Bright Magenta outline
+            debugBox.beginFill(0xff00ff, 0.3);  // Semi-transparent Magenta fill
+            
+            if (entity.hitArea instanceof PIXI.Polygon) {
+                debugBox.drawPolygon(entity.hitArea);
+            } else {
+                debugBox.drawRect(entity.hitArea.x, entity.hitArea.y, entity.hitArea.width, entity.hitArea.height);
+            }
+            
+            debugBox.endFill();
+            entity.addChild(debugBox); 
+            // ==========================================
 
             entity.initialGridX = gridX; entity.initialGridY = gridY; 
             entity.gridX = gridX; entity.gridY = gridY; 
@@ -747,7 +783,6 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
                 if (demolishMode) {
                     if (isUndeletable) return;
 
-
                     if (entity.isDemolishing) return; // Prevent double-clicking
                     entity.isDemolishing = true;
                     entity.interactive = false; // Stop it from being clicked again
@@ -757,19 +792,16 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
                     const blinkAnim = () => {
                         blinkTimer++;
                         
-                        // Toggle visibility every 4 frames to create the flashing effect
                         if (blinkTimer % 4 === 0) {
                             entity.alpha = entity.alpha === 1 ? 0 : 1;
                         }
                         
-                        // After 24 frames (a quick flash), delete it entirely
                         if (blinkTimer > 24) {
                             app.ticker.remove(blinkAnim);
                             entity.destroy();
                         }
                     };
                     
-                    // Attach the animation to the engine
                     app.ticker.add(blinkAnim);
                     return;
                 }
@@ -820,7 +852,8 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
             
             return entity;
         } 
-        
+
+
         // --- INITIAL SCENE SETUP ---
         const bannerItem = BUILD_CATALOG.find(i => i.id === 'banner');
         const pillarItem = BUILD_CATALOG.find(i => i.id === 'pillar');
@@ -835,13 +868,13 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
             `${item.animBase}/${dir}/frame_003.png`
         ];
 
-        window.createDraggable(bannerItem.textureData, -2.2, 10.4, bannerItem.type, bannerItem.scale, bannerItem.grabOffset, true); 
-        window.createDraggable(pillarItem.textureData, 10.4, 4.7, pillarItem.type, pillarItem.scale, pillarItem.grabOffset);
+        window.createDraggable(bannerItem.textureData, -2.2, 10.4, bannerItem.type, bannerItem.scale, bannerItem.grabOffset, true, bannerItem.hitbox); 
+        window.createDraggable(pillarItem.textureData, 10.4, 4.7, pillarItem.type, pillarItem.scale, pillarItem.grabOffset, false, pillarItem.hitbox);
 
         // Spawn using directions we explicitly declared as animated
-        window.createDraggable(getAnimFrames(robotBaseItem, 'south-east'), 0, 0, robotBaseItem.type, robotBaseItem.scale, robotBaseItem.grabOffset);
-        window.createDraggable(getAnimFrames(robotBaseItem, 'south'), 2, 2, robotBaseItem.type, robotBaseItem.scale, robotBaseItem.grabOffset);
-        window.createDraggable(getAnimFrames(humanWorkerItem, 'south-west'), -2, 2, humanWorkerItem.type, humanWorkerItem.scale, humanWorkerItem.grabOffset);
+        window.createDraggable(getAnimFrames(robotBaseItem, 'south-east'), 0, 0, robotBaseItem.type, robotBaseItem.scale, robotBaseItem.grabOffset, false, robotBaseItem.hitbox);
+        window.createDraggable(getAnimFrames(robotBaseItem, 'south'), 2, 2, robotBaseItem.type, robotBaseItem.scale, robotBaseItem.grabOffset, false, robotBaseItem.hitbox);
+        window.createDraggable(getAnimFrames(humanWorkerItem, 'south-west'), -2, 2, humanWorkerItem.type, humanWorkerItem.scale, humanWorkerItem.grabOffset, false, humanWorkerItem.hitbox);
 
         // --- 10. GLOBAL TICKER FOR Y-SORTING & CLAW PHYSICS ---
         app.ticker.add(() => {
