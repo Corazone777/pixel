@@ -124,7 +124,7 @@
         /* NEW: MOBILE-FRIENDLY CLOSE BUTTON */
         .close-x-btn {
             position: absolute; top: 12px; right: 15px; z-index: 100;
-            color: #d32f2f; font-family: 'Courier New', Courier, monospace; font-size: 18px; font-weight: bold;
+            color: #35e25c; font-family: 'Courier New', Courier, monospace; font-size: 18px; font-weight: bold;
             background: #050505; border: 2px solid #333; padding: 2px 8px; border-radius: 4px;
             cursor: pointer; transition: all 0.2s; box-shadow: inset 0 0 5px rgba(0,0,0,1);
             display: none; /* Hide when docked */
@@ -279,24 +279,24 @@
     const BUILD_CATALOG = [
         {
             id: 'robot_base', name: 'WORKER UNIT', type: 'robot', scale: 3, grabOffset: 30,
-            hasRotation: true, folder: 'robot', 
-            animatedDirs: ['south', 'south-east'], // <--- 2 animations
-            animBase: 'robot/animations/Breathing_Idle-c693fd1f',
-            thumb: 'robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png'
+            hasRotation: true, folder: 'humanoid/robot', 
+            animatedDirs: ['south', 'south-east'],
+            animBase: 'humanoid/robot/animations/Breathing_Idle-c693fd1f',
+            thumb: 'humanoid/robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png'
         },
         {
             id: 'robot_v1', name: 'SECURITY UNIT', type: 'robot', scale: 3, grabOffset: 30,
-            hasRotation: true, folder: 'robot1', 
-            animatedDirs: ['south-east'], // <--- 1 animation
-            animBase: 'robot1/animations/Breathing_Idle-6d37f6f3',
-            thumb: 'robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_000.png'
+            hasRotation: true, folder: 'humanoid/robot1', 
+            animatedDirs: ['south-east'], 
+            animBase: 'humanoid/robot1/animations/Breathing_Idle-6d37f6f3',
+            thumb: 'humanoid/robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_000.png'
         },
         {
             id: 'human_worker', name: 'HUMAN OPERATOR', type: 'human', scale: 3, grabOffset: 30,
-            hasRotation: true, folder: 'human', 
-            animatedDirs: ['north-east', 'south', 'south-west'], // <--- 3 animations
-            animBase: 'human/animations/Breathing_Idle-c1b5dcec',
-            thumb: 'human/animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png'
+            hasRotation: true, folder: 'humanoid/human', 
+            animatedDirs: ['north-east', 'south', 'south-west'],
+            animBase: 'humanoid/human/animations/Breathing_Idle-c1b5dcec',
+            thumb: 'humanoid/human/animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png'
         },
         {
             id: 'banner', name: 'IBEX BANNER', type: 'structure', scale: 0.7, grabOffset: 450,
@@ -305,6 +305,10 @@
         {
             id: 'pillar', name: 'SUPPORT PILLAR', type: 'structure', scale: 0.7, grabOffset: 280,
             hasRotation: false, thumb: 'static_assets/pillars.png', textureData: 'static_assets/pillars.png'
+        },
+        {
+            id: 'conveyor_belt', name: 'CONVEYOR BELT', type: 'structure', scale: 0.3, grabOffset: 120,
+            hasRotation: false, thumb: 'static_assets/conveyor-belt.png', textureData: 'static_assets/conveyor-belt.png'
         }
     ];
 
@@ -491,8 +495,13 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
         }
     };
 
-    window.closeAllMonitors = function() {
+   window.closeAllMonitors = function() {
         monitors.forEach(m => m.element.classList.remove('is-centered'));
+        
+        document.querySelectorAll('.hack-row').forEach(row => {
+            row.style.visibility = 'visible';
+            row.style.pointerEvents = 'auto';
+        });
     };
 
     // --- DEMOLISH MODE LOGIC ---
@@ -596,7 +605,7 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
                 const word = allWords[wordIndex]; const insertPos = Math.floor(Math.random() * (14 - word.length));
                 const pre = rowStr.substring(0, insertPos).replace(/</g, "&lt;").replace(/>/g, "&gt;");
                 const post = rowStr.substring(insertPos + word.length).replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                rowStr = `${pre}<span class="hack-word" onmouseenter="document.getElementById('hack-hover-display').innerHTML = '> ${word} <span class=\\'cursor-block\\'>█</span>'" onmouseleave="document.getElementById('hack-hover-display').innerHTML = '> <span class=\\'cursor-block\\'>█</span>'" onclick="handleHackAttempt('${word}')">${word}</span>${post}`;
+                rowStr = `${pre}<span class="hack-word" onmouseenter="document.getElementById('hack-hover-display').innerHTML = '> ${word} <span class=\\'cursor-block\\'>█</span>'" onmouseleave="document.getElementById('hack-hover-display').innerHTML = '> <span class=\\'cursor-block\\'>█</span>'" onclick="handleHackAttempt(this, '${word}')">${word}</span>${post}`;
                 wordIndex++;
             } else { rowStr = rowStr.replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
             let delay = (i < 20 ? i : i - 20) * 0.03;
@@ -605,7 +614,7 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
         }
     }
 
-    window.handleHackAttempt = function(word) {
+  window.handleHackAttempt = function(element, word) {
         if(hackAttempts <= 0) return;
         const log = document.getElementById('hack-output-log');
         log.innerHTML += `> ${word}<br>`;
@@ -615,6 +624,13 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
             setTimeout(() => { showIntranetMenu(); }, 1200); return;
         }
         let likeness = 0; for(let i=0; i<4; i++) { if(word[i] === targetWord[i]) likeness++; }
+        
+        // 🔥 HIDE THE ENTIRE INCORRECT ROW 🔥
+        const row = element.closest('.hack-row');
+        if (row) {
+            row.style.visibility = 'hidden';
+            row.style.pointerEvents = 'none';
+        }
         
         hackAttempts--; log.innerHTML += `> ENTRY DENIED.<br>> LIKENESS=${likeness}<br>`;
         document.getElementById('hack-attempt-count').innerText = hackAttempts;
