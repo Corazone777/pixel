@@ -64,7 +64,7 @@
         }
         @keyframes warning-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 
-        /* --- 2. THE NEW CONTROL DESK --- */
+     /* --- 2. THE NEW CONTROL DESK --- */
         #control-desk {
             position: absolute; bottom: 0; left: 0; right: 0;
             height: 80px; background: #1a1a17;
@@ -72,8 +72,22 @@
             display: flex; align-items: center; justify-content: center; gap: 40px;
             z-index: 9000; box-shadow: 0 -10px 40px rgba(0,0,0,0.9);
             font-family: 'Courier New', Courier, monospace;
+            padding: 0 30px; /* Added padding to keep the plaque off the exact edge */
         }
 
+        /* PLAQUE STYLING */
+        #desk-logo-plaque {
+            position: absolute; 
+            
+            left: 30px; 
+            height: 100px;
+            
+            top: -10px;
+            
+            user-select: none;
+            
+            max-width: 300px;
+        }
         .desk-group {
             display: flex; gap: 15px; align-items: center; background: #0f0f0d; padding: 10px 20px;
             border-radius: 8px; border: 2px solid #2a2a26; box-shadow: inset 0 0 15px rgba(0,0,0,1);
@@ -249,7 +263,31 @@
             50% { background: rgba(28, 248, 67, 0.4); box-shadow: inset 0 0 15px #1cf843; opacity: 1; }
         }
         .hint-blink-row { opacity: 1 !important; animation: correct-row-blink 0.3s 3 forwards !important; }
+
         
+        /* 🔥 RANDOM GENERATOR BUTTON */
+        #btn-generate {
+            position: absolute;
+            bottom: 25px;
+            right: 25px; /* Bottom right corner */
+            background: #552b75;
+            color: white;
+            border: 2px solid #000;
+            padding: 10px 20px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px #000;
+            z-index: 9000;
+            transition: transform 0.1s;
+        }
+        #btn-generate:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px #000;
+        }
+
+
         /* =========================================
            📱 MOBILE RESPONSIVE DESIGN
            ========================================= */
@@ -281,6 +319,15 @@
             .portal-body { flex-direction: column; gap: 1em; }
             .portal-art { font-size: 0.7em; text-align: center; }
             .portal-back { width: 100%; text-align: center; margin-top: 15px; }
+
+            #desk-logo-plaque {
+                position: relative; 
+                left: 0;
+                top: 0; /* Make sure we reset the desktop 'top' value! */
+                height: 65px; /* ⬅️ INCREASED: Almost fills the desk height on mobile */
+                margin: 0 auto 5px auto; 
+                width: auto;
+            }
         }
     </style>
 </head>
@@ -293,6 +340,8 @@
     </div>
 
     <div id="control-desk">
+        <img src="static_assets/ibex_logo_pixel_new.png" id="desk-logo-plaque" alt="IBEX Staffing">
+
         <div class="desk-group">
             <div class="desk-label">MODULES</div>
             <button class="desk-btn" onclick="toggleMonitor('mon-terminal')">FACTORY</button>
@@ -309,6 +358,8 @@
     <div id="easter-egg-overlay">
         <div class="warning-text">ROBOTS HAVE ASSUMED CONTROL.<br><br>SHUTTING THE SYSTEMS DOWN<br>AND REBOOTING...</div>
     </div>
+
+    <button id="btn-generate" onclick="generateRandomFactory()">RNG FACTORY</button>
 </div>
 
 <script>
@@ -338,13 +389,8 @@
             hitbox: { x: -0.2, y: -0.9, w: 0.4, h: 0.9 }
         },
         {
-            id: 'banner', name: 'IBEX BANNER', type: 'structure', scale: 0.7, grabOffset: 450, physicalHeight: 0,
-            hasRotation: false, thumb: 'static_assets/ibex-banner.png', textureData: 'static_assets/ibex-banner.png',
-            hitbox: { x: -0.5, y: -1, w: 1, h: 1 }
-        },
-        {
-            id: 'pillar', name: 'SUPPORT PILLAR', type: 'structure', scale: 0.7, grabOffset: 280, physicalHeight: 150,
-            hasRotation: false, thumb: 'static_assets/pillars.png', textureData: 'static_assets/pillars.png',
+            id: 'banner', name: 'IBEX BANNER', type: 'structure', scale: 1.1, grabOffset: 450, physicalHeight: 0,
+            hasRotation: false, thumb: 'static_assets/new_ibex_banner.png', textureData: 'static_assets/new_ibex_banner.png',
             hitbox: { x: -0.5, y: -1, w: 1, h: 1 }
         },
         {
@@ -723,7 +769,128 @@
     });
     allAssetsToLoad = [...new Set(allAssetsToLoad)];
 
+// ==========================================
+        // 🔥 THE "GOLDILOCKS" SLOT GENERATOR
+        // ==========================================
 
+        function clearFactory() {
+            if (typeof claw !== 'undefined') {
+                claw.mode = 'idle'; claw.visible = false;
+                if (typeof chain !== 'undefined') chain.clear();
+            }
+
+            const itemsToDelete = [];
+            entityLayer.children.forEach(c => {
+                if (c.type && c.type !== 'banner') itemsToDelete.push(c); 
+            });
+
+            itemsToDelete.forEach(c => {
+                c.supportedBy = null; c.destroy({ children: true }); 
+            });
+        }
+
+        window.generateRandomFactory = function() {
+            clearFactory();
+
+            if (entityLayer) entityLayer.sortableChildren = true;
+
+            const spawn = (id, gx, gy, lock = false) => {
+                const data = BUILD_CATALOG.find(i => i.id === id);
+                if (!data) return null;
+                
+                try {
+                    let texInput;
+                    if (data.type === 'human' || data.type === 'robot') {
+                        const targetDir = data.animatedDirs[0]; 
+                        const searchPath = `${data.animBase}/${targetDir}/`;
+                        
+                        let frames = [];
+                        for (let key in PIXI.utils.TextureCache) {
+                            if (key.includes(searchPath)) frames.push(key);
+                        }
+                        frames.sort(); 
+                        texInput = frames.length > 0 ? frames : [data.thumb]; 
+                    } else {
+                        texInput = data.textureData ? data.textureData : data.thumb;
+                    }
+
+                    const ent = createDraggable(texInput, gx, gy, data.id, data.scale, data.grabOffset, false, data.hitbox);
+                    
+                    if (ent) {
+                        if (lock) {
+                            ent.interactive = false; 
+                            ent.cursor = 'default';
+                        }
+                        
+                        // Native depth sorting based on tight grid coordinates
+                        ent.zIndex = gx + gy;
+                        ent.gridX = gx;
+                        ent.gridY = gy;
+                    }
+                    return ent;
+                } catch (e) {
+                    console.error(`Spawn failed for ${id}`, e); return null;
+                }
+            };
+
+            // --- RULE 1: THE PERMANENT BANNER ---
+            let bannerExists = entityLayer.children.some(c => c.type === 'banner');
+            if (!bannerExists) {
+                // Placed perfectly top-center, out of the slot grid
+                let b = spawn('banner', -2, -8, true); 
+                if (b) b.zIndex = -100; 
+            }
+
+            // ==========================================
+            // 🔥 THE TIGHT 4-TILE PARKING LOT
+            // ==========================================
+            const slots = [];
+            
+            // Start at -4 (high up on the screen) and step by exactly 4.
+            // This loop generates exactly 16 slots: (-4,-4), (0,-4), (4,-4), etc.
+            // It creates a tight, bustling factory floor without crossing the collision threshold.
+            for (let x = -4; x <= 8; x += 4) {
+                for (let y = -4; y <= 8; y += 4) {
+                    slots.push({x: x, y: y});
+                }
+            }
+
+            // Shuffle the parking spaces
+            slots.sort(() => Math.random() - 0.5);
+
+            // ==========================================
+            // 🔥 THE INVENTORY (14 Items for 16 Slots)
+            // ==========================================
+            const inventoryToSpawn = [
+                'conveyor_belt',
+                'robotic-arm',
+                'server-rack', 'server-rack',
+                'computer', 'computer',
+                'computer-on-wheels', 'computer-on-wheels',
+                'human_worker', 'human_worker',
+                'robot_base', 'robot_base',
+                'robot_v1', 'robot_v1'
+            ];
+
+            // ==========================================
+            // 🔥 EXECUTE SPAWNS
+            // ==========================================
+            inventoryToSpawn.forEach(assetId => {
+                if (slots.length > 0) {
+                    const plot = slots.pop(); 
+                    spawn(assetId, plot.x, plot.y);
+                }
+            });
+            
+            // Failsafe visual depth sort
+            setTimeout(() => {
+                if (entityLayer && entityLayer.children) {
+                    entityLayer.children.sort((a, b) => (a.y || 0) - (b.y || 0));
+                }
+            }, 150);
+        };
+       
+       
     PIXI.Assets.load(allAssetsToLoad).then((textures) => {
         const hookTex = textures['static_assets/hook-remove.png'];
         const frameW = hookTex.width / 4; const frameH = hookTex.height / 2;
@@ -826,65 +993,58 @@
             entity.on('pointerup', endDrag);
             entity.on('pointerupoutside', endDrag);
 
-           entity.on('globalpointermove', (e) => {
+          entity.on('globalpointermove', (e) => {
                 if (dragging && !demolishMode) {
                     let rawX = e.data.global.x + dragOffset.x;
                     let rawY = e.data.global.y + dragOffset.y;
                     
+                    let bestSupport = null;
                     let targetElevation = 0;
 
-                    // 🔥 1. THICK RAYCAST (The Footprint Check)
-                    // We check a cluster of points around the anchor to give the player 
-                    // a generous "forgiveness radius" when dropping large objects.
-                    const footprint = [
-                        new PIXI.Point(rawX, rawY),           // Exact center (The Red Dot)
-                        new PIXI.Point(rawX - 20, rawY - 10), // Left isometric edge
-                        new PIXI.Point(rawX + 20, rawY - 10), // Right isometric edge
-                        new PIXI.Point(rawX, rawY + 10),      // Slightly below
-                        new PIXI.Point(rawX, rawY - 20)       // Slightly above
-                    ];
+                    // 🔥 THE RED DOT (The object's exact feet)
+                    const basePoint = new PIXI.Point(rawX, rawY);
                     
                     entityLayer.children.forEach(other => {
-                        // Ignore ghosted objects, self, or flat objects
                         if (other === entity || !other.type || demolishMode || !other.physicalHeight || !other.interactive) return;
                         
-                        let isSupported = false;
+                        const localPoint = other.toLocal(basePoint);
                         
-                        // Check if ANY of our footprint points are inside the machine's hitArea
-                        for (let pt of footprint) {
-                            const localPoint = other.toLocal(pt);
-                            if (other.hitArea && other.hitArea.contains(localPoint.x, localPoint.y)) {
-                                isSupported = true;
-                                break; // We found support, stop checking points!
-                            }
-                        }
-                        
-                        if (isSupported) {
-                            const topOfOther = (other.elevation || 0) + other.physicalHeight;
-                            if (topOfOther > targetElevation) {
-                                targetElevation = topOfOther;
+                        if (other.hitArea && other.hitArea.contains(localPoint.x, localPoint.y)) {
+                            // Are we using a custom Polygon (like the belt) or a Rectangle (like the pillar)?
+                            const isPolygon = other.hitArea instanceof PIXI.Polygon;
+                            
+                            // Calculate where the exact visual "Roof" of the machine is
+                            const roofY = other.y - other.physicalHeight;
+                            
+                            // If it's a polygon, trust it completely. 
+                            // If it's a rectangle, the Red Dot MUST be dragged up near the roof!
+                            if (isPolygon || rawY <= roofY + 60) {
+                                const elevationHere = (other.elevation || 0) + other.physicalHeight;
+                                if (elevationHere > targetElevation) {
+                                    targetElevation = elevationHere;
+                                    bestSupport = other; // Save the object we are standing on!
+                                }
                             }
                         }
                     });
 
-                    // 🔥 2. PROJECT TO ISOMETRIC GRID
-                    let adjustedFloorY = rawY + targetElevation;
-                    const cart = toCart(rawX, adjustedFloorY);
-                    
-                    entity.gridX = cart.x;
-                    entity.gridY = cart.y;
+                    // Link the object to its new parent
+                    entity.supportedBy = bestSupport;
                     entity.elevation = targetElevation;
                     
-                    // 🔥 3. RENDER VISUALS
+                    // Logic Projection
+                    let adjustedFloorY = rawY + targetElevation;
+                    const cart = toCart(rawX, adjustedFloorY);
+                    entity.gridX = cart.x; entity.gridY = cart.y;
+                    
+                    // Visual Updates
                     const logicalPos = toIso(entity.gridX, entity.gridY);
                     entity.baseY = logicalPos.y; 
-                    
                     entity.x = rawX; 
                     entity.y = rawY; 
                     
-                    // Hook physics tracking
-                    claw.x = entity.x;
-                    claw.baseY = entity.baseY; 
+                    // Claw logic
+                    claw.x = entity.x; claw.baseY = entity.baseY; 
                     if (claw.mode === 'manual_dropping') claw.targetY = entity.y - entity.grabOffset;
                     else claw.y = entity.y - entity.grabOffset; 
                     
@@ -897,29 +1057,39 @@
         
         // --- INITIAL SCENE SETUP ---
         const bannerItem = BUILD_CATALOG.find(i => i.id === 'banner');
-        const pillarItem = BUILD_CATALOG.find(i => i.id === 'pillar');
         const robotBaseItem = BUILD_CATALOG.find(i => i.id === 'robot_base');
         const humanWorkerItem = BUILD_CATALOG.find(i => i.id === 'human_worker');
         
         const getAnimFrames = (item, dir) => [`${item.animBase}/${dir}/frame_000.png`, `${item.animBase}/${dir}/frame_001.png`, `${item.animBase}/${dir}/frame_002.png`, `${item.animBase}/${dir}/frame_003.png`];
 
         window.createDraggable(bannerItem.textureData, -2.2, 10.4, bannerItem.id, bannerItem.scale, bannerItem.grabOffset, true, bannerItem.hitbox); 
-        window.createDraggable(pillarItem.textureData, 10.4, 4.7, pillarItem.id, pillarItem.scale, pillarItem.grabOffset, false, pillarItem.hitbox);
         window.createDraggable(getAnimFrames(robotBaseItem, 'south-east'), 0, 0, robotBaseItem.id, robotBaseItem.scale, robotBaseItem.grabOffset, false, robotBaseItem.hitbox);
         window.createDraggable(getAnimFrames(robotBaseItem, 'south'), 2, 2, robotBaseItem.id, robotBaseItem.scale, robotBaseItem.grabOffset, false, robotBaseItem.hitbox);
         window.createDraggable(getAnimFrames(humanWorkerItem, 'south-west'), -2, 2, humanWorkerItem.id, humanWorkerItem.scale, humanWorkerItem.grabOffset, false, humanWorkerItem.hitbox);
 
        // --- 10. GLOBAL TICKER FOR TRUE Z-SORTING & CLAW PHYSICS ---
         app.ticker.add(() => {
+            
+            // PASS 1: Base Floor Sorting
             entityLayer.children.forEach(c => { 
                 if (c.baseY !== undefined) {
-                    // 🔥 THE Z-SORT PARADOX FIX
-                    // 1 pixel of elevation = 1 point of Z-index boost.
-                    // This forces objects sitting on machines to render in front of them!
-                    c.zIndex = Math.floor(c.baseY + (c.elevation || 0));
+                    c.zIndex = c.baseY; 
                 }
             });
 
+            // PASS 2: Linked Stacking
+            entityLayer.children.forEach(c => {
+                // If this object is sitting on a machine, force it to render IN FRONT of that machine!
+                if (c.supportedBy && c.supportedBy.zIndex !== undefined) {
+                    // We add a tiny fraction of its own baseY so multiple humans 
+                    // standing on the SAME belt will still sort correctly amongst themselves!
+                    c.zIndex = c.supportedBy.zIndex + 10 + (c.baseY * 0.001);
+                }
+            });
+
+            entityLayer.sortChildren(); // Force engine to apply new layers
+
+            // (Keep your existing claw physics below...)
             if (claw.visible && claw.mode !== 'idle') {
                 claw.zIndex = Math.floor(claw.baseY + 1000); 
                 chain.zIndex = Math.floor(claw.baseY + 1000); 
@@ -942,7 +1112,10 @@
                     }
                 }
             }
+
+
         });
+            generateRandomFactory();
         resizeApp();
     });
 </script>
