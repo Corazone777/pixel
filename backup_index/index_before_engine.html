@@ -12,7 +12,7 @@
             background-color: #0a0a0c; 
             color: #e0e0e0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            touch-action: none; 
+            touch-action: none; /* Prevents mobile browser pull-to-refresh */
         }
 
         #app-wrapper {
@@ -35,7 +35,7 @@
         
         canvas { 
             image-rendering: pixelated; 
-            touch-action: none; 
+            touch-action: none; /* Crucial for PixiJS dragging on mobile */
         } 
 
         #ui-panel {
@@ -161,32 +161,22 @@
             background-color: #000000; color: #1cf843; font-family: 'Courier New', Courier, monospace; font-weight: bold;
             padding: 2vh 3vw; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; 
             font-size: clamp(12px, 1.8vh, 22px); line-height: 1.3;
-            position: relative;
         }
-
-        /* CRT SCANLINE OVERLAY */
-        .retro-wrapper::after {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15) 2px, transparent 2px, transparent 4px);
-            pointer-events: none; z-index: 9999;
-        }
-
-        @keyframes monitor-flicker {
-            0% { opacity: 1; } 94% { opacity: 1; } 95% { opacity: 0.85; }
-            96% { opacity: 1; } 98% { opacity: 0.95; } 100% { opacity: 1; }
-        }
-        .monitor-body { animation: monitor-flicker 5s infinite; }
 
         .retro-title { margin-bottom: 2vh; border-bottom: 2px solid #1cf843; padding-bottom: 10px; font-size: 1.2em; text-transform: uppercase; flex-shrink: 0; padding-right: 40px; }
         .website-iframe { flex-grow: 1; border: none; width: 100%; height: 100%; background: #fff; z-index: 2; position: relative; }
 
         /* --- NEW GRID BUILDER UI --- */
+
        .build-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px; padding: 15px; 
-            overflow-y: auto; overflow-x: hidden; 
-            flex-grow: 1; z-index: 2; position: relative;
+            gap: 15px;
+            padding: 15px; 
+            overflow-y: auto;
+            overflow-x: hidden; 
+            flex-grow: 1;
+            z-index: 2; position: relative;
         }
         
         .build-grid::-webkit-scrollbar { width: 8px; }
@@ -194,23 +184,33 @@
         .build-grid::-webkit-scrollbar-thumb { background: #1cf843; }
 
         .build-item {
-            border: 2px dashed #1cf843; background: rgba(28, 248, 67, 0.05);
-            padding: 15px 10px; cursor: pointer; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; transition: all 0.2s;
+            border: 2px dashed #1cf843;
+            background: rgba(28, 248, 67, 0.05);
+            padding: 15px 10px; /* Thicker padding for a better look */
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
         }
         .build-item:hover { background: rgba(28, 248, 67, 0.2); transform: scale(1.02); }
         .build-item.selected {
-            background: rgba(28, 248, 67, 0.4); border-style: solid;
+            background: rgba(28, 248, 67, 0.4);
+            border-style: solid;
             box-shadow: inset 0 0 20px rgba(28, 248, 67, 0.8), 0 0 15px rgba(28, 248, 67, 0.5);
             color: #fff;
         }
         
         .build-item-thumb {
+            /* 🔥 FIX: Made the thumbnails slightly bigger to fill the new wider boxes */
             width: 10vh; height: 10vh; min-width: 60px; min-height: 60px;
             background-size: contain; background-repeat: no-repeat; background-position: center; 
             image-rendering: pixelated; margin-bottom: 10px;
         }
         .build-item-name { font-size: 0.8em; text-align: center; letter-spacing: 1px; line-height: 1.2; }
+
+
 
         .deploy-btn { border: 2px solid #1cf843; padding: 10px 20px; cursor: pointer; transition: all 0.2s; font-size: 1em; text-align: center; width: max-content; background: rgba(28, 248, 67, 0.1); }
         .deploy-btn:hover { background: #1cf843; color: #040c04; text-shadow: none; box-shadow: 0 0 15px #1cf843; }
@@ -231,8 +231,16 @@
         .hack-output { flex-grow: 1; overflow-y: auto; font-size: 0.9em; line-height: 1.5; word-wrap: break-word; }
         .hack-hover-display { margin-top: auto; border-top: 1px solid #1cf843; padding-top: 0.8em; min-height: 1.5em; font-weight: bold; }
 
-        @keyframes blink-cursor { 0%, 49.9% { color: #1cf843; } 50%, 100% { color: transparent; } }
-        .cursor-block { display: inline-block; -webkit-text-stroke: 1px #1cf843; animation: blink-cursor 1s infinite; }
+        /* 🔥 FIXED: 2-Phase Hollow Cursor (No color bleeding!) */
+        @keyframes blink-cursor { 
+            0%, 49.9% { color: #1cf843; }       /* Phase 1: Solid Green */
+            50%, 100% { color: transparent; }   /* Phase 2: Hollow (Outline only) */
+        }
+        .cursor-block { 
+            display: inline-block; 
+            -webkit-text-stroke: 1px #1cf843;   /* The permanent outer box */
+            animation: blink-cursor 1s infinite; /* Smooth loop, no steps() */
+        }
         
         .portal-menu { z-index: 2; position: relative; display: flex; flex-direction: column; gap: 0.8em; font-size: 1.1em; }
         .portal-item { cursor: pointer; padding: 0.3em; display: inline-block; transition: all 0.2s; width: max-content;}
@@ -244,27 +252,49 @@
         .portal-back { margin-top: auto; cursor: pointer; width: max-content; padding: 0.5em; border: 1px solid #1cf843; }
         .portal-back:hover { background: #1cf843; color: #040c04; text-shadow: none; }
 
+
+        /* NEW: Hint blinking animation (with opacity fix!) */
         @keyframes correct-row-blink {
             0%, 100% { background: transparent; opacity: 1; }
             50% { background: rgba(28, 248, 67, 0.4); box-shadow: inset 0 0 15px #1cf843; opacity: 1; }
         }
-        .hint-blink-row { opacity: 1 !important; animation: correct-row-blink 0.3s 3 forwards !important; }
+        .hint-blink-row {
+            opacity: 1 !important; /* Stops the row from reverting to invisible */
+            animation: correct-row-blink 0.3s 3 forwards !important; 
+        }
         
         /* =========================================
-           📱 MOBILE RESPONSIVE DESIGN
+           📱 MOBILE RESPONSIVE DESIGN (Max 768px)
            ========================================= */
         @media (max-width: 768px) {
+            /* 1. Shrink Coordinates Panel */
             #ui-panel { top: 10px; right: 10px; padding: 10px 15px; }
-            .panel-title { font-size: 9px; } .panel-data { font-size: 16px; }
-            #control-desk { height: auto; padding: 8px 5px; flex-wrap: wrap; gap: 5px; }
-            .desk-group { flex: 1; min-width: 130px; padding: 5px; gap: 5px; justify-content: center; }
-            .desk-label { display: none; }
+            .panel-title { font-size: 9px; }
+            .panel-data { font-size: 16px; }
+
+            /* 2. Compact the Control Desk to save screen space */
+            #control-desk { 
+                height: auto; 
+                padding: 8px 5px; 
+                flex-wrap: wrap; 
+                gap: 5px; 
+            }
+            .desk-group { 
+                flex: 1; min-width: 130px; 
+                padding: 5px; gap: 5px; 
+                justify-content: center; 
+            }
+            .desk-label { display: none; } /* Hide labels to save space */
             .desk-btn { font-size: 11px; padding: 8px; flex-grow: 1; text-align: center; }
+
+            /* 3. Maximize Monitor View */
             .monitor-overlay { width: 95vw; height: 85vh; padding: 8px; }
             .monitor-overlay.is-centered { top: 2vh; }
             .hardware-bezel { padding: 4px; border-width: 4px; }
             .hardware-controls { height: auto; padding-bottom: 5px; }
             .hw-logo { font-size: 1rem; }
+
+            /* 4. Terminal / Fabrication Adaptations */
             .retro-title { font-size: 1em; padding-right: 30px; }
             .build-grid { grid-template-columns: repeat(auto-fit, minmax(75px, 1fr)); }
             #rotation-container { flex-direction: column; align-items: flex-start !important; gap: 8px; }
@@ -272,12 +302,20 @@
             .deploy-btn { width: 100%; font-size: 1.1em; padding: 15px 0; margin-top: 10px; }
             #fabrication-status { margin-bottom: 10px; font-size: 0.9em; text-align: center; width: 100%; }
             .fab-footer-flex { flex-direction: column; align-items: center; }
+
+            /* 5. Hacking Minigame Adaptations */
             .hack-container { flex-direction: column; }
             .hack-main { flex-direction: column; overflow-y: auto; max-height: 40vh; }
             .hack-column { width: 100%; }
-            #hack-col-2 { display: none; } 
+            #hack-col-2 { display: none; } /* Hide second hex column to fit the log */
             .hack-row { font-size: 0.85em; }
-            .hack-log-panel { width: 100%; border-left: none; border-top: 2px dashed rgba(28, 248, 67, 0.5); padding-left: 0; padding-top: 10px; min-height: 120px; }
+            .hack-log-panel { 
+                width: 100%; border-left: none; 
+                border-top: 2px dashed rgba(28, 248, 67, 0.5); 
+                padding-left: 0; padding-top: 10px; min-height: 120px; 
+            }
+
+            /* 6. Portal Adaptations */
             .portal-body { flex-direction: column; gap: 1em; }
             .portal-art { font-size: 0.7em; text-align: center; }
             .portal-back { width: 100%; text-align: center; margin-top: 15px; }
@@ -302,88 +340,96 @@
         
         <div class="desk-group">
             <div class="desk-label">SYSTEM</div>
-            <button class="desk-btn btn-red" id="btn-demolish" onclick="toggleDemolishMode()">DEMOLISH: OFF</button>        
-        </div>
+<button class="desk-btn btn-red" id="btn-demolish" onclick="toggleDemolishMode()">DEMOLISH: OFF</button>        </div>
     </div>
 
     <div id="easter-egg-overlay">
-        <div class="warning-text">ROBOTS HAVE ASSUMED CONTROL.<br><br>SHUTTING THE SYSTEMS DOWN<br>AND REBOOTING...</div>
+        <div class="warning-text">
+            ROBOTS HAVE ASSUMED CONTROL.<br><br>SHUTTING THE SYSTEMS DOWN<br>AND REBOOTING...
+        </div>
     </div>
 </div>
 
 <script>
     // ============================================================================
-    // ⚙️ MASTER BUILD CATALOG - NOW WITH PHYSICAL HEIGHTS FOR STACKING!
+    // ⚙️ MASTER BUILD CATALOG
     // ============================================================================
     const BUILD_CATALOG = [
         {
-            id: 'robot_base', name: 'WORKER UNIT', type: 'robot', scale: 3, grabOffset: 30, physicalHeight: 60,
-            hasRotation: true, folder: 'humanoid/robot', animatedDirs: ['south', 'south-east'],
+            id: 'robot_base', name: 'WORKER UNIT', type: 'robot', scale: 3, grabOffset: 30,
+            hasRotation: true, folder: 'humanoid/robot', 
+            animatedDirs: ['south', 'south-east'],
             animBase: 'humanoid/robot/animations/Breathing_Idle-c693fd1f',
             thumb: 'humanoid/robot/animations/Breathing_Idle-c693fd1f/south-east/frame_000.png',
             hitbox: { x: -0.2, y: -0.9, w: 0.4, h: 0.9 }
         },
         {
-            id: 'robot_v1', name: 'SECURITY UNIT', type: 'robot', scale: 3, grabOffset: 30, physicalHeight: 60,
-            hasRotation: true, folder: 'humanoid/robot1', animatedDirs: ['south-east'], 
+            id: 'robot_v1', name: 'SECURITY UNIT', type: 'robot', scale: 3, grabOffset: 30,
+            hasRotation: true, folder: 'humanoid/robot1', 
+            animatedDirs: ['south-east'], 
             animBase: 'humanoid/robot1/animations/Breathing_Idle-6d37f6f3',
             thumb: 'humanoid/robot1/animations/Breathing_Idle-6d37f6f3/south-east/frame_000.png',
             hitbox: { x: -0.2, y: -0.9, w: 0.4, h: 0.9 }
         },
         {
-            id: 'human_worker', name: 'HUMAN OPERATOR', type: 'human', scale: 3, grabOffset: 30, physicalHeight: 60,
-            hasRotation: true, folder: 'humanoid/human', animatedDirs: ['north-east', 'south', 'south-west'],
+            id: 'human_worker', name: 'HUMAN OPERATOR', type: 'human', scale: 3, grabOffset: 30,
+            hasRotation: true, folder: 'humanoid/human', 
+            animatedDirs: ['north-east', 'south', 'south-west'],
             animBase: 'humanoid/human/animations/Breathing_Idle-c1b5dcec',
             thumb: 'humanoid/human/animations/Breathing_Idle-c1b5dcec/south-west/frame_000.png',
             hitbox: { x: -0.2, y: -0.9, w: 0.4, h: 0.9 }
         },
         {
-            id: 'banner', name: 'IBEX BANNER', type: 'structure', scale: 0.7, grabOffset: 450, physicalHeight: 0,
+            id: 'banner', name: 'IBEX BANNER', type: 'structure', scale: 0.7, grabOffset: 450,
             hasRotation: false, thumb: 'static_assets/ibex-banner.png', textureData: 'static_assets/ibex-banner.png',
             hitbox: { x: -0.5, y: -1, w: 1, h: 1 }
         },
-        {
-            id: 'pillar', name: 'SUPPORT PILLAR', type: 'structure', scale: 0.7, grabOffset: 280, physicalHeight: 150,
-            hasRotation: false, thumb: 'static_assets/pillars.png', textureData: 'static_assets/pillars.png',
-            hitbox: { x: -0.5, y: -1, w: 1, h: 1 }
-        },
-        {
-            id: 'conveyor_belt', name: 'CONVEYOR BELT', type: 'structure', scale: 0.3, grabOffset: 120, physicalHeight: 195,
+    {
+        id: 'pillar', name: 'SUPPORT PILLAR', type: 'structure', scale: 0.7, grabOffset: 280,
+        hasRotation: false, thumb: 'static_assets/pillars.png', textureData: 'static_assets/pillars.png',
+        hitbox: { x: -0.5, y: -1, w: 1, h: 1 }
+    },
+       {
+            id: 'conveyor_belt', name: 'CONVEYOR BELT', type: 'structure', scale: 0.3, grabOffset: 120,
             hasRotation: false, thumb: 'static_assets/conveyor-belt.png', textureData: 'static_assets/conveyor-belt.png',
+            // 🔥 SHIFTED & ROTATED ~5 DEGREES RIGHT
             hitbox: [
-                {x: -0.44, y: -0.71}, {x: -0.17, y: -0.93}, {x: 0.40,  y: -0.46}, {x: 0.17,  y: -0.14}  
+                {x: -0.44, y: -0.71}, // Back-Left
+                {x: -0.17, y: -0.93}, // Back-Right
+                {x: 0.40,  y: -0.46}, // Front-Right
+                {x: 0.17,  y: -0.14}  // Front-Left
             ]
         },
         {
-            id: 'robotic-arm', name: 'ROBOTIC ARM', type: 'structure', scale: 1, grabOffset: 180, physicalHeight: 120,
+            id: 'robotic-arm', name: 'ROBOTIC ARM', type: 'structure', scale: 1, grabOffset: 180,
             hasRotation: false, thumb: 'static_assets/robotic.png', textureData: 'static_assets/robotic.png',
             hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
         },
         {
-            id: 'server-rack', name: 'SERVER RACK', type: 'structure', scale: 0.5, grabOffset: 180, physicalHeight: 100,
+            id: 'server-rack', name: 'SERVER RACK', type: 'structure', scale: 0.5, grabOffset: 180,
             hasRotation: false, thumb: 'static_assets/server.png', textureData: 'static_assets/server.png',
             hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
         },
         {
-            id: 'computer', name: 'COMPUTER DESK', type: 'structure', scale: 0.5, grabOffset: 80, physicalHeight: 40,
+            id: 'computer', name: 'COMPUTER DESK', type: 'structure', scale: 0.5, grabOffset: 80,
             hasRotation: false, thumb: 'static_assets/computer_station.png', textureData: 'static_assets/computer_station.png',
             hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
         },
         {
-            id: 'computer-on-wheels', name: 'COMPUTER ON WHEELS', type: 'structure', scale: 0.4, grabOffset: 80, physicalHeight: 45,
+            id: 'computer-on-wheels', name: 'COMPUTER ON WHEELS', type: 'structure', scale: 0.4, grabOffset: 80,
             hasRotation: false, thumb: 'static_assets/computer_wheels.png', textureData: 'static_assets/computer_wheels.png',
             hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
         },
         {
-            id: 'wall-left', name: 'WALL LEFT', type: 'structure', scale: 1, grabOffset: 80, physicalHeight: 120,
+            id: 'wall-left', name: 'WALL LEFT', type: 'structure', scale: 1, grabOffset: 80,
             hasRotation: false, thumb: 'static_assets/wall_left.png', textureData: 'static_assets/wall_left.png',
             hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
         },
         {
-            id: 'wall-right', name: 'WALL RIGHT', type: 'structure', scale: 1, grabOffset: 80, physicalHeight: 120,
+            id: 'wall-right', name: 'WALL RIGHT', type: 'structure', scale: 1, grabOffset: 80,
             hasRotation: false, thumb: 'static_assets/wall_right.png', textureData: 'static_assets/wall_right.png',
             hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
-        }
+        },
     ];
 
     let isAnimating = true;
@@ -392,6 +438,7 @@
     // --- 1. PIXI INITIALIZATION & LAYERS ---
     PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
     
+    // YOUR EXACT CHUNKY ENGINE RESOLUTION
     const app = new PIXI.Application({ 
         resizeTo: window, 
         backgroundColor: 0x0a0a0c,
@@ -408,6 +455,7 @@
     app.stage.addChild(backgroundLayer);
     app.stage.addChild(entityLayer);
 
+    // --- 🌟 YOUR CUSTOM 16-BIT COLOR SHADER 🌟 ---
     const colorShader = `
         varying vec2 vTextureCoord;
         uniform sampler2D uSampler;
@@ -456,22 +504,26 @@
             entityLayer.children.forEach(c => {
                 if (c.gridX !== undefined && c.gridY !== undefined) {
                     const pos = toIso(c.gridX, c.gridY);
-                    c.baseY = pos.y;
-                    c.x = pos.x; 
-                    // Update visual Y based on newly scaled baseY and their saved elevation
-                    c.y = c.baseY - (c.elevation || 0); 
+                    c.x = pos.x; c.y = pos.y;
                 }
             });
         }
     }
     window.addEventListener('resize', resizeApp);
 
-    // --- 4. KEYBOARD LOGIC ---
+    // --- 4. X-RAY VISION & ESC KEY LOGIC ---
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Shift') {
-            entityLayer.children.forEach(c => { if (c.type === 'structure') { c.interactive = false; c.alpha = 0.4; } });
+            entityLayer.children.forEach(c => {
+                if (c.type === 'structure') { c.interactive = false; c.alpha = 0.4; }
+            });
         }
-        if (e.key === 'Escape') { window.closeAllMonitors(); return; }
+
+        if (e.key === 'Escape') {
+            window.closeAllMonitors();
+            return;
+        }
+
         if (document.querySelector('.portal-menu')) {
             switch(e.key) {
                 case '1': loadPortalPage('COMPANY INFO'); break;
@@ -487,10 +539,14 @@
     });
 
     window.addEventListener('keyup', (e) => {
-        if (e.key === 'Shift') { entityLayer.children.forEach(c => { if (c.type === 'structure') { c.interactive = true; c.alpha = 1.0; } }); }
+        if (e.key === 'Shift') {
+            entityLayer.children.forEach(c => {
+                if (c.type === 'structure') { c.interactive = true; c.alpha = 1.0; }
+            });
+        }
     });
 
-    // --- 5. MONITORS ---
+    // --- 5. BRUTALIST MONITOR SYSTEM ---
     const monitors = [];
     function createMonitor(id, label, contentHTML) {
         const div = document.createElement('div');
@@ -512,10 +568,13 @@
         monitors.push({ id: id, element: div });
     }
 
-    createMonitor("mon-terminal", "FACTORY", `
+ 
+   createMonitor("mon-terminal", "FACTORY", `
         <div class="retro-wrapper"><div class="retro-title">FABRICATION & DEPLOYMENT</div>
             <div class="build-grid" id="build-grid-container"></div>
+            
             <div style="padding-top: 15px; margin-top: auto; z-index: 2; position: relative;">
+                
                 <div id="rotation-container" style="display: none; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 1.2em; font-weight: bold;">
                     <span>ORIENTATION:</span>
                     <select id="rotation-select" style="background: #040c04; color: #1cf843; border: 2px solid #1cf843; font-family: 'Courier New', monospace; font-weight: bold; font-size: 1em; padding: 6px; outline: none; cursor: pointer;">
@@ -529,25 +588,42 @@
                         <option value="east">EAST</option>
                     </select>
                 </div>
+
                 <div class="fab-footer-flex" style="display: flex; justify-content: space-between; align-items: center;">
                     <div id="fabrication-status" style="font-size: 1em;">STATUS: SELECT AN ASSET</div>
                     <div class="deploy-btn disabled" id="deploy-btn" onclick="deployItem()">DEPLOY TO FLOOR</div>
                 </div>
+                
             </div>
         </div>
     `);
 
-    createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="width: 100%; height: 100%; flex-grow: 1; border: none; display: block; background: #fff;"></iframe>`);
-    createMonitor("mon-security", "SECURITY", `<div class="retro-wrapper"><div class="retro-title">RESTRICTED AREA // PASSWORD REQUIRED</div><div id="security-content" style="flex-grow: 1; position: relative;"></div></div>`);
 
+createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="width: 100%; height: 100%; flex-grow: 1; border: none; display: block; background: #fff;"></iframe>`);
+    createMonitor("mon-security", "SECURITY", `
+        <div class="retro-wrapper">
+            <div class="retro-title">RESTRICTED AREA // PASSWORD REQUIRED</div>
+            <div id="security-content" style="flex-grow: 1; position: relative;"></div>
+        </div>
+    `);
+
+  // UI BUTTON LOGIC
     window.toggleMonitor = function(targetId) {
         monitors.forEach(m => m.element.classList.remove('is-centered'));
         const target = document.getElementById(targetId);
         target.classList.add('is-centered');
-        if(targetId === 'mon-security' && !document.getElementById('hack-container-id')) startHackingGame();
+
+        if(targetId === 'mon-security' && !document.getElementById('hack-container-id')) {
+            startHackingGame();
+        }
         
         if(targetId === 'mon-terminal') {
-            if (document.getElementById('build-grid-container').innerHTML.trim() === '') window.populateBuildGrid();
+            // Build the grid if it's empty
+            if (document.getElementById('build-grid-container').innerHTML.trim() === '') {
+                window.populateBuildGrid();
+            }
+            
+            // 🔥 BUG FIX: Re-arm the deploy button if an item was already selected!
             if (currentBuildIndex !== -1) {
                 document.getElementById('deploy-btn').classList.remove('disabled');
                 document.getElementById('fabrication-status').innerText = `STATUS: READY TO DEPLOY`;
@@ -555,29 +631,40 @@
         }
     };
 
-    window.closeAllMonitors = function() {
+   window.closeAllMonitors = function() {
         monitors.forEach(m => m.element.classList.remove('is-centered'));
-        document.querySelectorAll('.hack-row').forEach(row => { row.style.visibility = 'visible'; row.style.pointerEvents = 'auto'; });
+        
+        document.querySelectorAll('.hack-row').forEach(row => {
+            row.style.visibility = 'visible';
+            row.style.pointerEvents = 'auto';
+        });
     };
 
+    // --- DEMOLISH MODE LOGIC ---
     window.toggleDemolishMode = function() {
         demolishMode = !demolishMode;
         const btn = document.getElementById('btn-demolish');
         if (demolishMode) {
-            btn.classList.add('active'); btn.innerText = "DEMOLISH: ON";
+            btn.classList.add('active');
+            btn.innerText = "DEMOLISH: ON";
             document.body.classList.add('demolish-mode');
-            document.getElementById('coords-display').innerText = `SYSTEM: DEMOLISH MODE ACTIVE`; document.getElementById('coords-display').style.color = "#ff5252";
+            document.getElementById('coords-display').innerText = `SYSTEM: DEMOLISH MODE ACTIVE`;
+            document.getElementById('coords-display').style.color = "#ff5252";
         } else {
-            btn.classList.remove('active'); btn.innerText = "DEMOLISH: OFF";
+            btn.classList.remove('active');
+            btn.innerText = "DEMOLISH: OFF";
             document.body.classList.remove('demolish-mode');
-            document.getElementById('coords-display').innerText = `SYSTEM: READY`; document.getElementById('coords-display').style.color = "#4CAF50";
+            document.getElementById('coords-display').innerText = `SYSTEM: READY`;
+            document.getElementById('coords-display').style.color = "#4CAF50";
         }
     }
 
-    // --- 6. SANDBOX BUILDER ---
+    // --- 6. SANDBOX GRID BUILDER LOGIC ---
     let currentBuildIndex = -1;
+
     window.populateBuildGrid = function() {
-        document.getElementById('build-grid-container').innerHTML = BUILD_CATALOG.map((item, index) => `
+        const container = document.getElementById('build-grid-container');
+        container.innerHTML = BUILD_CATALOG.map((item, index) => `
             <div class="build-item" id="build-item-${index}" onclick="selectBuildItem(${index})">
                 <div class="build-item-thumb" style="background-image: url('${item.thumb}')"></div>
                 <div class="build-item-name">${item.name}</div>
@@ -589,30 +676,44 @@
         currentBuildIndex = index;
         document.querySelectorAll('.build-item').forEach(el => el.classList.remove('selected'));
         document.getElementById(`build-item-${index}`).classList.add('selected');
-        document.getElementById('rotation-container').style.display = BUILD_CATALOG[index].hasRotation ? 'flex' : 'none';
+        
+        const item = BUILD_CATALOG[index];
+        document.getElementById('rotation-container').style.display = item.hasRotation ? 'flex' : 'none';
+        
         document.getElementById('fabrication-status').innerText = `STATUS: READY TO DEPLOY`;
         document.getElementById('deploy-btn').classList.remove('disabled');
     };
     
-    window.deployItem = function() {
+   window.deployItem = function() {
         if(currentBuildIndex === -1) return;
         const item = BUILD_CATALOG[currentBuildIndex];
+        
         let textureToSpawn = item.textureData; 
         
         if (item.hasRotation) {
             const rot = document.getElementById('rotation-select').value;
+            
             if (item.animatedDirs.includes(rot)) {
-                textureToSpawn = [`${item.animBase}/${rot}/frame_000.png`, `${item.animBase}/${rot}/frame_001.png`, `${item.animBase}/${rot}/frame_002.png`, `${item.animBase}/${rot}/frame_003.png`];
-            } else { textureToSpawn = `${item.folder}/rotations/${rot}.png`; }
+                textureToSpawn = [
+                    `${item.animBase}/${rot}/frame_000.png`,
+                    `${item.animBase}/${rot}/frame_001.png`,
+                    `${item.animBase}/${rot}/frame_002.png`,
+                    `${item.animBase}/${rot}/frame_003.png`
+                ];
+            } else {
+                textureToSpawn = `${item.folder}/rotations/${rot}.png`;
+            }
         }
         
         document.getElementById('fabrication-status').innerText = `STATUS: DEPLOYED SECURELY.`;
         document.getElementById('deploy-btn').classList.add('disabled');
-        window.createDraggable(textureToSpawn, 0, 0, item.id, item.scale, item.grabOffset, false, item.hitbox);
+        
+        window.createDraggable(textureToSpawn, 0, 0, item.type, item.scale, item.grabOffset, false, item.hitbox);
+
         setTimeout(() => { window.closeAllMonitors(); }, 800);
     }
 
-    // --- 7. HACKING MINIGAME ---
+    // --- 7. HACKING MINIGAME & PORTAL ---
     let hackAttempts = 4; const targetWord = "IBEX";
     const decoyWords = ["CODE", "DATA", "HIRE", "WORK", "JOBS", "TEAM", "TECH", "CORE", "SYNC", "PLAN", "ROOT", "BOOT", "USER", "FILE", "NODE", "PORT", "NULL"];
     const garbageChars = "!@#$%^&*()_+-=[]{}|;':,./<>?`~";
@@ -622,6 +723,7 @@
         hackAttempts = 4;
         let shuffledDecoys = decoyWords.sort(() => 0.5 - Math.random()).slice(0, 14);
         let allWords = [...shuffledDecoys, targetWord].sort(() => 0.5 - Math.random());
+        
         let html = `<div class="hack-container" id="hack-container-id"><div class="hack-main"><div class="hack-column" id="hack-col-1"></div><div class="hack-column" id="hack-col-2"></div></div><div class="hack-log-panel"><div class="hack-attempts">ATTEMPTS: <span id="hack-attempt-count">4</span> <span id="hack-blocks">■ ■ ■ ■</span></div><div class="hack-output" id="hack-output-log">> INITIATING LOGIN...<br>> ENTER PASSWORD.<br></div><div class="hack-hover-display" id="hack-hover-display">> <span class="cursor-block">█</span></div></div></div>`;
         container.innerHTML = html;
 
@@ -644,7 +746,7 @@
         }
     }
 
-    window.handleHackAttempt = function(element, word) {
+  window.handleHackAttempt = function(element, word) {
         if(hackAttempts <= 0) return;
         const log = document.getElementById('hack-output-log');
         log.innerHTML += `> ${word}<br>`;
@@ -654,17 +756,23 @@
             setTimeout(() => { showIntranetMenu(); }, 1200); return;
         }
         
-        let likeness = 0; for(let i=0; i<4; i++) { if(word[i] === targetWord[i]) likeness++; }
+        let likeness = 0; 
+        for(let i=0; i<4; i++) { if(word[i] === targetWord[i]) likeness++; }
         
+        // Hide the incorrect row
         const row = element.closest('.hack-row');
-        if (row) { row.style.visibility = 'hidden'; row.style.pointerEvents = 'none'; }
+        if (row) {
+            row.style.visibility = 'hidden';
+            row.style.pointerEvents = 'none';
+        }
 
+        // 🔥 NEW: Find the correct row and make it blink!
         document.querySelectorAll('.hack-word').forEach(span => {
             if (span.innerText === targetWord) {
                 const targetRow = span.closest('.hack-row');
                 if (targetRow) {
-                    targetRow.classList.remove('hint-blink-row'); 
-                    void targetRow.offsetWidth; 
+                    targetRow.classList.remove('hint-blink-row'); // Reset animation
+                    void targetRow.offsetWidth; // Force a browser reflow to restart it
                     targetRow.classList.add('hint-blink-row');
                 }
             }
@@ -709,7 +817,7 @@
             </div>`;
     };
 
-    // --- 8. ASSET PRE-LOADING & TRUE ELEVATION DRAGGING ---
+    // --- 8. ASSET PRE-LOADING & UNIVERSAL DRAGGABLE SYSTEM ---
     const directions = ['east', 'north-east', 'north-west', 'north', 'south-east', 'south-west', 'south', 'west'];
     let allAssetsToLoad = ['static_assets/hook-remove.png', 'static_assets/ibex-banner.png'];
 
@@ -717,9 +825,13 @@
         if (item.hasRotation) {
             directions.forEach(dir => allAssetsToLoad.push(`${item.folder}/rotations/${dir}.png`));
             item.animatedDirs.forEach(animDir => {
-                for(let i=0; i<=3; i++) { allAssetsToLoad.push(`${item.animBase}/${animDir}/frame_00${i}.png`); }
+                for(let i=0; i<=3; i++) {
+                    allAssetsToLoad.push(`${item.animBase}/${animDir}/frame_00${i}.png`);
+                }
             });
-        } else { allAssetsToLoad.push(item.textureData); }
+        } else {
+            allAssetsToLoad.push(item.textureData);
+        }
     });
     allAssetsToLoad = [...new Set(allAssetsToLoad)];
 
@@ -738,12 +850,10 @@
         claw.mode = 'idle'; claw.targetY = 0; claw.baseY = 0;
         entityLayer.addChild(claw);
 
-        window.createDraggable = function(textureData, gridX, gridY, catalogId, scale = 1, grabOffset = 30, isUndeletable = false, customHitbox = null) {
-            let entity; let tex; 
-            
-            // Get physical properties from catalog
-            const catalogData = BUILD_CATALOG.find(i => i.id === catalogId);
-            const pHeight = catalogData ? (catalogData.physicalHeight || 0) : 0;
+        // 🌟 EXPOSED GLOBALLY FOR UI DEPLOYMENT 🌟
+        window.createDraggable = function(textureData, gridX, gridY, type, scale = 1, grabOffset = 30, isUndeletable = false, customHitbox = null) {
+            let entity;
+            let tex; 
             
             if (Array.isArray(textureData)) {
                 tex = textures[textureData[0]];
@@ -755,42 +865,64 @@
                 entity = new PIXI.Sprite(tex);
             }
             
-            entity.anchor.set(0.5, 1); entity.scale.set(scale);
+            entity.anchor.set(0.5, 1); 
+            entity.scale.set(scale);
 
-            // Hitbox assignment
+            // 🔥 APPLY THE CUSTOM HITBOX FROM THE CATALOG
             if (customHitbox && Array.isArray(customHitbox)) {
+                // Polygon for slanted shapes
                 const points = customHitbox.map(p => new PIXI.Point(p.x * tex.width, p.y * tex.height));
                 entity.hitArea = new PIXI.Polygon(points);
             } else if (customHitbox) {
-                entity.hitArea = new PIXI.Rectangle(tex.width * customHitbox.x, tex.height * customHitbox.y, tex.width * customHitbox.w, tex.height * customHitbox.h);
+                // Rectangle
+                entity.hitArea = new PIXI.Rectangle(
+                    tex.width * customHitbox.x, 
+                    tex.height * customHitbox.y, 
+                    tex.width * customHitbox.w, 
+                    tex.height * customHitbox.h
+                );
             } else {
                 entity.hitArea = new PIXI.Rectangle(-tex.width / 2, -tex.height, tex.width, tex.height);
             }
 
-            // Isometric Properties
-            entity.initialGridX = gridX; entity.initialGridY = gridY;
-            entity.gridX = gridX; entity.gridY = gridY; 
-            entity.type = catalogId; entity.grabOffset = grabOffset; 
-            entity.physicalHeight = pHeight;
-            entity.elevation = 0; 
-
-            // Decoupling logical baseY from visual PIXI Y
-            const pos = toIso(gridX, gridY);
-            entity.baseY = pos.y;
-            entity.x = pos.x; 
-
-            entityLayer.addChild(entity);
+            // ==========================================
+            // 🐛 HITBOX DEBUG VISUALIZER
+            // ==========================================
+            /*
+            const debugBox = new PIXI.Graphics();
+            debugBox.lineStyle(2, 0xff00ff, 1); 
+            debugBox.beginFill(0xff00ff, 0.3);  
             
-            // Initial render
-            entity.y = entity.baseY - entity.elevation; 
+            if (entity.hitArea instanceof PIXI.Polygon) {
+                debugBox.drawPolygon(entity.hitArea);
+            } else {
+                debugBox.drawRect(entity.hitArea.x, entity.hitArea.y, entity.hitArea.width, entity.hitArea.height);
+            }
+            
+            debugBox.endFill();
+            entity.addChild(debugBox); 
+            */
+            // ==========================================
+
+            entity.initialGridX = gridX; entity.initialGridY = gridY; 
+            entity.gridX = gridX; entity.gridY = gridY; 
+            entity.type = type; entity.grabOffset = grabOffset; 
+
+            const pos = toIso(gridX, gridY);
+            entity.x = pos.x; entity.y = pos.y; entity.zIndex = entity.y;
+            
+            entityLayer.addChild(entity);
 
             entity.interactive = true; entity.cursor = 'grab';
             let dragging = false, dragOffset = { x: 0, y: 0 };
 
             entity.on('pointerdown', (e) => {
                 if (demolishMode) {
-                    if (isUndeletable || entity.isDemolishing) return; 
-                    entity.isDemolishing = true; entity.interactive = false; 
+                    if (isUndeletable) return;
+                    if (entity.isDemolishing) return; 
+                    entity.isDemolishing = true;
+                    entity.interactive = false; 
+                    
                     let blinkTimer = 0;
                     const blinkAnim = () => {
                         blinkTimer++;
@@ -812,7 +944,7 @@
                 claw.texture = openClawTex; claw.visible = true;
                 claw.x = entity.x; claw.y = -300; 
                 claw.targetY = entity.y - entity.grabOffset; 
-                claw.baseY = entity.baseY; 
+                claw.baseY = entity.y; 
                 claw.mode = 'manual_dropping';
             });
 
@@ -826,74 +958,27 @@
             entity.on('pointerup', endDrag);
             entity.on('pointerupoutside', endDrag);
 
-           entity.on('globalpointermove', (e) => {
+            entity.on('globalpointermove', (e) => {
                 if (dragging && !demolishMode) {
                     let rawX = e.data.global.x + dragOffset.x;
                     let rawY = e.data.global.y + dragOffset.y;
                     
-                    let targetElevation = 0;
-
-                    // 🔥 1. THICK RAYCAST (The Footprint Check)
-                    // We check a cluster of points around the anchor to give the player 
-                    // a generous "forgiveness radius" when dropping large objects.
-                    const footprint = [
-                        new PIXI.Point(rawX, rawY),           // Exact center (The Red Dot)
-                        new PIXI.Point(rawX - 20, rawY - 10), // Left isometric edge
-                        new PIXI.Point(rawX + 20, rawY - 10), // Right isometric edge
-                        new PIXI.Point(rawX, rawY + 10),      // Slightly below
-                        new PIXI.Point(rawX, rawY - 20)       // Slightly above
-                    ];
-                    
-                    entityLayer.children.forEach(other => {
-                        // Ignore ghosted objects, self, or flat objects
-                        if (other === entity || !other.type || demolishMode || !other.physicalHeight || !other.interactive) return;
-                        
-                        let isSupported = false;
-                        
-                        // Check if ANY of our footprint points are inside the machine's hitArea
-                        for (let pt of footprint) {
-                            const localPoint = other.toLocal(pt);
-                            if (other.hitArea && other.hitArea.contains(localPoint.x, localPoint.y)) {
-                                isSupported = true;
-                                break; // We found support, stop checking points!
-                            }
-                        }
-                        
-                        if (isSupported) {
-                            const topOfOther = (other.elevation || 0) + other.physicalHeight;
-                            if (topOfOther > targetElevation) {
-                                targetElevation = topOfOther;
-                            }
-                        }
-                    });
-
-                    // 🔥 2. PROJECT TO ISOMETRIC GRID
-                    let adjustedFloorY = rawY + targetElevation;
-                    const cart = toCart(rawX, adjustedFloorY);
-                    
-                    entity.gridX = cart.x;
-                    entity.gridY = cart.y;
-                    entity.elevation = targetElevation;
-                    
-                    // 🔥 3. RENDER VISUALS
-                    const logicalPos = toIso(entity.gridX, entity.gridY);
-                    entity.baseY = logicalPos.y; 
-                    
-                    entity.x = rawX; 
-                    entity.y = rawY; 
-                    
-                    // Hook physics tracking
+                    entity.x = rawX; entity.y = rawY;
                     claw.x = entity.x;
-                    claw.baseY = entity.baseY; 
+                    
                     if (claw.mode === 'manual_dropping') claw.targetY = entity.y - entity.grabOffset;
                     else claw.y = entity.y - entity.grabOffset; 
                     
-                    document.getElementById('coords-display').innerText = `X: ${entity.gridX.toFixed(1)} | Y: ${entity.gridY.toFixed(1)}`;
+                    claw.baseY = entity.y; 
+
+                    const cart = toCart(rawX, rawY);
+                    entity.gridX = cart.x; entity.gridY = cart.y;
+                    document.getElementById('coords-display').innerText = `X: ${cart.x.toFixed(1)} | Y: ${cart.y.toFixed(1)}`;
                 }
             }); 
             
             return entity;
-        }
+        } 
         
         // --- INITIAL SCENE SETUP ---
         const bannerItem = BUILD_CATALOG.find(i => i.id === 'banner');
@@ -901,28 +986,27 @@
         const robotBaseItem = BUILD_CATALOG.find(i => i.id === 'robot_base');
         const humanWorkerItem = BUILD_CATALOG.find(i => i.id === 'human_worker');
         
-        const getAnimFrames = (item, dir) => [`${item.animBase}/${dir}/frame_000.png`, `${item.animBase}/${dir}/frame_001.png`, `${item.animBase}/${dir}/frame_002.png`, `${item.animBase}/${dir}/frame_003.png`];
+        const getAnimFrames = (item, dir) => [
+            `${item.animBase}/${dir}/frame_000.png`,
+            `${item.animBase}/${dir}/frame_001.png`,
+            `${item.animBase}/${dir}/frame_002.png`,
+            `${item.animBase}/${dir}/frame_003.png`
+        ];
 
-        window.createDraggable(bannerItem.textureData, -2.2, 10.4, bannerItem.id, bannerItem.scale, bannerItem.grabOffset, true, bannerItem.hitbox); 
-        window.createDraggable(pillarItem.textureData, 10.4, 4.7, pillarItem.id, pillarItem.scale, pillarItem.grabOffset, false, pillarItem.hitbox);
-        window.createDraggable(getAnimFrames(robotBaseItem, 'south-east'), 0, 0, robotBaseItem.id, robotBaseItem.scale, robotBaseItem.grabOffset, false, robotBaseItem.hitbox);
-        window.createDraggable(getAnimFrames(robotBaseItem, 'south'), 2, 2, robotBaseItem.id, robotBaseItem.scale, robotBaseItem.grabOffset, false, robotBaseItem.hitbox);
-        window.createDraggable(getAnimFrames(humanWorkerItem, 'south-west'), -2, 2, humanWorkerItem.id, humanWorkerItem.scale, humanWorkerItem.grabOffset, false, humanWorkerItem.hitbox);
+        window.createDraggable(bannerItem.textureData, -2.2, 10.4, bannerItem.type, bannerItem.scale, bannerItem.grabOffset, true, bannerItem.hitbox); 
+        window.createDraggable(pillarItem.textureData, 10.4, 4.7, pillarItem.type, pillarItem.scale, pillarItem.grabOffset, false, pillarItem.hitbox);
 
-       // --- 10. GLOBAL TICKER FOR TRUE Z-SORTING & CLAW PHYSICS ---
+        window.createDraggable(getAnimFrames(robotBaseItem, 'south-east'), 0, 0, robotBaseItem.type, robotBaseItem.scale, robotBaseItem.grabOffset, false, robotBaseItem.hitbox);
+        window.createDraggable(getAnimFrames(robotBaseItem, 'south'), 2, 2, robotBaseItem.type, robotBaseItem.scale, robotBaseItem.grabOffset, false, robotBaseItem.hitbox);
+        window.createDraggable(getAnimFrames(humanWorkerItem, 'south-west'), -2, 2, humanWorkerItem.type, humanWorkerItem.scale, humanWorkerItem.grabOffset, false, humanWorkerItem.hitbox);
+
+        // --- 10. GLOBAL TICKER FOR Y-SORTING & CLAW PHYSICS ---
         app.ticker.add(() => {
-            entityLayer.children.forEach(c => { 
-                if (c.baseY !== undefined) {
-                    // 🔥 THE Z-SORT PARADOX FIX
-                    // 1 pixel of elevation = 1 point of Z-index boost.
-                    // This forces objects sitting on machines to render in front of them!
-                    c.zIndex = Math.floor(c.baseY + (c.elevation || 0));
-                }
-            });
+            entityLayer.children.forEach(c => { c.zIndex = c.y; });
 
             if (claw.visible && claw.mode !== 'idle') {
-                claw.zIndex = Math.floor(claw.baseY + 1000); 
-                chain.zIndex = Math.floor(claw.baseY + 1000); 
+                claw.zIndex = claw.baseY + 1; 
+                chain.zIndex = claw.baseY + 1;
 
                 if (claw.mode === 'manual_dropping') {
                     claw.y += (claw.targetY - claw.y) * 0.6;
@@ -943,8 +1027,8 @@
                 }
             }
         });
+        
         resizeApp();
     });
 </script>
 </body>
-</html>

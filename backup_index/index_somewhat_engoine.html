@@ -738,7 +738,8 @@
         claw.mode = 'idle'; claw.targetY = 0; claw.baseY = 0;
         entityLayer.addChild(claw);
 
-        window.createDraggable = function(textureData, gridX, gridY, catalogId, scale = 1, grabOffset = 30, isUndeletable = false, customHitbox = null) {
+        // 🌟 ELEVATION CHECKER
+            window.createDraggable = function(textureData, gridX, gridY, catalogId, scale = 1, grabOffset = 30, isUndeletable = false, customHitbox = null) {
             let entity; let tex; 
             
             // Get physical properties from catalog
@@ -768,11 +769,10 @@
             }
 
             // Isometric Properties
-            entity.initialGridX = gridX; entity.initialGridY = gridY;
             entity.gridX = gridX; entity.gridY = gridY; 
             entity.type = catalogId; entity.grabOffset = grabOffset; 
             entity.physicalHeight = pHeight;
-            entity.elevation = 0; 
+            entity.elevation = 0; // Starts at 0 until we calculate what is under it
 
             // Decoupling logical baseY from visual PIXI Y
             const pos = toIso(gridX, gridY);
@@ -781,7 +781,7 @@
 
             entityLayer.addChild(entity);
             
-            // Initial render
+            // Calculate initial elevation incase it spawned on top of something!
             entity.y = entity.baseY - entity.elevation; 
 
             entity.interactive = true; entity.cursor = 'grab';
@@ -828,38 +828,26 @@
 
            entity.on('globalpointermove', (e) => {
                 if (dragging && !demolishMode) {
+                    // Visual position (slides smoothly with mouse)
                     let rawX = e.data.global.x + dragOffset.x;
                     let rawY = e.data.global.y + dragOffset.y;
                     
                     let targetElevation = 0;
 
-                    // 🔥 1. THICK RAYCAST (The Footprint Check)
-                    // We check a cluster of points around the anchor to give the player 
-                    // a generous "forgiveness radius" when dropping large objects.
-                    const footprint = [
-                        new PIXI.Point(rawX, rawY),           // Exact center (The Red Dot)
-                        new PIXI.Point(rawX - 20, rawY - 10), // Left isometric edge
-                        new PIXI.Point(rawX + 20, rawY - 10), // Right isometric edge
-                        new PIXI.Point(rawX, rawY + 10),      // Slightly below
-                        new PIXI.Point(rawX, rawY - 20)       // Slightly above
-                    ];
+                    // 🔥 1. TRUE HITBOX COLLISION (Allows sliding anywhere)
+                    // We check if the bottom/feet of our dragged object (rawX, rawY) 
+                    // is visually overlapping any structure's hitArea.
+                    const basePoint = new PIXI.Point(rawX, rawY);
                     
                     entityLayer.children.forEach(other => {
-                        // Ignore ghosted objects, self, or flat objects
+                        // Ignore self, non-entities, and things with no physical height.
+                        // 🛠️ SHIFT KEY FIX: Also ignore if the object is NOT interactive!
                         if (other === entity || !other.type || demolishMode || !other.physicalHeight || !other.interactive) return;
                         
-                        let isSupported = false;
+                        // Convert global screen point to the other sprite's local hitArea space
+                        const localPoint = other.toLocal(basePoint);
                         
-                        // Check if ANY of our footprint points are inside the machine's hitArea
-                        for (let pt of footprint) {
-                            const localPoint = other.toLocal(pt);
-                            if (other.hitArea && other.hitArea.contains(localPoint.x, localPoint.y)) {
-                                isSupported = true;
-                                break; // We found support, stop checking points!
-                            }
-                        }
-                        
-                        if (isSupported) {
+                        if (other.hitArea && other.hitArea.contains(localPoint.x, localPoint.y)) {
                             const topOfOther = (other.elevation || 0) + other.physicalHeight;
                             if (topOfOther > targetElevation) {
                                 targetElevation = topOfOther;
@@ -867,7 +855,9 @@
                         }
                     });
 
-                    // 🔥 2. PROJECT TO ISOMETRIC GRID
+                    // 🔥 2. CALCULATE THE "SHADOW" ON THE FLOOR
+                    // If the object is visually at rawY, but hovering 'targetElevation' pixels in the air,
+                    // its actual footprint on the 2D floor is physically further down.
                     let adjustedFloorY = rawY + targetElevation;
                     const cart = toCart(rawX, adjustedFloorY);
                     
@@ -875,12 +865,12 @@
                     entity.gridY = cart.y;
                     entity.elevation = targetElevation;
                     
-                    // 🔥 3. RENDER VISUALS
+                    // 🔥 3. UPDATE RENDERING (Flawless Mouse Tracking)
                     const logicalPos = toIso(entity.gridX, entity.gridY);
-                    entity.baseY = logicalPos.y; 
+                    entity.baseY = logicalPos.y; // Crucial for Z-Sorting!
                     
                     entity.x = rawX; 
-                    entity.y = rawY; 
+                    entity.y = rawY; // Visually stays perfectly locked to cursor
                     
                     // Hook physics tracking
                     claw.x = entity.x;
@@ -893,7 +883,7 @@
             }); 
             
             return entity;
-        }
+        } 
         
         // --- INITIAL SCENE SETUP ---
         const bannerItem = BUILD_CATALOG.find(i => i.id === 'banner');
@@ -909,20 +899,19 @@
         window.createDraggable(getAnimFrames(robotBaseItem, 'south'), 2, 2, robotBaseItem.id, robotBaseItem.scale, robotBaseItem.grabOffset, false, robotBaseItem.hitbox);
         window.createDraggable(getAnimFrames(humanWorkerItem, 'south-west'), -2, 2, humanWorkerItem.id, humanWorkerItem.scale, humanWorkerItem.grabOffset, false, humanWorkerItem.hitbox);
 
-       // --- 10. GLOBAL TICKER FOR TRUE Z-SORTING & CLAW PHYSICS ---
+        // --- 10. GLOBAL TICKER FOR TRUE Z-SORTING & CLAW PHYSICS ---
         app.ticker.add(() => {
             entityLayer.children.forEach(c => { 
                 if (c.baseY !== undefined) {
-                    // 🔥 THE Z-SORT PARADOX FIX
-                    // 1 pixel of elevation = 1 point of Z-index boost.
-                    // This forces objects sitting on machines to render in front of them!
-                    c.zIndex = Math.floor(c.baseY + (c.elevation || 0));
+                    // 🔥 Z-INDEX MATH: The core of the Painter's Algorithm in 2.5D.
+                    // We multiply baseY to separate rows, then add elevation so higher stacks win the tie!
+                    c.zIndex = Math.floor(c.baseY * 10 + (c.elevation || 0));
                 }
             });
 
             if (claw.visible && claw.mode !== 'idle') {
-                claw.zIndex = Math.floor(claw.baseY + 1000); 
-                chain.zIndex = Math.floor(claw.baseY + 1000); 
+                claw.zIndex = Math.floor(claw.baseY * 10 + 1000); 
+                chain.zIndex = Math.floor(claw.baseY * 10 + 1000); 
 
                 if (claw.mode === 'manual_dropping') {
                     claw.y += (claw.targetY - claw.y) * 0.6;
@@ -943,6 +932,7 @@
                 }
             }
         });
+        
         resizeApp();
     });
 </script>
