@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>IBEX Staffing Solutions - Factory Sandbox</title>
+    <title>IBEX Staffing Solutions</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
     <style>
         /* --- 1. GLOBAL & UI STYLES --- */
@@ -167,12 +167,14 @@
         .website-iframe { flex-grow: 1; border: none; width: 100%; height: 100%; background: #fff; z-index: 2; position: relative; }
 
         /* --- NEW GRID BUILDER UI --- */
-        .build-grid {
+
+       .build-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-            gap: 10px;
-            padding: 10px 0;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 15px; 
             overflow-y: auto;
+            overflow-x: hidden; 
             flex-grow: 1;
             z-index: 2; position: relative;
         }
@@ -184,11 +186,12 @@
         .build-item {
             border: 2px dashed #1cf843;
             background: rgba(28, 248, 67, 0.05);
-            padding: 10px;
+            padding: 15px 10px; /* Thicker padding for a better look */
             cursor: pointer;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             transition: all 0.2s;
         }
         .build-item:hover { background: rgba(28, 248, 67, 0.2); transform: scale(1.02); }
@@ -200,11 +203,14 @@
         }
         
         .build-item-thumb {
-            width: 8vh; height: 8vh; min-width: 40px; min-height: 40px;
+            /* 🔥 FIX: Made the thumbnails slightly bigger to fill the new wider boxes */
+            width: 10vh; height: 10vh; min-width: 60px; min-height: 60px;
             background-size: contain; background-repeat: no-repeat; background-position: center; 
-            image-rendering: pixelated; margin-bottom: 5px;
+            image-rendering: pixelated; margin-bottom: 10px;
         }
-        .build-item-name { font-size: 0.7em; text-align: center; letter-spacing: 1px; }
+        .build-item-name { font-size: 0.8em; text-align: center; letter-spacing: 1px; line-height: 1.2; }
+
+
 
         .deploy-btn { border: 2px solid #1cf843; padding: 10px 20px; cursor: pointer; transition: all 0.2s; font-size: 1em; text-align: center; width: max-content; background: rgba(28, 248, 67, 0.1); }
         .deploy-btn:hover { background: #1cf843; color: #040c04; text-shadow: none; box-shadow: 0 0 15px #1cf843; }
@@ -256,7 +262,7 @@
             opacity: 1 !important; /* Stops the row from reverting to invisible */
             animation: correct-row-blink 0.3s 3 forwards !important; 
         }
-
+        
         /* =========================================
            📱 MOBILE RESPONSIVE DESIGN (Max 768px)
            ========================================= */
@@ -378,22 +384,52 @@
             hasRotation: false, thumb: 'static_assets/ibex-banner.png', textureData: 'static_assets/ibex-banner.png',
             hitbox: { x: -0.5, y: -1, w: 1, h: 1 }
         },
-        {
-            id: 'pillar', name: 'SUPPORT PILLAR', type: 'structure', scale: 0.7, grabOffset: 280,
-            hasRotation: false, thumb: 'static_assets/pillars.png', textureData: 'static_assets/pillars.png',
-            hitbox: { x: -0.5, y: -1, w: 1, h: 1 }
-        },
-        {
+    {
+        id: 'pillar', name: 'SUPPORT PILLAR', type: 'structure', scale: 0.7, grabOffset: 280,
+        hasRotation: false, thumb: 'static_assets/pillars.png', textureData: 'static_assets/pillars.png',
+        hitbox: { x: -0.5, y: -1, w: 1, h: 1 }
+    },
+       {
             id: 'conveyor_belt', name: 'CONVEYOR BELT', type: 'structure', scale: 0.3, grabOffset: 120,
             hasRotation: false, thumb: 'static_assets/conveyor-belt.png', textureData: 'static_assets/conveyor-belt.png',
-            // 🔥 POLYGON HITBOX: Wider & Beefier Version
+            // 🔥 SHIFTED & ROTATED ~5 DEGREES RIGHT
             hitbox: [
-                {x: -0.60, y: -0.55}, // Back-Left
-                {x: -0.25, y: -0.80}, // Back-Right
-                {x: 0.60,  y: -0.40}, // Front-Right
-                {x: 0.25,  y: -0.15}  // Front-Left
+                {x: -0.44, y: -0.71}, // Back-Left
+                {x: -0.17, y: -0.93}, // Back-Right
+                {x: 0.40,  y: -0.46}, // Front-Right
+                {x: 0.17,  y: -0.14}  // Front-Left
             ]
-        }
+        },
+        {
+            id: 'robotic-arm', name: 'ROBOTIC ARM', type: 'structure', scale: 1, grabOffset: 180,
+            hasRotation: false, thumb: 'static_assets/robotic.png', textureData: 'static_assets/robotic.png',
+            hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
+        },
+        {
+            id: 'server-rack', name: 'SERVER RACK', type: 'structure', scale: 0.5, grabOffset: 180,
+            hasRotation: false, thumb: 'static_assets/server.png', textureData: 'static_assets/server.png',
+            hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
+        },
+        {
+            id: 'computer', name: 'COMPUTER DESK', type: 'structure', scale: 0.5, grabOffset: 80,
+            hasRotation: false, thumb: 'static_assets/computer_station.png', textureData: 'static_assets/computer_station.png',
+            hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
+        },
+        {
+            id: 'computer-on-wheels', name: 'COMPUTER ON WHEELS', type: 'structure', scale: 0.4, grabOffset: 80,
+            hasRotation: false, thumb: 'static_assets/computer_wheels.png', textureData: 'static_assets/computer_wheels.png',
+            hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
+        },
+        {
+            id: 'wall-left', name: 'WALL LEFT', type: 'structure', scale: 1, grabOffset: 80,
+            hasRotation: false, thumb: 'static_assets/wall_left.png', textureData: 'static_assets/wall_left.png',
+            hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
+        },
+        {
+            id: 'wall-right', name: 'WALL RIGHT', type: 'structure', scale: 1, grabOffset: 80,
+            hasRotation: false, thumb: 'static_assets/wall_right.png', textureData: 'static_assets/wall_right.png',
+            hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
+        },
     ];
 
     let isAnimating = true;
@@ -532,30 +568,36 @@
         monitors.push({ id: id, element: div });
     }
 
-  createMonitor("mon-terminal", "FACTORY", `
+ 
+   createMonitor("mon-terminal", "FACTORY", `
         <div class="retro-wrapper"><div class="retro-title">FABRICATION & DEPLOYMENT</div>
             <div class="build-grid" id="build-grid-container"></div>
             
-            <div id="rotation-container" style="display: none; justify-content: space-between; align-items: center; border-top: 2px dashed #1cf843; padding-top: 15px; margin-top: auto; font-size: 1.2em; font-weight: bold;">
-                <span>ORIENTATION:</span>
-                <select id="rotation-select" style="background: #040c04; color: #1cf843; border: 2px solid #1cf843; font-family: 'Courier New', monospace; font-weight: bold; font-size: 1em; padding: 6px; outline: none; cursor: pointer;">
-                    <option value="south-east">SOUTH-EAST</option>
-                    <option value="south">SOUTH</option>
-                    <option value="south-west">SOUTH-WEST</option>
-                    <option value="west">WEST</option>
-                    <option value="north-west">NORTH-WEST</option>
-                    <option value="north">NORTH</option>
-                    <option value="north-east">NORTH-EAST</option>
-                    <option value="east">EAST</option>
-                </select>
-            </div>
+            <div style="padding-top: 15px; margin-top: auto; z-index: 2; position: relative;">
+                
+                <div id="rotation-container" style="display: none; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 1.2em; font-weight: bold;">
+                    <span>ORIENTATION:</span>
+                    <select id="rotation-select" style="background: #040c04; color: #1cf843; border: 2px solid #1cf843; font-family: 'Courier New', monospace; font-weight: bold; font-size: 1em; padding: 6px; outline: none; cursor: pointer;">
+                        <option value="south-east">SOUTH-EAST</option>
+                        <option value="south">SOUTH</option>
+                        <option value="south-west">SOUTH-WEST</option>
+                        <option value="west">WEST</option>
+                        <option value="north-west">NORTH-WEST</option>
+                        <option value="north">NORTH</option>
+                        <option value="north-east">NORTH-EAST</option>
+                        <option value="east">EAST</option>
+                    </select>
+                </div>
 
-            <div class="fab-footer-flex" style="border-top: 2px dashed #1cf843; padding-top: 15px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; z-index: 2; position: relative;">
-                <div id="fabrication-status" style="font-size: 1em;">STATUS: SELECT AN ASSET</div>
-                <div class="deploy-btn disabled" id="deploy-btn" onclick="deployItem()">DEPLOY TO FLOOR</div>
+                <div class="fab-footer-flex" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div id="fabrication-status" style="font-size: 1em;">STATUS: SELECT AN ASSET</div>
+                    <div class="deploy-btn disabled" id="deploy-btn" onclick="deployItem()">DEPLOY TO FLOOR</div>
+                </div>
+                
             </div>
         </div>
     `);
+
 
 createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="width: 100%; height: 100%; flex-grow: 1; border: none; display: block; background: #fff;"></iframe>`);
     createMonitor("mon-security", "SECURITY", `
@@ -565,16 +607,27 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
         </div>
     `);
 
-    // UI BUTTON LOGIC
+  // UI BUTTON LOGIC
     window.toggleMonitor = function(targetId) {
         monitors.forEach(m => m.element.classList.remove('is-centered'));
         const target = document.getElementById(targetId);
         target.classList.add('is-centered');
 
-        if(targetId === 'mon-security' && !document.getElementById('hack-container-id')) startHackingGame();
+        if(targetId === 'mon-security' && !document.getElementById('hack-container-id')) {
+            startHackingGame();
+        }
         
-        if(targetId === 'mon-terminal' && document.getElementById('build-grid-container').innerHTML.trim() === '') {
-            window.populateBuildGrid();
+        if(targetId === 'mon-terminal') {
+            // Build the grid if it's empty
+            if (document.getElementById('build-grid-container').innerHTML.trim() === '') {
+                window.populateBuildGrid();
+            }
+            
+            // 🔥 BUG FIX: Re-arm the deploy button if an item was already selected!
+            if (currentBuildIndex !== -1) {
+                document.getElementById('deploy-btn').classList.remove('disabled');
+                document.getElementById('fabrication-status').innerText = `STATUS: READY TO DEPLOY`;
+            }
         }
     };
 
@@ -835,6 +888,7 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
             // ==========================================
             // 🐛 HITBOX DEBUG VISUALIZER
             // ==========================================
+            /*
             const debugBox = new PIXI.Graphics();
             debugBox.lineStyle(2, 0xff00ff, 1); 
             debugBox.beginFill(0xff00ff, 0.3);  
@@ -847,6 +901,7 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
             
             debugBox.endFill();
             entity.addChild(debugBox); 
+            */
             // ==========================================
 
             entity.initialGridX = gridX; entity.initialGridY = gridY; 
@@ -977,4 +1032,3 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
     });
 </script>
 </body>
-</html>
