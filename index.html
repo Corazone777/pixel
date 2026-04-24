@@ -1339,20 +1339,14 @@
     });
 
 
-        // ==========================================
-        // ASYNC SCREENSHOT ENGINE
-        // ==========================================
-       // ==========================================
-        // 🔥 ASYNC SMART-ZOOM SCREENSHOT ENGINE
+     // ==========================================
+        // 🔥 ASYNC TRUE-RETRO SCREENSHOT ENGINE
         // ==========================================
         let generatedImageData = null; 
 
         window.captureFactoryScreenshot = async function() {
             try {
-                // 1. Get the exact screen boundaries of the factory objects!
                 let bounds = entityLayer.getBounds();
-                
-                // 2. Add padding so the objects aren't touching the edge of the photo
                 const padding = 120;
                 const cropRegion = new PIXI.Rectangle(
                     bounds.x - padding,
@@ -1361,18 +1355,47 @@
                     bounds.height + padding * 2
                 );
 
-                // 3. Force the engine to ONLY render that specific cropped rectangle.
-                // We also double the resolution so it stays crisp when zoomed in!
                 const croppedTexture = app.renderer.generateTexture(app.stage, {
                     region: cropRegion,
-                    resolution: 2 
+                    resolution: 0.3 
                 });
 
-                // 4. Convert the cropped texture to Base64
-                generatedImageData = await app.renderer.extract.base64(croppedTexture);
-                
-                // 5. Clean up Pixi memory to prevent memory leaks
-                croppedTexture.destroy();
+                const rawBase64 = await app.renderer.extract.base64(croppedTexture);
+                croppedTexture.destroy(); 
+
+                // 2. 🔥 BAKE IN THE PIXELS & CRT EFFECTS
+                generatedImageData = await new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        const scaleFactor = 3; 
+                        canvas.width = img.width * scaleFactor;
+                        canvas.height = img.height * scaleFactor;
+
+                        ctx.imageSmoothingEnabled = false;
+
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                        for (let y = 0; y < canvas.height; y += 4) { // 2px line, 2px gap
+                            ctx.fillRect(0, y, canvas.width, 2); 
+                        }
+
+                        const gradient = ctx.createRadialGradient(
+                            canvas.width/2, canvas.height/2, canvas.width * 0.4,
+                            canvas.width/2, canvas.height/2, canvas.width
+                        );
+                        gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');     
+                        gradient.addColorStop(1, 'rgba(0, 0, 0, 0.75)');  
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                        resolve(canvas.toDataURL('image/png'));
+                    };
+                    img.src = rawBase64;
+                });
 
             } catch (e) {
                 console.error("Renderer extract failed:", e);
@@ -1381,21 +1404,16 @@
 
             const screen = document.getElementById('monitor-screen-capture');
             
-            // Wipe the previous snapshot
             const existingImg = screen.querySelector('.capture-result');
             if (existingImg) existingImg.remove();
             
-            // Build the new image
             const img = new Image();
             img.src = generatedImageData;
             img.className = 'capture-result';
             
-            // Insert it as the very first child so it sits behind the UI and scanlines
             screen.insertBefore(img, screen.firstChild);
-
-            // Pop the monitor up using your existing monitor toggle system
             window.toggleMonitor('mon-design');
-        };
+        }; 
 
         window.downloadScreenshot = function() {
             if (!generatedImageData) return;
