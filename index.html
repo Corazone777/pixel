@@ -39,6 +39,7 @@
         } 
 
         #ui-panel {
+            display: none;
             position: absolute; top: 20px; right: 20px;
             background: rgba(11, 12, 16, 0.85); padding: 15px 25px;
             border-radius: 8px; font-size: 14px;
@@ -657,17 +658,38 @@
         }
     }
 
-    // --- 3. RESIZE HANDLER ---
+    // --- 3. RESPONSIVE RESIZE HANDLER ---
     function resizeApp() {
         drawGrid();
+        
+        // 1. Reposition all standard factory machines
         if (entityLayer) {
             entityLayer.children.forEach(c => {
                 if (c.gridX !== undefined && c.gridY !== undefined) {
                     const pos = toIso(c.gridX, c.gridY);
                     c.baseY = pos.y;
                     c.x = pos.x; 
-                    // Update visual Y based on newly scaled baseY and their saved elevation
                     c.y = c.baseY - (c.elevation || 0); 
+                }
+            });
+        }
+
+        // 2. 🔥 THE BANNER FIX: Responsive Screen Pinning
+        if (backgroundLayer) {
+            backgroundLayer.children.forEach(c => {
+                if (c.type === 'banner') {
+                    // Detach from the grid and pin it to the exact top-center of the screen
+                    c.x = app.screen.width / 2;
+                    
+                    // If we are on a mobile device (screen smaller than 768px)
+                    if (window.innerWidth <= 768) {
+                        c.y = 70; // Push it down past the mobile notch
+                        c.scale.set(0.6); // Shrink it to 60% size so it fits!
+                    } else {
+                        // Desktop positioning
+                        c.y = Math.max(60, app.screen.height * 0.08); 
+                        c.scale.set(1.1); // Original size
+                    }
                 }
             });
         }
@@ -1214,7 +1236,7 @@
             entity.on('pointerup', endDrag);
             entity.on('pointerupoutside', endDrag);
 
-          entity.on('globalpointermove', (e) => {
+         entity.on('globalpointermove', (e) => {
                 if (dragging && !demolishMode) {
                     let rawX = e.data.global.x + dragOffset.x;
                     let rawY = e.data.global.y + dragOffset.y;
@@ -1222,8 +1244,9 @@
                     let bestSupport = null;
                     let targetElevation = 0;
 
-                    // 🔥 THE RED DOT (The object's exact feet)
-                    const basePoint = new PIXI.Point(rawX, rawY);
+                    // Instead of using rawX/rawY (the dangling feet of the sprite),
+                    // we fire the collision check directly from the tip of your mouse pointer!
+                    const basePoint = new PIXI.Point(e.data.global.x, e.data.global.y);
                     
                     entityLayer.children.forEach(other => {
                         if (other === entity || !other.type || demolishMode || !other.physicalHeight || !other.interactive) return;
@@ -1231,23 +1254,21 @@
                         const localPoint = other.toLocal(basePoint);
                         
                         if (other.hitArea && other.hitArea.contains(localPoint.x, localPoint.y)) {
-                            // Are we using a custom Polygon (like the belt) or a Rectangle (like the pillar)?
                             const isPolygon = other.hitArea instanceof PIXI.Polygon;
-                            
-                            // Calculate where the exact visual "Roof" of the machine is
                             const roofY = other.y - other.physicalHeight;
                             
-                            // If it's a polygon, trust it completely. 
-                            // If it's a rectangle, the Red Dot MUST be dragged up near the roof!
+                            // Keep the height check intact so things don't clip through the floor
                             if (isPolygon || rawY <= roofY + 60) {
                                 const elevationHere = (other.elevation || 0) + other.physicalHeight;
                                 if (elevationHere > targetElevation) {
                                     targetElevation = elevationHere;
-                                    bestSupport = other; // Save the object we are standing on!
+                                    bestSupport = other; 
                                 }
                             }
                         }
                     });
+
+                    // ... (Keep the rest of your Logic Projection and Visual Updates exactly the same) ... 
 
                     // Link the object to its new parent
                     entity.supportedBy = bestSupport;
@@ -1347,6 +1368,19 @@
         window.captureFactoryScreenshot = async function() {
             try {
                 let bounds = entityLayer.getBounds();
+                
+                //FORCE THE CAMERA TO INCLUDE THE BANNER
+                backgroundLayer.children.forEach(c => {
+                    if (c.type === 'banner') {
+                        const bannerBounds = c.getBounds();
+                        // Stretch the camera's view box upward to encompass the logo
+                        bounds.x = Math.min(bounds.x, bannerBounds.x);
+                        bounds.y = Math.min(bounds.y, bannerBounds.y);
+                        bounds.width = Math.max(bounds.x + bounds.width, bannerBounds.x + bannerBounds.width) - bounds.x;
+                        bounds.height = Math.max(bounds.y + bounds.height, bannerBounds.y + bannerBounds.height) - bounds.y;
+                    }
+                });
+
                 const padding = 120;
                 const cropRegion = new PIXI.Rectangle(
                     bounds.x - padding,
