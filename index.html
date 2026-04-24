@@ -265,26 +265,6 @@
         }
         .hint-blink-row { opacity: 1 !important; animation: correct-row-blink 0.3s 3 forwards !important; }
 
-        
-        /* 🔥 RANDOM GENERATOR BUTTON */
-        #btn-generate {
-            position: absolute;
-            bottom: 25px;
-            right: 25px; /* Bottom right corner */
-            background: #c4c4bc; color: #111; 
-            border: 3px solid; border-color: #e8e8e3 #8a8a83 #8a8a83 #e8e8e3;
-            padding: 8px 16px; font-weight: bold; font-size: 14px; cursor: pointer;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.5); font-family: 'Courier New', Courier, monospace;
-            transition: all 0.1s; outline: none;
-            white-space: nowrap;
-            z-index: 9000;
-            transition: transform 0.1s;
-        }
-        #btn-generate:active {
-            border-color: #8a8a83 #e8e8e3 #e8e8e3 #8a8a83; 
-            transform: translate(2px, 2px); box-shadow: 0px 0px 2px rgba(0,0,0,0.5);
-        }
-
         /* =========================================
            📱 MOBILE RESPONSIVE DESIGN
            ========================================= */
@@ -456,11 +436,76 @@
             transform: translateY(2px);
             box-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
+
+        /* ==========================================
+           🔥 ASSET CONTEXT MENU
+           ========================================== */
+        #asset-context-menu {
+            position: absolute;
+            display: none; /* Hidden until clicked */
+            flex-direction: column;
+            background: rgba(11, 12, 16, 0.95);
+            border: 2px solid #1cf843;
+            box-shadow: 0 0 20px rgba(28, 248, 67, 0.4);
+            padding: 12px;
+            z-index: 8500;
+            font-family: 'Courier New', Courier, monospace;
+            pointer-events: auto;
+            min-width: 160px;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            transition: opacity 0.1s;
+        }
+
+        .asset-context-header {
+            color: #1cf843;
+            font-size: 11px;
+            font-weight: bold;
+            border-bottom: 1px dashed #1cf843;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .ctx-btn {
+            background: transparent;
+            color: #e0e0e0;
+            border: 1px solid rgba(28, 248, 67, 0.3);
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .ctx-btn:hover { 
+            background: rgba(28, 248, 67, 0.2); 
+            border-color: #1cf843; 
+            color: #1cf843; 
+            box-shadow: inset 0 0 10px rgba(28, 248, 67, 0.3);
+        }
+        
+        .ctx-btn.btn-red:hover { 
+            background: rgba(255, 0, 0, 0.2); 
+            border-color: #ff3333; 
+            color: #ff3333; 
+            box-shadow: inset 0 0 10px rgba(255, 0, 0, 0.3);
+        }
+
     </style>
 </head>
 <body>
 
 <div id="app-wrapper">
+    <div id="asset-context-menu">
+        <div class="asset-context-header">IBEX ASSET N0-<span id="ctx-id">000</span></div>
+        <button class="ctx-btn" id="ctx-btn-rotate" onclick="rotateSelectedAsset()">[R] ROTATE</button>
+        <button class="ctx-btn btn-red" onclick="deleteSelectedAsset()">[X] DELETE</button>
+    </div>
     <div id="build-flash"></div>
     <div id="ui-panel">
         <div class="panel-title">Active Entity Position</div>
@@ -479,16 +524,14 @@
         
         <div class="desk-group">
             <div class="desk-label">SYSTEM</div>
-            <button class="desk-btn btn-red" id="btn-demolish" onclick="toggleDemolishMode()">DEMOLISH: OFF</button>        
+            <button class="desk-btn btn-red" onclick="generateRandomFactory()">DEPLOY</button>        
         </div>
     </div>
 
     <div id="easter-egg-overlay">
         <div class="warning-text">ROBOTS HAVE ASSUMED CONTROL.<br><br>SHUTTING THE SYSTEMS DOWN<br>AND REBOOTING...</div>
     </div>
-
-    <button id="btn-generate" onclick="generateRandomFactory()">DEPLOY</button>
-<button id="btn-export" onclick="captureFactoryScreenshot()">BLUEPRINT</button>
+    <button id="btn-export" onclick="captureFactoryScreenshot()">BLUEPRINT</button>
 </div>
 
 
@@ -617,6 +660,18 @@
     app.stage.addChild(backgroundLayer);
     app.stage.addChild(entityLayer);
 
+    // 🔥 ASSET SELECTION ENGINE
+    window.selectedEntity = null;
+    
+    // If the user clicks empty floor space, deselect the item!
+    app.stage.interactive = true;
+    app.stage.hitArea = new PIXI.Rectangle(-50000, -50000, 100000, 100000);
+    app.stage.on('pointerdown', (e) => {
+        if (e.target === app.stage || e.target === backgroundLayer) {
+            window.selectedEntity = null;
+        }
+    });
+
     const colorShader = `
         varying vec2 vTextureCoord;
         uniform sampler2D uSampler;
@@ -673,27 +728,8 @@
                 }
             });
         }
-
-        // 2. 🔥 THE BANNER FIX: Responsive Screen Pinning
-        if (backgroundLayer) {
-            backgroundLayer.children.forEach(c => {
-                if (c.type === 'banner') {
-                    // Detach from the grid and pin it to the exact top-center of the screen
-                    c.x = app.screen.width / 2;
-                    
-                    // If we are on a mobile device (screen smaller than 768px)
-                    if (window.innerWidth <= 768) {
-                        c.y = 70; // Push it down past the mobile notch
-                        c.scale.set(0.6); // Shrink it to 60% size so it fits!
-                    } else {
-                        // Desktop positioning
-                        c.y = Math.max(60, app.screen.height * 0.08); 
-                        c.scale.set(1.1); // Original size
-                    }
-                }
-            });
-        }
     }
+
     window.addEventListener('resize', resizeApp);
 
     // --- 4. KEYBOARD LOGIC ---
@@ -792,20 +828,6 @@
             document.querySelectorAll('.hack-row').forEach(row => { row.style.visibility = 'visible'; row.style.pointerEvents = 'auto'; });
         };
 
-    window.toggleDemolishMode = function() {
-        demolishMode = !demolishMode;
-        const btn = document.getElementById('btn-demolish');
-        if (demolishMode) {
-            btn.classList.add('active'); btn.innerText = "DEMOLISH: ON";
-            document.body.classList.add('demolish-mode');
-            document.getElementById('coords-display').innerText = `SYSTEM: DEMOLISH MODE ACTIVE`; document.getElementById('coords-display').style.color = "#ff5252";
-        } else {
-            btn.classList.remove('active'); btn.innerText = "DEMOLISH: OFF";
-            document.body.classList.remove('demolish-mode');
-            document.getElementById('coords-display').innerText = `SYSTEM: READY`; document.getElementById('coords-display').style.color = "#4CAF50";
-        }
-    }
-
     // --- 6. SANDBOX BUILDER ---
     let currentBuildIndex = -1;
     window.populateBuildGrid = function() {
@@ -843,6 +865,51 @@
         window.createDraggable(textureToSpawn, 0, 0, item.id, item.scale, item.grabOffset, false, item.hitbox);
         setTimeout(() => { window.closeAllMonitors(); }, 800);
     }
+
+    window.updateContextMenu = function(entity) {
+            const menu = document.getElementById('asset-context-menu');
+            menu.style.display = 'flex'; // Turn it on
+            
+            // Generate a cool dynamic serial number for the UI
+            const serial = Math.abs(Math.floor(entity.x + entity.y)).toString(16).toUpperCase();
+            document.getElementById('ctx-id').innerText = `${serial}-${entity.type.substring(0, 3).toUpperCase()}`;
+            
+            // Hide the ROTATE button if the object (like a PC) can't rotate!
+            const catalogItem = BUILD_CATALOG.find(i => i.id === entity.type);
+            document.getElementById('ctx-btn-rotate').style.display = (catalogItem && catalogItem.hasRotation) ? 'block' : 'none';
+        };
+
+        window.deleteSelectedAsset = function() {
+            if (window.selectedEntity && window.selectedEntity.type !== 'banner') {
+                window.selectedEntity.destroy({ children: true });
+                window.selectedEntity = null; // Clear selection
+            }
+        };
+
+        window.rotateSelectedAsset = function() {
+            if (!window.selectedEntity) return;
+            const item = BUILD_CATALOG.find(i => i.id === window.selectedEntity.type);
+            if (!item || !item.hasRotation) return;
+
+            // Figure out what direction we are currently facing, and grab the next one
+            if (!window.selectedEntity.currentRot) window.selectedEntity.currentRot = item.animatedDirs[0];
+            let idx = item.animatedDirs.indexOf(window.selectedEntity.currentRot);
+            let nextRot = item.animatedDirs[(idx + 1) % item.animatedDirs.length];
+            window.selectedEntity.currentRot = nextRot;
+
+            // Fetch the new textures from the pre-loaded engine cache
+            const searchPath = `${item.animBase}/${nextRot}/`;
+            let frames = [];
+            for (let key in PIXI.utils.TextureCache) {
+                if (key.includes(searchPath)) frames.push(PIXI.utils.TextureCache[key]);
+            }
+            
+            // Apply the new rotation to the live object
+            if (frames.length > 0 && window.selectedEntity instanceof PIXI.AnimatedSprite) {
+                window.selectedEntity.textures = frames;
+                window.selectedEntity.play();
+            }
+        };
 
     // --- 7. HACKING MINIGAME ---
     let hackAttempts = 4; const targetWord = "IBEX";
@@ -1224,6 +1291,9 @@
                 claw.targetY = entity.y - entity.grabOffset; 
                 claw.baseY = entity.baseY; 
                 claw.mode = 'manual_dropping';
+
+                window.selectedEntity = entity;
+                window.updateContextMenu(entity);
             });
 
             const endDrag = () => {
@@ -1304,14 +1374,31 @@
         
         const getAnimFrames = (item, dir) => [`${item.animBase}/${dir}/frame_000.png`, `${item.animBase}/${dir}/frame_001.png`, `${item.animBase}/${dir}/frame_002.png`, `${item.animBase}/${dir}/frame_003.png`];
 
-        window.createDraggable(bannerItem.textureData, -2.2, 10.4, bannerItem.id, bannerItem.scale, bannerItem.grabOffset, true, bannerItem.hitbox); 
+        window.createDraggable(bannerItem.textureData, 4.5, 6.5, bannerItem.id, bannerItem.scale, bannerItem.grabOffset, true, bannerItem.hitbox); 
         window.createDraggable(getAnimFrames(robotBaseItem, 'south-east'), 0, 0, robotBaseItem.id, robotBaseItem.scale, robotBaseItem.grabOffset, false, robotBaseItem.hitbox);
         window.createDraggable(getAnimFrames(robotBaseItem, 'south'), 2, 2, robotBaseItem.id, robotBaseItem.scale, robotBaseItem.grabOffset, false, robotBaseItem.hitbox);
         window.createDraggable(getAnimFrames(humanWorkerItem, 'south-west'), -2, 2, humanWorkerItem.id, humanWorkerItem.scale, humanWorkerItem.grabOffset, false, humanWorkerItem.hitbox);
 
        // --- 10. GLOBAL TICKER FOR TRUE Z-SORTING & CLAW PHYSICS ---
         app.ticker.add(() => {
-            
+
+            // 🔥 THE CONTEXT UI ENGINE (No Bounding Box)
+            if (window.selectedEntity && !window.selectedEntity.destroyed) {
+                // We still need the bounds to know where to float the menu
+                const b = window.selectedEntity.getLocalBounds();
+                
+                // Tell the HTML Screen to physically track the object on the monitor!
+                const globalPos = window.selectedEntity.getGlobalPosition();
+                const menu = document.getElementById('asset-context-menu');
+                
+                // Ensure it floats to the right of the actual graphic
+                menu.style.left = (globalPos.x + (b.width / 2) * window.selectedEntity.scale.x + 20) + 'px';
+                menu.style.top = (globalPos.y - (b.height / 2) * window.selectedEntity.scale.y) + 'px';
+            } else {
+                // Hide the menu if nothing is selected or the object was deleted
+                document.getElementById('asset-context-menu').style.display = 'none';
+            }
+
             // PASS 1: Base Floor Sorting
             entityLayer.children.forEach(c => { 
                 if (c.baseY !== undefined) {
