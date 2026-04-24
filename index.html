@@ -397,7 +397,7 @@
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 2px;
-            color: #1cf843;
+            color: #159d2e;
             background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
             padding: 20px 0 10px 0;
         }
@@ -504,7 +504,7 @@
                 </div>
 
                 <div class="export-controls">
-                    <button class="desk-btn" style="background: #1cf843; color: #000; font-size: 1.2em;" onclick="downloadScreenshot()">💾 DOWNLOAD BLUEPRINT</button>
+                    <button class="desk-btn" style="background: #159d2e; color: #000; font-size: 1.2em;" onclick="downloadScreenshot()">💾 DOWNLOAD BLUEPRINT</button>
                 </div>
             </div>
         </div>
@@ -1038,24 +1038,22 @@
                 }
             };
 
-            // --- RULE 1: THE PERMANENT BANNER ---
+        // --- RULE 1: THE PERMANENT BANNER ---
             let bannerExists = entityLayer.children.some(c => c.type === 'banner');
             if (!bannerExists) {
-                // Placed perfectly top-center, out of the slot grid
                 let b = spawn('banner', -2, -8, true); 
                 if (b) b.zIndex = -100; 
             }
 
             // ==========================================
-            // 🔥 THE TIGHT 4-TILE PARKING LOT
+            // 🔥 THE MEGA PARKING LOT (36 Slots)
             // ==========================================
             const slots = [];
             
-            // Start at -4 (high up on the screen) and step by exactly 4.
-            // This loop generates exactly 16 slots: (-4,-4), (0,-4), (4,-4), etc.
-            // It creates a tight, bustling factory floor without crossing the collision threshold.
-            for (let x = -4; x <= 8; x += 4) {
-                for (let y = -4; y <= 8; y += 4) {
+            // Expanded the grid in every direction so we have plenty of room 
+            // even after the belt destroys a massive chunk of the parking lot!
+            for (let x = -8; x <= 12; x += 4) {
+                for (let y = -8; y <= 12; y += 4) {
                     slots.push({x: x, y: y});
                 }
             }
@@ -1064,10 +1062,11 @@
             slots.sort(() => Math.random() - 0.5);
 
             // ==========================================
-            // 🔥 THE INVENTORY (14 Items for 16 Slots)
+            // 🔥 THE INVENTORY 
             // ==========================================
             const inventoryToSpawn = [
-                'conveyor_belt',
+                // MUST BE FIRST: The belt spawns first so it can claim its massive territory
+                'conveyor_belt', 
                 'robotic-arm',
                 'server-rack', 'server-rack',
                 'computer', 'computer',
@@ -1078,14 +1077,26 @@
             ];
 
             // ==========================================
-            // 🔥 EXECUTE SPAWNS
+            // 🔥 EXECUTE SPAWNS (With Quarantine Zone)
             // ==========================================
             inventoryToSpawn.forEach(assetId => {
                 if (slots.length > 0) {
                     const plot = slots.pop(); 
                     spawn(assetId, plot.x, plot.y);
+
+                    if (assetId === 'conveyor_belt') {
+                        // Loop backward through the remaining available slots
+                        for (let i = slots.length - 1; i >= 0; i--) {
+                            let dx = Math.abs(slots[i].x - plot.x);
+                            let dy = Math.abs(slots[i].y - plot.y);
+                            
+                            if (dx <= 3 && dy <= 3) {
+                                slots.splice(i, 1);
+                            }
+                        }
+                    }
                 }
-            });
+            }); 
             
             // Failsafe visual depth sort
             setTimeout(() => {
@@ -1328,14 +1339,41 @@
     });
 
 
-   // ==========================================
-        // 🔥 ASYNC SCREENSHOT ENGINE
+        // ==========================================
+        // ASYNC SCREENSHOT ENGINE
+        // ==========================================
+       // ==========================================
+        // 🔥 ASYNC SMART-ZOOM SCREENSHOT ENGINE
         // ==========================================
         let generatedImageData = null; 
 
         window.captureFactoryScreenshot = async function() {
             try {
-                generatedImageData = await app.renderer.extract.base64(app.stage); 
+                // 1. Get the exact screen boundaries of the factory objects!
+                let bounds = entityLayer.getBounds();
+                
+                // 2. Add padding so the objects aren't touching the edge of the photo
+                const padding = 120;
+                const cropRegion = new PIXI.Rectangle(
+                    bounds.x - padding,
+                    bounds.y - padding,
+                    bounds.width + padding * 2,
+                    bounds.height + padding * 2
+                );
+
+                // 3. Force the engine to ONLY render that specific cropped rectangle.
+                // We also double the resolution so it stays crisp when zoomed in!
+                const croppedTexture = app.renderer.generateTexture(app.stage, {
+                    region: cropRegion,
+                    resolution: 2 
+                });
+
+                // 4. Convert the cropped texture to Base64
+                generatedImageData = await app.renderer.extract.base64(croppedTexture);
+                
+                // 5. Clean up Pixi memory to prevent memory leaks
+                croppedTexture.destroy();
+
             } catch (e) {
                 console.error("Renderer extract failed:", e);
                 return;
@@ -1343,15 +1381,19 @@
 
             const screen = document.getElementById('monitor-screen-capture');
             
+            // Wipe the previous snapshot
             const existingImg = screen.querySelector('.capture-result');
             if (existingImg) existingImg.remove();
             
+            // Build the new image
             const img = new Image();
             img.src = generatedImageData;
             img.className = 'capture-result';
             
+            // Insert it as the very first child so it sits behind the UI and scanlines
             screen.insertBefore(img, screen.firstChild);
 
+            // Pop the monitor up using your existing monitor toggle system
             window.toggleMonitor('mon-design');
         };
 
