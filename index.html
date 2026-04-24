@@ -270,23 +270,19 @@
             position: absolute;
             bottom: 25px;
             right: 25px; /* Bottom right corner */
-            background: #552b75;
-            color: white;
-            border: 2px solid #000;
-            padding: 10px 20px;
-            font-family: 'Courier New', Courier, monospace;
-            font-weight: bold;
-            font-size: 16px;
-            cursor: pointer;
-            box-shadow: 4px 4px 0px #000;
+            background: #c4c4bc; color: #111; 
+            border: 3px solid; border-color: #e8e8e3 #8a8a83 #8a8a83 #e8e8e3;
+            padding: 8px 16px; font-weight: bold; font-size: 14px; cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5); font-family: 'Courier New', Courier, monospace;
+            transition: all 0.1s; outline: none;
+            white-space: nowrap;
             z-index: 9000;
             transition: transform 0.1s;
         }
         #btn-generate:active {
-            transform: translate(2px, 2px);
-            box-shadow: 2px 2px 0px #000;
+            border-color: #8a8a83 #e8e8e3 #e8e8e3 #8a8a83; 
+            transform: translate(2px, 2px); box-shadow: 0px 0px 2px rgba(0,0,0,0.5);
         }
-
 
         /* =========================================
            📱 MOBILE RESPONSIVE DESIGN
@@ -329,11 +325,142 @@
                 width: auto;
             }
         }
+
+        /* THE RECOMPILE FLASH EFFECT */
+        #build-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #ffffff; 
+            opacity: 0;
+            pointer-events: none; /* So it never blocks mouse clicks */
+            z-index: 9999;
+            transition: opacity 0.5s ease-out; /* Smooth fade out */
+        }
+        
+        .flash-active {
+            opacity: 0.6 !important;
+            transition: none !important; /* Instantly flash on */
+        }
+
+       /* ==========================================
+           🔥 DESIGN EXPORT MONITOR SPECIFICS
+           ========================================== */
+
+        #monitor-screen-capture {
+            flex-grow: 1;
+            position: relative;
+            background-color: #000;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* The dynamic screenshot image */
+        .capture-result {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            z-index: 1; /* Keep it below scanlines and UI */
+        }
+
+        /* Monitor UI Overlay */
+        .monitor-screen-ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            pointer-events: none;
+            z-index: 3; /* Always on top */
+            box-sizing: border-box;
+        }
+
+        #monitor-ibex-logo {
+            width: 120px !important;
+            height: auto !important;
+            image-rendering: pixelated;
+        }
+
+        #monitor-tagline {
+            width: 100%;
+            text-align: center;
+            font-size: clamp(16px, 3vw, 24px);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #1cf843;
+            background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+            padding: 20px 0 10px 0;
+        }
+
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            opacity: 0.5;
+            z-index: 2; /* Between image and UI */
+        }
+
+        .export-controls {
+            display: flex;
+            justify-content: center;
+            background: #050505;
+            border-top: 2px solid #333;
+            padding: 15px;
+            z-index: 10;
+        } 
+
+       /* 🔥 SLEEK TOP-LEFT EXPORT BUTTON */
+        #btn-export {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(11, 12, 16, 0.85); /* Deep translucent dark */
+            color: #e0e0e0; /* Crisp light grey text */
+            border: 1px solid rgba(28, 248, 67, 0.3); /* Subtle green accent border */
+            border-radius: 4px;
+            padding: 10px 24px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            z-index: 9000;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        #btn-export:hover {
+            background: rgba(28, 248, 67, 0.1); /* Slight green tint on hover */
+            color: #1cf843; /* Brightens the text */
+            border-color: rgba(28, 248, 67, 0.8);
+        }
+
+        #btn-export:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
     </style>
 </head>
 <body>
 
 <div id="app-wrapper">
+    <div id="build-flash"></div>
     <div id="ui-panel">
         <div class="panel-title">Active Entity Position</div>
         <div class="panel-data" id="coords-display">X: -- | Y: --</div>
@@ -359,8 +486,43 @@
         <div class="warning-text">ROBOTS HAVE ASSUMED CONTROL.<br><br>SHUTTING THE SYSTEMS DOWN<br>AND REBOOTING...</div>
     </div>
 
-    <button id="btn-generate" onclick="generateRandomFactory()">RNG FACTORY</button>
+    <button id="btn-generate" onclick="generateRandomFactory()">DEPLOY</button>
+<button id="btn-export" onclick="captureFactoryScreenshot()">BLUEPRINT</button>
 </div>
+
+
+<div class="monitor-overlay" id="mon-design">
+        <div class="hardware-bezel">
+            <div class="close-x-btn" onclick="closeAllMonitors()">[X]</div>
+            
+            <div class="monitor-body" style="background: #000; display: flex; flex-direction: column;">
+                <div id="monitor-screen-capture">
+                    <div class="scanlines"></div>
+                    <div class="monitor-screen-ui">
+                        <div id="monitor-tagline">Design your workforce</div>
+                    </div>
+                </div>
+
+                <div class="export-controls">
+                    <button class="desk-btn" style="background: #1cf843; color: #000; font-size: 1.2em;" onclick="downloadScreenshot()">💾 DOWNLOAD BLUEPRINT</button>
+                </div>
+            </div>
+        </div>
+        
+       <div class="hardware-controls" style="position: relative; height: 4rem;">
+            
+            <div class="hw-logo">// DESIGN EXPORT</div>
+            
+            <img src="static_assets/ibex_logo_pixel.png" alt="IBEX Logo" style="position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%); height: 80px; image-rendering: pixelated; z-index: 10;">
+            
+            <div style="display: flex; align-items: center; gap: 15px; margin-left: auto;">
+                <div class="led-indicator"></div>
+                <button class="desk-btn btn-red" onclick="closeAllMonitors()">PWR</button>
+            </div>
+            
+        </div>
+
+</body>
 
 <script>
     // ============================================================================
@@ -586,25 +748,27 @@
     createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="width: 100%; height: 100%; flex-grow: 1; border: none; display: block; background: #fff;"></iframe>`);
     createMonitor("mon-security", "SECURITY", `<div class="retro-wrapper"><div class="retro-title">RESTRICTED AREA // PASSWORD REQUIRED</div><div id="security-content" style="flex-grow: 1; position: relative;"></div></div>`);
 
-    window.toggleMonitor = function(targetId) {
-        monitors.forEach(m => m.element.classList.remove('is-centered'));
-        const target = document.getElementById(targetId);
-        target.classList.add('is-centered');
-        if(targetId === 'mon-security' && !document.getElementById('hack-container-id')) startHackingGame();
-        
-        if(targetId === 'mon-terminal') {
-            if (document.getElementById('build-grid-container').innerHTML.trim() === '') window.populateBuildGrid();
-            if (currentBuildIndex !== -1) {
-                document.getElementById('deploy-btn').classList.remove('disabled');
-                document.getElementById('fabrication-status').innerText = `STATUS: READY TO DEPLOY`;
+   window.toggleMonitor = function(targetId) {
+            document.querySelectorAll('.monitor-overlay').forEach(m => m.classList.remove('is-centered'));
+            
+            const target = document.getElementById(targetId);
+            if (target) target.classList.add('is-centered');
+            
+            if(targetId === 'mon-security' && !document.getElementById('hack-container-id')) startHackingGame();
+            
+            if(targetId === 'mon-terminal') {
+                if (document.getElementById('build-grid-container').innerHTML.trim() === '') window.populateBuildGrid();
+                if (currentBuildIndex !== -1) {
+                    document.getElementById('deploy-btn').classList.remove('disabled');
+                    document.getElementById('fabrication-status').innerText = `STATUS: READY TO DEPLOY`;
+                }
             }
-        }
-    };
+        };
 
-    window.closeAllMonitors = function() {
-        monitors.forEach(m => m.element.classList.remove('is-centered'));
-        document.querySelectorAll('.hack-row').forEach(row => { row.style.visibility = 'visible'; row.style.pointerEvents = 'auto'; });
-    };
+        window.closeAllMonitors = function() {
+            document.querySelectorAll('.monitor-overlay').forEach(m => m.classList.remove('is-centered'));
+            document.querySelectorAll('.hack-row').forEach(row => { row.style.visibility = 'visible'; row.style.pointerEvents = 'auto'; });
+        };
 
     window.toggleDemolishMode = function() {
         demolishMode = !demolishMode;
@@ -789,8 +953,45 @@
             });
         }
 
+        // ==========================================
+        // VISUAL EFFECTS ENGINE
+        // ==========================================
+        function triggerBuildEffect() {
+            // 1. Trigger the CSS Flash
+            const flash = document.getElementById('build-flash');
+            if (flash) {
+                flash.classList.add('flash-active');
+                
+                void flash.offsetWidth; 
+                
+                flash.classList.remove('flash-active');
+            }
+
+            let shakeFrames = 20;
+            let shakeIntensity = 12;
+
+            const shakeTicker = () => {
+                if (shakeFrames > 0) {
+                    app.stage.x = (Math.random() - 0.5) * shakeIntensity;
+                    app.stage.y = (Math.random() - 0.5) * shakeIntensity;
+                    
+                    shakeFrames--;
+                    shakeIntensity *= 0.85; // Smoothly decay the shake
+                } else {
+                    // Reset to perfect zero and remove the effect
+                    app.stage.x = 0;
+                    app.stage.y = 0;
+                    app.ticker.remove(shakeTicker);
+                }
+            };
+
+            app.ticker.add(shakeTicker);
+        }
+
         window.generateRandomFactory = function() {
             clearFactory();
+
+            triggerBuildEffect();
 
             if (entityLayer) entityLayer.sortableChildren = true;
 
@@ -816,13 +1017,17 @@
 
                     const ent = createDraggable(texInput, gx, gy, data.id, data.scale, data.grabOffset, false, data.hitbox);
                     
-                    if (ent) {
+                   if (ent) {
                         if (lock) {
                             ent.interactive = false; 
                             ent.cursor = 'default';
+                            ent.removeAllListeners(); 
+                            
+                            if (data.id === 'banner') {
+                                backgroundLayer.addChild(ent);
+                            }
                         }
                         
-                        // Native depth sorting based on tight grid coordinates
                         ent.zIndex = gx + gy;
                         ent.gridX = gx;
                         ent.gridY = gy;
@@ -955,6 +1160,11 @@
             let dragging = false, dragOffset = { x: 0, y: 0 };
 
             entity.on('pointerdown', (e) => {
+
+                if (entity.isLocked || entity.type === 'banner' || entity.id === 'banner') {
+                   return; 
+                }
+
                 if (demolishMode) {
                     if (isUndeletable || entity.isDemolishing) return; 
                     entity.isDemolishing = true; entity.interactive = false; 
@@ -1112,12 +1322,50 @@
                     }
                 }
             }
-
-
         });
             generateRandomFactory();
         resizeApp();
     });
+
+
+   // ==========================================
+        // 🔥 ASYNC SCREENSHOT ENGINE
+        // ==========================================
+        let generatedImageData = null; 
+
+        window.captureFactoryScreenshot = async function() {
+            try {
+                generatedImageData = await app.renderer.extract.base64(app.stage); 
+            } catch (e) {
+                console.error("Renderer extract failed:", e);
+                return;
+            }
+
+            const screen = document.getElementById('monitor-screen-capture');
+            
+            const existingImg = screen.querySelector('.capture-result');
+            if (existingImg) existingImg.remove();
+            
+            const img = new Image();
+            img.src = generatedImageData;
+            img.className = 'capture-result';
+            
+            screen.insertBefore(img, screen.firstChild);
+
+            window.toggleMonitor('mon-design');
+        };
+
+        window.downloadScreenshot = function() {
+            if (!generatedImageData) return;
+            const link = document.createElement('a');
+            link.download = `IBEX-Factory-Design-${Date.now()}.png`; 
+            link.href = generatedImageData; 
+            document.body.appendChild(link); 
+            link.click();
+            document.body.removeChild(link); 
+        };
+        
+
 </script>
 </body>
 </html>
