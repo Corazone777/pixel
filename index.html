@@ -131,7 +131,7 @@
             box-shadow: 15px 25px 40px rgba(0, 0, 0, 0.9);
             top: -150vh; left: 50%; transform: translateX(-50%);
             width: 80vw; max-width: 1400px; height: 80vh; max-height: 900px;
-            transition: top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            /*transition: top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);*/
         }
 
         .monitor-overlay.is-centered { top: 5vh; z-index: 8005; }
@@ -496,11 +496,23 @@
             box-shadow: inset 0 0 10px rgba(255, 0, 0, 0.3);
         }
 
+        #asset-bounding-box {
+            position: absolute;
+            display: none; /* Hidden by default */
+            border: 2px solid #1cf843;
+            box-shadow: 0 0 15px rgba(28, 248, 67, 0.4);
+            background: rgba(28, 248, 67, 0.05); /* Very faint green tint */
+            pointer-events: none; /* Let the mouse click through it! */
+            z-index: 8499; /* Just below the context menu */
+            border-radius: 4px;
+        }
+
     </style>
 </head>
 <body>
 
 <div id="app-wrapper">
+<div id="asset-bounding-box"></div>
     <div id="asset-context-menu">
         <div class="asset-context-header">IBEX ASSET N0-<span id="ctx-id">000</span></div>
         <button class="ctx-btn" id="ctx-btn-rotate" onclick="rotateSelectedAsset()">[R] ROTATE</button>
@@ -517,9 +529,9 @@
 
         <div class="desk-group">
             <div class="desk-label">MODULES</div>
-            <button class="desk-btn" onclick="toggleMonitor('mon-terminal')">FACTORY</button>
+            <button class="desk-btn" onclick="toggleMonitor('mon-terminal')">STAFF</button>
             <button class="desk-btn" onclick="toggleMonitor('mon-web')">WEBSITE</button>
-            <button class="desk-btn" onclick="toggleMonitor('mon-security')">SECURITY</button>
+            <button class="desk-btn" onclick="toggleMonitor('mon-security')">SHELL</button>
         </div>
         
         <div class="desk-group">
@@ -555,7 +567,7 @@
         
        <div class="hardware-controls" style="position: relative; height: 4rem;">
             
-            <div class="hw-logo">// DESIGN EXPORT</div>
+            <div class="hw-logo">IBEX // FACTORY BLUEPRINT</div>
             
             <img src="static_assets/ibex_logo_pixel.png" alt="IBEX Logo" style="position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%); height: 80px; image-rendering: pixelated; z-index: 10;">
             
@@ -1382,21 +1394,43 @@
        // --- 10. GLOBAL TICKER FOR TRUE Z-SORTING & CLAW PHYSICS ---
         app.ticker.add(() => {
 
-            // 🔥 THE CONTEXT UI ENGINE (No Bounding Box)
+            // 🔥 THE HTML CONTEXT UI & BOUNDING BOX ENGINE
+            const htmlBox = document.getElementById('asset-bounding-box');
+            const htmlMenu = document.getElementById('asset-context-menu');
+
             if (window.selectedEntity && !window.selectedEntity.destroyed) {
-                // We still need the bounds to know where to float the menu
-                const b = window.selectedEntity.getLocalBounds();
                 
-                // Tell the HTML Screen to physically track the object on the monitor!
-                const globalPos = window.selectedEntity.getGlobalPosition();
-                const menu = document.getElementById('asset-context-menu');
+                window.selectedEntity.updateTransform();
+                const b = window.selectedEntity.getBounds();
                 
-                // Ensure it floats to the right of the actual graphic
-                menu.style.left = (globalPos.x + (b.width / 2) * window.selectedEntity.scale.x + 20) + 'px';
-                menu.style.top = (globalPos.y - (b.height / 2) * window.selectedEntity.scale.y) + 'px';
+                // Prevent the "0-size glitch" when dropping items
+                if (b.width < 10 || b.height < 10) {
+                    htmlBox.style.display = 'none';
+                    htmlMenu.style.display = 'none';
+                    return; 
+                }
+
+                const pad = 10; 
+                const bx = b.x - pad;
+                const by = b.y - pad;
+                const bw = b.width + (pad * 2);
+                const bh = b.height + (pad * 2);
+
+                // 🟩 MAP THE HTML BOX
+                htmlBox.style.display = 'block';
+                htmlBox.style.left = bx + 'px';
+                htmlBox.style.top = by + 'px';
+                htmlBox.style.width = bw + 'px';
+                htmlBox.style.height = bh + 'px';
+
+                // 💻 MAP THE HTML MENU (Glued to the right side of the box)
+                htmlMenu.style.display = 'flex';
+                htmlMenu.style.left = (bx + bw + 15) + 'px'; 
+                htmlMenu.style.top = by + 'px';         
+
             } else {
-                // Hide the menu if nothing is selected or the object was deleted
-                document.getElementById('asset-context-menu').style.display = 'none';
+                htmlBox.style.display = 'none';
+                htmlMenu.style.display = 'none';
             }
 
             // PASS 1: Base Floor Sorting
