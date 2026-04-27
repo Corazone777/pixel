@@ -1,1 +1,0 @@
-cech old resizeApp()

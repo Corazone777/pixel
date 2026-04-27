@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>IBEX Staffing Solutions</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+
+<script type="module" src="main.js"></script>
+<div id="app-wrapper">
+<div id="asset-bounding-box"></div>
+    <div id="asset-context-menu">
+        <div class="asset-context-header">IBEX ASSET N0-<span id="ctx-id">000</span></div>
+        <button class="ctx-btn" id="ctx-btn-rotate" onclick="rotateSelectedAsset()">[R] ROTATE</button>
+        <button class="ctx-btn btn-red" onclick="deleteSelectedAsset()">[X] DELETE</button>
+    </div>
+    <div id="build-flash"></div>
+    <div id="ui-panel">
+        <div class="panel-title">Active Entity Position</div>
+        <div class="panel-data" id="coords-display">X: -- | Y: --</div>
+    </div>
+
+    <div id="control-desk">
+        <img src="static_assets/ibex_logo_pixel_new.png" id="desk-logo-plaque" alt="IBEX Staffing">
+
+        <div class="desk-group">
+            <div class="desk-label">MODULES</div>
+            <button class="desk-btn" onclick="toggleMonitor('mon-terminal')">STAFF</button>
+            <button class="desk-btn" onclick="toggleMonitor('mon-web')">WEBSITE</button>
+            <button class="desk-btn" onclick="toggleMonitor('mon-security')">SHELL</button>
+        </div>
+        
+        <div class="desk-group">
+            <div class="desk-label">SYSTEM</div>
+            <button class="desk-btn btn-red" onclick="generateRandomFactory()">DEPLOY</button>        
+        </div>
+    </div>
+
+    <div id="easter-egg-overlay">
+        <div class="warning-text">ROBOTS HAVE ASSUMED CONTROL.<br><br>SHUTTING THE SYSTEMS DOWN<br>AND REBOOTING...</div>
+    </div>
+    <button id="btn-export" onclick="captureFactoryScreenshot()">BLUEPRINT</button>
+</div>
+
+
+<div class="monitor-overlay" id="mon-design">
+        <div class="hardware-bezel">
+            <div class="close-x-btn" onclick="closeAllMonitors()">[X]</div>
+            
+            <div class="monitor-body" style="background: #000; display: flex; flex-direction: column;">
+                <div id="monitor-screen-capture">
+                    <div class="scanlines"></div>
+                    <div class="monitor-screen-ui">
+                        <div id="monitor-tagline">Design your workforce</div>
+                    </div>
+                </div>
+
+                <div class="export-controls">
+                    <button class="desk-btn" style="background: #159d2e; color: #000; font-size: 1.2em;" onclick="downloadScreenshot()">💾 DOWNLOAD BLUEPRINT</button>
+                </div>
+            </div>
+        </div>
+        
+       <div class="hardware-controls" style="position: relative; height: 4rem;">
+            
+            <div class="hw-logo">IBEX // FACTORY BLUEPRINT</div>
+            
+            <img src="static_assets/ibex_logo_pixel.png" alt="IBEX Logo" style="position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%); height: 80px; image-rendering: pixelated; z-index: 10;">
+            
+            <div style="display: flex; align-items: center; gap: 15px; margin-left: auto;">
+                <div class="led-indicator"></div>
+                <button class="desk-btn btn-red" onclick="closeAllMonitors()">PWR</button>
+            </div>
+            
+        </div>
+
+</body>
+</html>>
