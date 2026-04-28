@@ -13,11 +13,13 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-// Data Structures
 type Player struct {
-	ID    string  `json:"id"`
-	GridX float64 `json:"gridX"`
-	GridY float64 `json:"gridY"`
+	ID     string  `json:"id"`
+	GridX  float64 `json:"gridX"`
+	GridY  float64 `json:"gridY"`
+	Dir    string  `json:"dir"`
+	Name   string  `json:"name"`
+	Avatar string  `json:"avatar"`
 }
 
 type Message struct {
@@ -62,8 +64,13 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 	// Collect all current players to send to the new arrival
 	currentPlayers := make(map[string]*Player)
-	for _, p := range clients {
-		currentPlayers[p.ID] = p
+
+	// 🔥 THE FIX: We loop using both the connection object (c) and the player data (p)
+	for c, p := range clients {
+		// If the connection in the loop is NOT the guy who just joined... add them!
+		if c != ws {
+			currentPlayers[p.ID] = p
+		}
 	}
 	clientsMu.Unlock()
 
@@ -86,13 +93,34 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if msg.Type == "move" {
-			// Parse the new coordinates and update the server state
 			payloadMap := msg.Payload.(map[string]interface{})
 			newPlayer.GridX = payloadMap["gridX"].(float64)
 			newPlayer.GridY = payloadMap["gridY"].(float64)
 
-			// Echo the movement to everyone else
+			// 🔥 Capture the direction from the move message
+			if d, ok := payloadMap["dir"].(string); ok {
+				newPlayer.Dir = d
+			}
+
 			broadcast(Message{Type: "playerMoved", Payload: newPlayer}, ws)
+		}
+
+		if msg.Type == "join" {
+			payloadMap := msg.Payload.(map[string]interface{})
+			newPlayer.Name = payloadMap["name"].(string)
+			newPlayer.Avatar = payloadMap["avatar"].(string)
+			// Broadcast the update so everyone knows who this is
+			broadcast(Message{Type: "playerJoined", Payload: newPlayer}, ws)
+		}
+
+		if msg.Type == "chat" {
+			// We just pass the text payload through.
+			// The client already knows the player ID/Name from the connection.
+			broadcast(Message{Type: "chat", Payload: map[string]interface{}{
+				"id":   newPlayer.ID,
+				"name": newPlayer.Name,
+				"text": msg.Payload.(map[string]interface{})["text"],
+			}}, nil) // Send to everyone including the sender
 		}
 	}
 }

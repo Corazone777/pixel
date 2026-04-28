@@ -1,0 +1,153 @@
+{
+  "character": {
+    "id": "9944c500-fd91-450b-84b4-0aaa39c3da54",
+    "name": "boss",
+    "prompt": "my boss, very smart and very good looking ",
+    "size": {
+      "width": 68,
+      "height": 68
+    },
+    "template_id": "mannequin",
+    "directions": 8,
+    "view": "low top-down",
+    "created_at": "2026-04-22T12:00:39.489052+00:00"
+  },
+  "frames": {
+    "rotations": {
+      "south": "rotations/south.png",
+      "south-east": "rotations/south-east.png",
+      "east": "rotations/east.png",
+      "north-east": "rotations/north-east.png",
+      "north": "rotations/north.png",
+      "north-west": "rotations/north-west.png",
+      "west": "rotations/west.png",
+      "south-west": "rotations/south-west.png"
+    },
+    "animations": {
+      "animation-deadbf74": {
+        "south-west": [
+          "animations/animation-deadbf74/south-west/frame_000.png",
+          "animations/animation-deadbf74/south-west/frame_001.png",
+          "animations/animation-deadbf74/south-west/frame_002.png",
+          "animations/animation-deadbf74/south-west/frame_003.png",
+          "animations/animation-deadbf74/south-west/frame_004.png",
+          "animations/animation-deadbf74/south-west/frame_005.png"
+        ],
+        "north-east": [
+          "animations/animation-deadbf74/north-east/frame_000.png",
+          "animations/animation-deadbf74/north-east/frame_001.png",
+          "animations/animation-deadbf74/north-east/frame_002.png",
+          "animations/animation-deadbf74/north-east/frame_003.png",
+          "animations/animation-deadbf74/north-east/frame_004.png",
+          "animations/animation-deadbf74/north-east/frame_005.png"
+        ],
+        "south-east": [
+          "animations/animation-deadbf74/south-east/frame_000.png",
+          "animations/animation-deadbf74/south-east/frame_001.png",
+          "animations/animation-deadbf74/south-east/frame_002.png",
+          "animations/animation-deadbf74/south-east/frame_003.png",
+          "animations/animation-deadbf74/south-east/frame_004.png",
+          "animations/animation-deadbf74/south-east/frame_005.png"
+        ],
+        "north-west": [
+          "animations/animation-deadbf74/north-west/frame_000.png",
+          "animations/animation-deadbf74/north-west/frame_001.png",
+          "animations/animation-deadbf74/north-west/frame_002.png",
+          "animations/animation-deadbf74/north-west/frame_003.png",
+          "animations/animation-deadbf74/north-west/frame_004.png",
+          "animations/animation-deadbf74/north-west/frame_005.png"
+        ],
+        "south": [
+          "animations/animation-deadbf74/south/frame_000.png",
+          "animations/animation-deadbf74/south/frame_001.png",
+          "animations/animation-deadbf74/south/frame_002.png",
+          "animations/animation-deadbf74/south/frame_003.png",
+          "animations/animation-deadbf74/south/frame_004.png",
+          "animations/animation-deadbf74/south/frame_005.png"
+        ],
+        "east": [
+          "animations/animation-deadbf74/east/frame_000.png",
+          "animations/animation-deadbf74/east/frame_001.png",
+          "animations/animation-deadbf74/east/frame_002.png",
+          "animations/animation-deadbf74/east/frame_003.png",
+          "animations/animation-deadbf74/east/frame_004.png",
+          "animations/animation-deadbf74/east/frame_005.png"
+        ],
+        "west": [
+          "animations/animation-deadbf74/west/frame_000.png",
+          "animations/animation-deadbf74/west/frame_001.png",
+          "animations/animation-deadbf74/west/frame_002.png",
+          "animations/animation-deadbf74/west/frame_003.png",
+          "animations/animation-deadbf74/west/frame_004.png",
+          "animations/animation-deadbf74/west/frame_005.png"
+        ],
+        "north": [
+          "animations/animation-deadbf74/north/frame_000.png",
+          "animations/animation-deadbf74/north/frame_001.png",
+          "animations/animation-deadbf74/north/frame_002.png",
+          "animations/animation-deadbf74/north/frame_003.png",
+          "animations/animation-deadbf74/north/frame_004.png",
+          "animations/animation-deadbf74/north/frame_005.png"
+        ]
+      },
+      "Breathing_Idle-90974389": {
+        "north-west": [
+          "animations/Breathing_Idle-90974389/north-west/frame_000.png",
+          "animations/Breathing_Idle-90974389/north-west/frame_001.png",
+          "animations/Breathing_Idle-90974389/north-west/frame_002.png",
+          "animations/Breathing_Idle-90974389/north-west/frame_003.png"
+        ],
+        "south-west": [
+          "animations/Breathing_Idle-90974389/south-west/frame_000.png",
+          "animations/Breathing_Idle-90974389/south-west/frame_001.png",
+          "animations/Breathing_Idle-90974389/south-west/frame_002.png",
+          "animations/Breathing_Idle-90974389/south-west/frame_003.png"
+        ],
+        "south": [
+          "animations/Breathing_Idle-90974389/south/frame_000.png",
+          "animations/Breathing_Idle-90974389/south/frame_001.png",
+          "animations/Breathing_Idle-90974389/south/frame_002.png",
+          "animations/Breathing_Idle-90974389/south/frame_003.png"
+        ],
+        "north-688bf88e": [
+          "animations/Breathing_Idle-90974389/north-688bf88e/frame_000.png",
+          "animations/Breathing_Idle-90974389/north-688bf88e/frame_001.png",
+          "animations/Breathing_Idle-90974389/north-688bf88e/frame_002.png",
+          "animations/Breathing_Idle-90974389/north-688bf88e/frame_003.png"
+        ],
+        "north-east": [
+          "animations/Breathing_Idle-90974389/north-east/frame_000.png",
+          "animations/Breathing_Idle-90974389/north-east/frame_001.png",
+          "animations/Breathing_Idle-90974389/north-east/frame_002.png",
+          "animations/Breathing_Idle-90974389/north-east/frame_003.png"
+        ],
+        "north-419b0533": [
+          "animations/Breathing_Idle-90974389/north-419b0533/frame_000.png",
+          "animations/Breathing_Idle-90974389/north-419b0533/frame_001.png",
+          "animations/Breathing_Idle-90974389/north-419b0533/frame_002.png",
+          "animations/Breathing_Idle-90974389/north-419b0533/frame_003.png"
+        ],
+        "west": [
+          "animations/Breathing_Idle-90974389/west/frame_000.png",
+          "animations/Breathing_Idle-90974389/west/frame_001.png",
+          "animations/Breathing_Idle-90974389/west/frame_002.png",
+          "animations/Breathing_Idle-90974389/west/frame_003.png"
+        ],
+        "south-east": [
+          "animations/Breathing_Idle-90974389/south-east/frame_000.png",
+          "animations/Breathing_Idle-90974389/south-east/frame_001.png",
+          "animations/Breathing_Idle-90974389/south-east/frame_002.png",
+          "animations/Breathing_Idle-90974389/south-east/frame_003.png"
+        ],
+        "east": [
+          "animations/Breathing_Idle-90974389/east/frame_000.png",
+          "animations/Breathing_Idle-90974389/east/frame_001.png",
+          "animations/Breathing_Idle-90974389/east/frame_002.png",
+          "animations/Breathing_Idle-90974389/east/frame_003.png"
+        ]
+      }
+    }
+  },
+  "export_version": "2.0",
+  "export_date": "2026-04-28T07:36:02.125405"
+}

@@ -1,0 +1,65 @@
+{
+  "character": {
+    "id": "3dcbac9d-ada1-4eb7-b2b3-1b1c39998e73",
+    "name": "female boss in a business suit ",
+    "prompt": "female boss in a business suit ",
+    "size": {
+      "width": 68,
+      "height": 68
+    },
+    "template_id": "mannequin",
+    "directions": 8,
+    "view": "low top-down",
+    "created_at": "2026-04-27T07:48:52.862147+00:00"
+  },
+  "frames": {
+    "rotations": {
+      "south": "rotations/south.png",
+      "south-east": "rotations/south-east.png",
+      "east": "rotations/east.png",
+      "north-east": "rotations/north-east.png",
+      "north": "rotations/north.png",
+      "north-west": "rotations/north-west.png",
+      "west": "rotations/west.png",
+      "south-west": "rotations/south-west.png"
+    },
+    "animations": {
+      "animation-9df08582": {
+        "north-east": [
+          "animations/animation-9df08582/north-east/frame_000.png",
+          "animations/animation-9df08582/north-east/frame_001.png",
+          "animations/animation-9df08582/north-east/frame_002.png",
+          "animations/animation-9df08582/north-east/frame_003.png",
+          "animations/animation-9df08582/north-east/frame_004.png",
+          "animations/animation-9df08582/north-east/frame_005.png"
+        ],
+        "south-east": [
+          "animations/animation-9df08582/south-east/frame_000.png",
+          "animations/animation-9df08582/south-east/frame_001.png",
+          "animations/animation-9df08582/south-east/frame_002.png",
+          "animations/animation-9df08582/south-east/frame_003.png",
+          "animations/animation-9df08582/south-east/frame_004.png",
+          "animations/animation-9df08582/south-east/frame_005.png"
+        ],
+        "south-west": [
+          "animations/animation-9df08582/south-west/frame_000.png",
+          "animations/animation-9df08582/south-west/frame_001.png",
+          "animations/animation-9df08582/south-west/frame_002.png",
+          "animations/animation-9df08582/south-west/frame_003.png",
+          "animations/animation-9df08582/south-west/frame_004.png",
+          "animations/animation-9df08582/south-west/frame_005.png"
+        ],
+        "north-west": [
+          "animations/animation-9df08582/north-west/frame_000.png",
+          "animations/animation-9df08582/north-west/frame_001.png",
+          "animations/animation-9df08582/north-west/frame_002.png",
+          "animations/animation-9df08582/north-west/frame_003.png",
+          "animations/animation-9df08582/north-west/frame_004.png",
+          "animations/animation-9df08582/north-west/frame_005.png"
+        ]
+      }
+    }
+  },
+  "export_version": "2.0",
+  "export_date": "2026-04-28T06:54:36.264898"
+}

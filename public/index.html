@@ -1,56 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>IBEX Staffing Solutions</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
     <link rel="stylesheet" href="style.css">
 
 </head>
+
 <body>
 
-<script type="module" src="main.js"></script>
-<div id="app-wrapper">
-<div id="asset-bounding-box"></div>
-    <div id="asset-context-menu">
-        <div class="asset-context-header">IBEX ASSET N0-<span id="ctx-id">000</span></div>
-        <button class="ctx-btn" id="ctx-btn-rotate" onclick="rotateSelectedAsset()">[R] ROTATE</button>
-        <button class="ctx-btn btn-red" onclick="deleteSelectedAsset()">[X] DELETE</button>
-    </div>
-    <div id="build-flash"></div>
-    <div id="ui-panel">
-        <div class="panel-title">Active Entity Position</div>
-        <div class="panel-data" id="coords-display">X: -- | Y: --</div>
-    </div>
+    <script type="module" src="main.js"></script>
 
-    <div id="control-desk">
-        <img src="static_assets/ibex_logo_pixel_new.png" id="desk-logo-plaque" alt="IBEX Staffing">
+    <div id="character-selection"
+        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; font-family: monospace;">
 
-        <div class="desk-group">
-            <div class="desk-label">MODULES</div>
-            <button class="desk-btn" onclick="toggleMonitor('mon-terminal')">STAFF</button>
-            <button class="desk-btn" onclick="toggleMonitor('mon-web')">WEBSITE</button>
-            <button class="desk-btn" onclick="toggleMonitor('mon-security')">SHELL</button>
+        <h1 style="letter-spacing: 4px; font-size: 3rem; margin-bottom: 40px;">SELECT YOUR OPERATOR</h1>
+
+        <div style="display: flex; gap: 60px; margin-bottom: 50px;">
+            <div class="char-card" id="card-male_char"
+                style="border: 5px solid #00ff00; padding: 40px; cursor: pointer; text-align: center; border-radius: 12px; background: rgba(255,255,255,0.1);">
+                <img id="preview-male" src="humanoid/male_char/animations/anim_walking/south-east/frame_000.png"
+                    height="250" style="image-rendering: pixelated;">
+                <h2 style="margin-top: 20px; font-size: 2rem; margin-bottom: 0;">MALE</h2>
+            </div>
+
+            <div class="char-card" id="card-female_char"
+                style="border: 5px solid gray; padding: 40px; cursor: pointer; text-align: center; border-radius: 12px; background: rgba(255,255,255,0.1);">
+
+                <img id="preview-female" src="humanoid/female_char/animations/anim_walking/south-east/frame_000.png"
+                    height="250" style="image-rendering: pixelated;">
+
+                <h2 style="margin-top: 20px; font-size: 2rem; margin-bottom: 0;">FEMALE</h2>
+            </div>
         </div>
-        
-        <div class="desk-group">
-            <div class="desk-label">SYSTEM</div>
-            <button class="desk-btn btn-red" onclick="generateRandomFactory()">DEPLOY</button>        
+
+        <input type="text" id="player-name-input" placeholder="Enter Operator Name..."
+            style="padding: 20px; font-size: 24px; text-align: center; width: 450px; margin-bottom: 40px; border-radius: 8px; border: none; outline: none; font-family: monospace;">
+
+        <button id="join-game-btn"
+            style="padding: 20px 80px; font-size: 28px; font-weight: bold; cursor: pointer; background: #00ff00; color: black; border: none; border-radius: 8px; letter-spacing: 2px;">ENTER
+            FACTORY</button>
+    </div>
+
+    <div id="app-wrapper">
+        <div id="asset-bounding-box"></div>
+        <div id="asset-context-menu">
+            <div class="asset-context-header">IBEX ASSET N0-<span id="ctx-id">000</span></div>
+            <button class="ctx-btn" id="ctx-btn-rotate" onclick="rotateSelectedAsset()">[R] ROTATE</button>
+            <button class="ctx-btn btn-red" onclick="deleteSelectedAsset()">[X] DELETE</button>
         </div>
+        <div id="build-flash"></div>
+        <div id="ui-panel">
+            <div class="panel-title">Active Entity Position</div>
+            <div class="panel-data" id="coords-display">X: -- | Y: --</div>
+        </div>
+
+        <div id="control-desk">
+            <img src="static_assets/ibex_logo_pixel_new.png" id="desk-logo-plaque" alt="IBEX Staffing">
+
+            <div class="desk-group">
+                <div class="desk-label">MODULES</div>
+                <button class="desk-btn" onclick="toggleMonitor('mon-terminal')">STAFF</button>
+                <button class="desk-btn" onclick="toggleMonitor('mon-web')">WEBSITE</button>
+                <button class="desk-btn" onclick="toggleMonitor('mon-security')">SHELL</button>
+            </div>
+
+            <div class="desk-group">
+                <div class="desk-label">SYSTEM</div>
+                <button class="desk-btn btn-red" onclick="generateRandomFactory()">DEPLOY</button>
+            </div>
+        </div>
+
+        <div id="easter-egg-overlay">
+            <div class="warning-text">ROBOTS HAVE ASSUMED CONTROL.<br><br>SHUTTING THE SYSTEMS DOWN<br>AND REBOOTING...
+            </div>
+        </div>
+        <button id="btn-export" onclick="captureFactoryScreenshot()">BLUEPRINT</button>
     </div>
 
-    <div id="easter-egg-overlay">
-        <div class="warning-text">ROBOTS HAVE ASSUMED CONTROL.<br><br>SHUTTING THE SYSTEMS DOWN<br>AND REBOOTING...</div>
-    </div>
-    <button id="btn-export" onclick="captureFactoryScreenshot()">BLUEPRINT</button>
-</div>
 
-
-<div class="monitor-overlay" id="mon-design">
+    <div class="monitor-overlay" id="mon-design">
         <div class="hardware-bezel">
             <div class="close-x-btn" onclick="closeAllMonitors()">[X]</div>
-            
+
             <div class="monitor-body" style="background: #000; display: flex; flex-direction: column;">
                 <div id="monitor-screen-capture">
                     <div class="scanlines"></div>
@@ -60,23 +96,26 @@
                 </div>
 
                 <div class="export-controls">
-                    <button class="desk-btn" style="background: #159d2e; color: #000; font-size: 1.2em;" onclick="downloadScreenshot()">💾 DOWNLOAD BLUEPRINT</button>
+                    <button class="desk-btn" style="background: #159d2e; color: #000; font-size: 1.2em;"
+                        onclick="downloadScreenshot()">💾 DOWNLOAD BLUEPRINT</button>
                 </div>
             </div>
         </div>
-        
-       <div class="hardware-controls" style="position: relative; height: 4rem;">
-            
+
+        <div class="hardware-controls" style="position: relative; height: 4rem;">
+
             <div class="hw-logo">IBEX // FACTORY BLUEPRINT</div>
-            
-            <img src="static_assets/ibex_logo_pixel.png" alt="IBEX Logo" style="position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%); height: 80px; image-rendering: pixelated; z-index: 10;">
-            
+
+            <img src="static_assets/ibex_logo_pixel.png" alt="IBEX Logo"
+                style="position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%); height: 80px; image-rendering: pixelated; z-index: 10;">
+
             <div style="display: flex; align-items: center; gap: 15px; margin-left: auto;">
                 <div class="led-indicator"></div>
                 <button class="desk-btn btn-red" onclick="closeAllMonitors()">PWR</button>
             </div>
-            
+
         </div>
 
 </body>
+
 </html>>

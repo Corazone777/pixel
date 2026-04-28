@@ -1,24 +1,82 @@
-function spawnMultiplayerWorker(gridX, gridY, isGhost) {
-    const item = BUILD_CATALOG.find(i => i.id === 'human_worker');
+// 🔥 UI ANIMATION ENGINE (Makes the menu characters walk!)
+let menuFrame = 0;
+setInterval(() => {
+    menuFrame = (menuFrame + 1) % 4; // Cycles 0, 1, 2, 3
+    const mImg = document.getElementById('preview-male');
+    const fImg = document.getElementById('preview-female');
+    if (mImg && fImg) {
+        mImg.src = `humanoid/male/animations/walking/south-east/frame_00${menuFrame}.png`;
+        fImg.src = `humanoid/female/animations/walking/south-east/frame_00${menuFrame}.png`;
+    }
+}, 150); // 150ms per frame
 
-    const frames = [
-        `${item.animBase}/south-west/frame_000.png`,
-        `${item.animBase}/south-west/frame_001.png`,
-        `${item.animBase}/south-west/frame_002.png`,
-        `${item.animBase}/south-west/frame_003.png`
-    ];
+// 🔥 UPDATED MULTIPLAYER SPAWNER (WITH HTML NAME TAGS)
+function spawnMultiplayerWorker(gridX, gridY, isGhost, characterId = 'male_char', playerName = 'Unknown') {
+    const item = BUILD_CATALOG.find(i => i.id === characterId);
+    if (!item) return null;
+
+    // THE FIX: Smart Pathing for Startup Frames
+        let frames;
+        if (item.id === 'male_char' || item.id === 'female_char') {
+            // Playable characters start with their idle animation
+            frames = [
+                `${item.animBase}/idle/south-west/frame_000.png`, 
+                `${item.animBase}/idle/south-west/frame_001.png`, 
+                `${item.animBase}/idle/south-west/frame_002.png`, 
+                `${item.animBase}/idle/south-west/frame_003.png`
+            ];
+        } else {
+            // Old robots/workers start with their normal animation!
+            frames = [
+                `${item.animBase}/south-west/frame_000.png`, 
+                `${item.animBase}/south-west/frame_001.png`, 
+                `${item.animBase}/south-west/frame_002.png`, 
+                `${item.animBase}/south-west/frame_003.png`
+            ];
+        }
 
     let worker = window.createDraggable(
         frames, gridX, gridY, item.id, item.scale, item.grabOffset, false, item.hitbox
     );
 
     if (worker) {
-        worker.isRealPlayer = true;
-        worker.isMultiplayer = true; // Keep this for your other checks
-        worker.id = 'multiplayer-human'; // Explicitly set the ID so it's not undefined
+        worker.isMultiplayer = true;
+        worker.playerName = playerName;
+
+        // 🔥 1. Build the sleek HTML Name Tag
+        const nameTag = document.createElement('div');
+        nameTag.innerText = playerName;
+        nameTag.style.position = 'absolute';
+        nameTag.style.background = 'rgba(0, 0, 0, 0.8)';
+        nameTag.style.color = isGhost ? '#aaaaaa' : '#00ff00';
+        nameTag.style.border = isGhost ? '1px solid #555555' : '1px solid #00ff00';
+        nameTag.style.padding = '4px 10px';
+        nameTag.style.borderRadius = '4px';
+        nameTag.style.fontFamily = 'monospace';
+        nameTag.style.fontSize = '14px';
+        nameTag.style.fontWeight = 'bold';
+        nameTag.style.pointerEvents = 'none'; // Lets your mouse click right through it!
+        nameTag.style.transform = 'translate(-50%, -100%)';
+        nameTag.style.zIndex = '1000';
+        nameTag.style.display = 'none'; // Hide it until the camera places it
+
+        document.body.appendChild(nameTag);
+        worker.nameTag = nameTag; // Link it to the sprite
+
+        // 🔥 2. Make the HTML tag self-destruct when the sprite is deleted
+        const originalDestroy = worker.destroy;
+        worker.destroy = function (options) {
+            if (this.nameTag && this.nameTag.parentNode) {
+                this.nameTag.parentNode.removeChild(this.nameTag);
+            }
+            originalDestroy.call(this, options);
+        };
     }
 
-    if (isGhost && worker) {
+    if (!isGhost && worker) {
+        worker.isRealPlayer = true;
+        worker.id = 'multiplayer-human';
+    } else if (isGhost && worker) {
         worker.alpha = 0.5;
         worker.interactive = false;
         worker.removeAllListeners();
@@ -29,49 +87,41 @@ function spawnMultiplayerWorker(gridX, gridY, isGhost) {
     return worker;
 }
 
-// WASD MOVEMENT ENGINE (Network Enabled)
+// 🔥 1. KEYBOARD STATE TRACKER
+window.keys = { w: false, a: false, s: false, d: false };
+
 window.addEventListener('keydown', (e) => {
-    if (!window.myLocalWorker || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    const key = e.key.toLowerCase();
+    if (window.keys.hasOwnProperty(key)) window.keys[key] = true;
+});
 
-    let moved = false;
-
-    let newX = window.myLocalWorker.gridX;
-    let newY = window.myLocalWorker.gridY;
-
-    switch (e.key.toLowerCase()) {
-        case 'w': newY--; moved = true; break;
-        case 's': newY++; moved = true; break;
-        case 'a': newX--; moved = true; break;
-        case 'd': newX++; moved = true; break;
-    }
-
-    if (moved) {
-        window.myLocalWorker.gridX = newX;
-        window.myLocalWorker.gridY = newY;
-
-        const pos = toIso(newX, newY);
-        window.myLocalWorker.x = pos.x;
-        window.myLocalWorker.y = pos.y - (window.myLocalWorker.elevation || 0);
-
-        if (typeof entityLayer !== 'undefined' && entityLayer.children) {
-            entityLayer.children.sort((a, b) => (a.y || 0) - (b.y || 0));
-        }
-
-        // 🔥 MULTIPLAYER BROADCAST
-        // Now that 'ws' is global, we can tell everyone else we moved!
-        if (window.ws && window.ws.readyState === WebSocket.OPEN) {
-            window.ws.send(JSON.stringify({
-                type: 'move',
-                payload: { gridX: newX, gridY: newY }
-            }));
-        }
-    }
+window.addEventListener('keyup', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    const key = e.key.toLowerCase();
+    if (window.keys.hasOwnProperty(key)) window.keys[key] = false;
 });
 
 // ============================================================================
 // ️ MASTER BUILD CATALOG - NOW WITH PHYSICAL HEIGHTS FOR STACKING!
 // ============================================================================
 const BUILD_CATALOG = [
+    {
+        id: 'male_char', name: 'MALE', type: 'human', scale: 3, grabOffset: 30, physicalHeight: 60,
+        hasRotation: true, folder: 'humanoid/male', animatedDirs: ['north-east', 'south-east', 'north-west', 'south-west', 'north', 'east', 'west', 'south'],
+        animBase: 'humanoid/male/animations',
+        thumb: 'humanoid/male/animations/walking/south-east/frame_000.png',
+        hitbox: { x: -0.2, y: -0.9, w: 0.4, h: 0.9 }
+
+    },
+    {
+        id: 'female_char', name: 'FEMALE', type: 'human', scale: 3, grabOffset: 30, physicalHeight: 60,
+        hasRotation: true, folder: 'humanoid/female', animatedDirs: ['north-east', 'south-east', 'north-west', 'south-west', 'north', 'east', 'west', 'south'],
+        animBase: 'humanoid/female/animations',
+        thumb: 'humanoid/female/animations/walking/south-east/frame_000.png',
+        hitbox: { x: -0.2, y: -0.9, w: 0.4, h: 0.9 }
+
+    },
     {
         id: 'robot_base', name: 'WORKER UNIT', type: 'robot', scale: 3, grabOffset: 30, physicalHeight: 60,
         hasRotation: true, folder: 'humanoid/robot', animatedDirs: ['south', 'south-east'],
@@ -513,12 +563,34 @@ let allAssetsToLoad = ['static_assets/hook-remove.png', 'static_assets/ibex-bann
 
 BUILD_CATALOG.forEach(item => {
     if (item.hasRotation) {
-        directions.forEach(dir => allAssetsToLoad.push(`${item.folder}/rotations/${dir}.png`));
-        item.animatedDirs.forEach(animDir => {
-            for (let i = 0; i <= 3; i++) { allAssetsToLoad.push(`${item.animBase}/${animDir}/frame_00${i}.png`); }
-        });
-    } else { allAssetsToLoad.push(item.textureData); }
+        
+        // 1. Load the rotations (Original logic)
+        if (typeof directions !== 'undefined' && item.folder) {
+            directions.forEach(dir => allAssetsToLoad.push(`${item.folder}/rotations/${dir}.png`));
+        }
+
+        // 2. Load animations
+        if (item.animatedDirs) {
+            item.animatedDirs.forEach(animDir => {
+                for (let i = 0; i <= 3; i++) { 
+                    
+                    // 🔥 THE FIX: Only split the paths for the playable characters!
+                    if (item.id === 'male_char' || item.id === 'female_char') {
+                        allAssetsToLoad.push(`${item.animBase}/idle/${animDir}/frame_00${i}.png`);
+                        allAssetsToLoad.push(`${item.animBase}/walking/${animDir}/frame_00${i}.png`);
+                    } else {
+                        // 🔥 Old workers and robots load exactly as they used to!
+                        allAssetsToLoad.push(`${item.animBase}/${animDir}/frame_00${i}.png`); 
+                    }
+                    
+                }
+            });
+        }
+    } else if (item.textureData) { 
+        allAssetsToLoad.push(item.textureData); 
+    }
 });
+
 allAssetsToLoad = [...new Set(allAssetsToLoad)];
 
 // ==========================================
@@ -753,13 +825,23 @@ PIXI.Assets.load(allAssetsToLoad).then((textures) => {
         const catalogData = BUILD_CATALOG.find(i => i.id === catalogId);
         const pHeight = catalogData ? (catalogData.physicalHeight || 0) : 0;
 
-        if (Array.isArray(textureData)) {
-            tex = textures[textureData[0]];
-            entity = new PIXI.AnimatedSprite(textureData.map(p => textures[p]));
+       if (Array.isArray(textureData)) {
+            // 🔥 THE FIX: Safely pull textures and filter out any that are undefined!
+            const safeTextures = textureData
+                .map(p => PIXI.utils.TextureCache[p] || (typeof textures !== 'undefined' ? textures[p] : undefined))
+                .filter(t => t !== undefined);
+
+            if (safeTextures.length === 0) {
+                console.error("CRITICAL: Textures completely missing for:", textureData[0]);
+                safeTextures.push(PIXI.Texture.EMPTY); // Failsafe so the engine never crashes!
+            }
+
+            tex = safeTextures[0];
+            entity = new PIXI.AnimatedSprite(safeTextures);
             entity.animationSpeed = 0.1;
             if (typeof isAnimating !== 'undefined' && isAnimating) entity.play();
         } else {
-            tex = textures[textureData];
+            tex = textures[textureData] || PIXI.utils.TextureCache[textureData] || PIXI.Texture.EMPTY;
             entity = new PIXI.Sprite(tex);
         }
 
@@ -909,12 +991,8 @@ PIXI.Assets.load(allAssetsToLoad).then((textures) => {
 
     // --- INITIAL SCENE SETUP ---
     const bannerItem = BUILD_CATALOG.find(i => i.id === 'banner');
-    const humanWorkerItem = BUILD_CATALOG.find(i => i.id === 'human_worker');
-
-    const getAnimFrames = (item, dir) => [`${item.animBase}/${dir}/frame_000.png`, `${item.animBase}/${dir}/frame_001.png`, `${item.animBase}/${dir}/frame_002.png`, `${item.animBase}/${dir}/frame_003.png`];
 
     window.createDraggable(bannerItem.textureData, 4.5, 6.5, bannerItem.id, bannerItem.scale, bannerItem.grabOffset, true, bannerItem.hitbox);
-    window.createDraggable(getAnimFrames(humanWorkerItem, 'south-west'), -2, 2, humanWorkerItem.id, humanWorkerItem.scale, humanWorkerItem.grabOffset, false, humanWorkerItem.hitbox);
 
     // --- 10. GLOBAL TICKER FOR TRUE Z-SORTING & CLAW PHYSICS ---
     app.ticker.add(() => {
@@ -1110,64 +1188,271 @@ window.myLocalWorker = null;
 window.networkPlayers = {};
 window.ws = null; // <-- ADD THIS
 
-// DELAY NETWORK UNTIL ENGINE IS 100% BUILT
+// 🔥 DELAY NETWORK UNTIL ENGINE IS BUILT AND PLAYER IS SELECTED
 window.addEventListener('load', () => {
 
-    // Use window.ws instead of const ws
-    window.ws = new WebSocket(`ws://${window.location.host}/ws`);
+    let chosenCharId = 'male_char'; // Default choice
+
+    // 1. UI Selection Logic
+    const maleCard = document.getElementById('card-male_char');
+    const femaleCard = document.getElementById('card-female_char');
+
+    if (maleCard && femaleCard) {
+        maleCard.addEventListener('click', () => {
+            chosenCharId = 'male_char';
+            maleCard.style.borderColor = '#00ff00';
+            femaleCard.style.borderColor = 'gray';
+        });
+
+        femaleCard.addEventListener('click', () => {
+            chosenCharId = 'female_char';
+            femaleCard.style.borderColor = '#00ff00';
+            maleCard.style.borderColor = 'gray';
+        });
+    }
+
+    // 2. Start Game Button
+    const joinBtn = document.getElementById('join-game-btn');
+    if (joinBtn) {
+        joinBtn.addEventListener('click', () => {
+            const nameInput = document.getElementById('player-name-input').value.trim();
+            const finalName = nameInput !== '' ? nameInput : 'Operator';
+
+            // Hide the screen
+            document.getElementById('character-selection').style.display = 'none';
+
+            // 🔥 NOW WE CONNECT TO THE SERVER
+            connectToServer(chosenCharId, finalName);
+        });
+    }
+
+    // 3. The Deferred Network Engine
+    function connectToServer(charId, playerName) {
+        window.ws = new WebSocket(`ws://${window.location.host}/ws`);
 
     window.ws.onopen = () => {
-        console.log("Connected to IBEX Go Backend");
-        window.myLocalWorker = spawnMultiplayerWorker(0, 0, false);
+        // 🔥 1. Tell the server our name and character choice!
+        window.ws.send(JSON.stringify({
+            type: 'join',
+            payload: { name: playerName, avatar: charId }
+        }));
+
+        window.myLocalWorker = spawnMultiplayerWorker(0, 0, false, charId, playerName);
     };
 
-    window.ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
+        window.ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+
+            // Note: Right now, we spawn ghosts as 'male_char' by default. 
+            // In the next step, we'll need the server to tell us what character THEY picked!
 
         if (msg.type === 'currentPlayers') {
             for (let id in msg.payload) {
+                const p = msg.payload[id];
                 if (!window.networkPlayers[id] && id !== window.ws.url) {
-                    window.networkPlayers[id] = spawnMultiplayerWorker(msg.payload[id].gridX, msg.payload[id].gridY, true);
+                    // 🔥 2. Spawn ghosts with THEIR chosen avatar and name
+                    window.networkPlayers[id] = spawnMultiplayerWorker(p.gridX, p.gridY, true, p.avatar, p.name);
                 }
             }
         }
         else if (msg.type === 'playerJoined') {
-            window.networkPlayers[msg.payload.id] = spawnMultiplayerWorker(msg.payload.gridX, msg.payload.gridY, true);
+            const p = msg.payload;
+            if (!window.networkPlayers[p.id]) {
+                window.networkPlayers[p.id] = spawnMultiplayerWorker(p.gridX, p.gridY, true, p.avatar, p.name);
+            }
         }
         else if (msg.type === 'playerMoved') {
             const p = msg.payload;
             let ghost = window.networkPlayers[p.id];
             if (ghost) {
-                const newPos = typeof toIso === 'function' ? toIso(p.gridX, p.gridY) : { x: 0, y: 0 };
+                const newPos = toIso(p.gridX, p.gridY);
                 ghost.gridX = p.gridX;
                 ghost.gridY = p.gridY;
                 ghost.x = newPos.x;
                 ghost.y = newPos.y - (ghost.elevation || 0);
-            }
-        }
-        else if (msg.type === 'playerLeft') {
-            if (window.networkPlayers[msg.payload]) {
-                window.networkPlayers[msg.payload].destroy({ children: true });
-                delete window.networkPlayers[msg.payload];
-            }
-        }
-    };
 
-    // 🔥 THE SMOOTH CAMERA ENGINE
+                // 🔥 3. Trigger the ghost's animation and rotation!
+                updateWorkerAnimation(ghost, p.dir || 'south-east', 'walking');
+
+                // Reset the idle timer for the ghost
+                if (ghost.idleTimer) clearTimeout(ghost.idleTimer);
+                ghost.idleTimer = setTimeout(() => {
+                    if (!ghost.destroyed) updateWorkerAnimation(ghost, p.dir || 'south-east', 'idle');
+                }, 300); // If no move for 300ms, they go idle
+            }
+        }
+            else if (msg.type === 'playerLeft') {
+                if (window.networkPlayers[msg.payload]) {
+                    window.networkPlayers[msg.payload].destroy({ children: true });
+                    delete window.networkPlayers[msg.payload];
+                }
+            }
+        };
+    }
+
+    // 🔥 THE DEFINITIVE ANIMATION SWAPPER (With Smart Direction Mapping)
+    function updateWorkerAnimation(worker, direction, state) {
+        if (!worker || worker.destroyed) return;
+        
+        const item = BUILD_CATALOG.find(i => i.id === (worker.type || worker.id));
+        if (!item || !item.animBase) return;
+
+        // 🔥 THE FIX: Smart Direction Mapping
+        // Check if the requested direction actually exists for this character
+        let safeDirection = direction;
+        const availableDirs = item.animatedDirs || [];
+        
+        if (availableDirs.length > 0 && !availableDirs.includes(safeDirection)) {
+            // Map straight directions to the closest available diagonal
+            if (safeDirection === 'north') safeDirection = 'north-west';
+            else if (safeDirection === 'south') safeDirection = 'south-west';
+            else if (safeDirection === 'east') safeDirection = 'south-east';
+            else if (safeDirection === 'west') safeDirection = 'south-west';
+            
+            // Failsafe: if it somehow STILL doesn't exist, just use their default first direction
+            if (!availableDirs.includes(safeDirection)) {
+                safeDirection = availableDirs[0]; 
+            }
+        }
+
+        // Prevent reloading if we are already playing this exact state and direction
+        if (worker.currentDir === safeDirection && worker.currentState === state) return;
+
+        worker.currentDir = safeDirection;
+        worker.currentState = state;
+
+        let frames = [
+            `${item.animBase}/${state}/${safeDirection}/frame_000.png`,
+            `${item.animBase}/${state}/${safeDirection}/frame_001.png`,
+            `${item.animBase}/${state}/${safeDirection}/frame_002.png`,
+            `${item.animBase}/${state}/${safeDirection}/frame_003.png`
+        ];
+
+        let newTextures = frames.map(p => 
+            PIXI.utils.TextureCache[p] || (typeof textures !== 'undefined' ? textures[p] : undefined)
+        ).filter(t => t !== undefined);
+
+        let usedFallback = false;
+
+        if (newTextures.length === 0) {
+            let fallbackFrames = [
+                `${item.animBase}/${safeDirection}/frame_000.png`,
+                `${item.animBase}/${safeDirection}/frame_001.png`,
+                `${item.animBase}/${safeDirection}/frame_002.png`,
+                `${item.animBase}/${safeDirection}/frame_003.png`
+            ];
+            newTextures = fallbackFrames.map(p => 
+                PIXI.utils.TextureCache[p] || (typeof textures !== 'undefined' ? textures[p] : undefined)
+            ).filter(t => t !== undefined);
+            usedFallback = true;
+        }
+
+        if (newTextures.length > 0) {
+            worker.textures = newTextures;
+            worker.animationSpeed = 0.1;
+            
+            if (state === 'idle' && usedFallback) {
+                worker.gotoAndStop(0); 
+            } else {
+                worker.play(); 
+            }
+        }
+    }
+   
+    // 🔥 3. THE MASTER GAME LOOP (Movement, Camera, Animation, Network)
+    let lastNetworkBroadcast = 0;
+    const NETWORK_TICK_RATE = 100; // Broadcast coordinates every 100ms
+    const MOVEMENT_SPEED = 0.08; // Tweak this decimal to make them walk faster or slower!
+
     app.ticker.add(() => {
-        // 1. Only follow if the local worker actually exists
-        if (!window.myLocalWorker || window.myLocalWorker.destroyed) return;
 
-        // 2. Define how smooth the camera is (0.1 = smooth, 1.0 = instant/snappy)
-        const lerp = 0.1;
+        // ==========================================
+        // A. SMOOTH 8-WAY LOCAL MOVEMENT
+        // ==========================================
+        if (window.myLocalWorker && !window.myLocalWorker.destroyed && !window.myLocalWorker.isDemolishing) {
+            let dx = 0;
+            let dy = 0;
 
-        // 3. Calculate where the world SHOULD be to put the worker in the center
-        // We target the middle of the screen: (app.screen.width / 2)
-        const targetX = (app.screen.width / 2) - window.myLocalWorker.x;
-        const targetY = (app.screen.height / 2) - window.myLocalWorker.y;
+            if (window.keys.w) dy -= MOVEMENT_SPEED;
+            if (window.keys.s) dy += MOVEMENT_SPEED;
+            if (window.keys.a) dx -= MOVEMENT_SPEED;
+            if (window.keys.d) dx += MOVEMENT_SPEED;
 
-        // 4. Slide the stage toward that target position bit by bit
-        app.stage.x += (targetX - app.stage.x) * lerp;
-        app.stage.y += (targetY - app.stage.y) * lerp;
+            // Diagonal Normalization
+            if (dx !== 0 && dy !== 0) {
+                dx *= 0.707;
+                dy *= 0.707;
+            }
+
+            const isMoving = dx !== 0 || dy !== 0;
+            let newDir = window.myLocalWorker.currentDir || 'south-east';
+
+            if (isMoving) {
+                window.myLocalWorker.gridX += dx;
+                window.myLocalWorker.gridY += dy;
+
+                const pos = toIso(window.myLocalWorker.gridX, window.myLocalWorker.gridY);
+                window.myLocalWorker.x = pos.x;
+                window.myLocalWorker.y = pos.y - (window.myLocalWorker.elevation || 0);
+
+                // 🔥 THE 8-WAY ISOMETRIC COMPASS
+                if (dx < 0 && dy < 0) newDir = 'north';               // W + A (Up)
+                else if (dx > 0 && dy > 0) newDir = 'south';          // S + D (Down)
+                else if (dx > 0 && dy < 0) newDir = 'east';           // W + D (Right)
+                else if (dx < 0 && dy > 0) newDir = 'west';           // S + A (Left)
+                else if (dy < 0) newDir = 'north-east';               // W Only
+                else if (dy > 0) newDir = 'south-west';               // S Only
+                else if (dx < 0) newDir = 'north-west';               // A Only
+                else if (dx > 0) newDir = 'south-east';               // D Only
+
+                // Play walking animation
+                updateWorkerAnimation(window.myLocalWorker, newDir, 'walking');
+
+                // Throttle Network Broadcasts
+                const now = Date.now();
+                if (window.ws && window.ws.readyState === WebSocket.OPEN && now - lastNetworkBroadcast > NETWORK_TICK_RATE) {
+                    window.ws.send(JSON.stringify({
+                        type: 'move',
+                        payload: { gridX: window.myLocalWorker.gridX, gridY: window.myLocalWorker.gridY, dir: newDir }
+                    }));
+                    lastNetworkBroadcast = now;
+                }
+
+            } else {
+                // Play idle animation facing the last direction they moved
+                updateWorkerAnimation(window.myLocalWorker, newDir, 'idle');
+            }
+
+
+            // ==========================================
+            // B. CAMERA FOLLOW
+            // ==========================================
+            const lerp = 0.1;
+            const targetX = (app.screen.width / 2) - window.myLocalWorker.x;
+            const targetY = (app.screen.height / 2) - window.myLocalWorker.y;
+
+            app.stage.x += (targetX - app.stage.x) * lerp;
+            app.stage.y += (targetY - app.stage.y) * lerp;
+        }
+
+        // ==========================================
+        // C. CONTINUOUS DEPTH SORTING (Prevents walking through walls)
+        // ==========================================
+        if (typeof entityLayer !== 'undefined' && entityLayer.children) {
+            entityLayer.children.sort((a, b) => (a.y || 0) - (b.y || 0));
+        }
+
+        // ==========================================
+        // D. HTML NAME TAG TRACKER
+        // ==========================================
+        const canvasBounds = app.view.getBoundingClientRect();
+        entityLayer.children.forEach(c => {
+            if (c.nameTag && !c.destroyed) {
+                const screenPos = c.getGlobalPosition();
+                c.nameTag.style.display = 'block';
+                c.nameTag.style.left = (screenPos.x + canvasBounds.left) + 'px';
+                c.nameTag.style.top = (screenPos.y + canvasBounds.top - 180) + 'px';
+            }
+        });
     });
 });
