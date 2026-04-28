@@ -16,24 +16,24 @@ function spawnMultiplayerWorker(gridX, gridY, isGhost, characterId = 'male_char'
     if (!item) return null;
 
     // THE FIX: Smart Pathing for Startup Frames
-        let frames;
-        if (item.id === 'male_char' || item.id === 'female_char') {
-            // Playable characters start with their idle animation
-            frames = [
-                `${item.animBase}/idle/south-west/frame_000.png`, 
-                `${item.animBase}/idle/south-west/frame_001.png`, 
-                `${item.animBase}/idle/south-west/frame_002.png`, 
-                `${item.animBase}/idle/south-west/frame_003.png`
-            ];
-        } else {
-            // Old robots/workers start with their normal animation!
-            frames = [
-                `${item.animBase}/south-west/frame_000.png`, 
-                `${item.animBase}/south-west/frame_001.png`, 
-                `${item.animBase}/south-west/frame_002.png`, 
-                `${item.animBase}/south-west/frame_003.png`
-            ];
-        }
+    let frames;
+    if (item.id === 'male_char' || item.id === 'female_char') {
+        // Playable characters start with their idle animation
+        frames = [
+            `${item.animBase}/idle/south-west/frame_000.png`,
+            `${item.animBase}/idle/south-west/frame_001.png`,
+            `${item.animBase}/idle/south-west/frame_002.png`,
+            `${item.animBase}/idle/south-west/frame_003.png`
+        ];
+    } else {
+        // Old robots/workers start with their normal animation!
+        frames = [
+            `${item.animBase}/south-west/frame_000.png`,
+            `${item.animBase}/south-west/frame_001.png`,
+            `${item.animBase}/south-west/frame_002.png`,
+            `${item.animBase}/south-west/frame_003.png`
+        ];
+    }
 
     let worker = window.createDraggable(
         frames, gridX, gridY, item.id, item.scale, item.grabOffset, false, item.hitbox
@@ -91,11 +91,11 @@ function spawnMultiplayerWorker(gridX, gridY, isGhost, characterId = 'male_char'
 function generateRandomFactoryName() {
     const adjectives = ['Rusty', 'Sparky', 'Oily', 'Copper', 'Iron', 'Steel', 'Greasy', 'Volt', 'Scrap', 'Heavy'];
     const nouns = ['Wrench', 'Cog', 'Bolt', 'Piston', 'Gear', 'Engine', 'Wire', 'Rivet', 'Motor', 'Valve'];
-    
+
     const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
     const noun = nouns[Math.floor(Math.random() * nouns.length)];
     const num = Math.floor(Math.random() * 1000); // Adds a number from 0 to 999
-    
+
     return `${adj}${noun}${num}`;
 }
 
@@ -424,7 +424,13 @@ window.deployItem = function () {
     document.getElementById('fabrication-status').innerText = `STATUS: DEPLOYED SECURELY.`;
     document.getElementById('deploy-btn').classList.add('disabled');
     window.createDraggable(textureToSpawn, 0, 0, item.id, item.scale, item.grabOffset, false, item.hitbox);
-    setTimeout(() => { window.closeAllMonitors(); }, 800);
+
+    const randomX = Math.floor(Math.random() * 15) + 1;
+    const randomY = Math.floor(Math.random() * 15) + 1;
+
+    window.createDraggable(textureToSpawn, randomX, randomY, item.id, item.scale, item.grabOffset, false, item.hitbox);
+
+    setTimeout(() => { window.closeAllMonitors(); }, 400);
 }
 
 window.updateContextMenu = function (entity) {
@@ -575,7 +581,7 @@ let allAssetsToLoad = ['static_assets/hook-remove.png', 'static_assets/ibex-bann
 
 BUILD_CATALOG.forEach(item => {
     if (item.hasRotation) {
-        
+
         // 1. Load the rotations (Original logic)
         if (typeof directions !== 'undefined' && item.folder) {
             directions.forEach(dir => allAssetsToLoad.push(`${item.folder}/rotations/${dir}.png`));
@@ -584,234 +590,26 @@ BUILD_CATALOG.forEach(item => {
         // 2. Load animations
         if (item.animatedDirs) {
             item.animatedDirs.forEach(animDir => {
-                for (let i = 0; i <= 3; i++) { 
-                    
+                for (let i = 0; i <= 3; i++) {
+
                     // 🔥 THE FIX: Only split the paths for the playable characters!
                     if (item.id === 'male_char' || item.id === 'female_char') {
                         allAssetsToLoad.push(`${item.animBase}/idle/${animDir}/frame_00${i}.png`);
                         allAssetsToLoad.push(`${item.animBase}/walking/${animDir}/frame_00${i}.png`);
                     } else {
                         // 🔥 Old workers and robots load exactly as they used to!
-                        allAssetsToLoad.push(`${item.animBase}/${animDir}/frame_00${i}.png`); 
+                        allAssetsToLoad.push(`${item.animBase}/${animDir}/frame_00${i}.png`);
                     }
-                    
+
                 }
             });
         }
-    } else if (item.textureData) { 
-        allAssetsToLoad.push(item.textureData); 
+    } else if (item.textureData) {
+        allAssetsToLoad.push(item.textureData);
     }
 });
 
 allAssetsToLoad = [...new Set(allAssetsToLoad)];
-
-// ==========================================
-// 🔥 THE "GOLDILOCKS" SLOT GENERATOR
-// ==========================================
-function clearFactory() {
-    // Drop selections and hide UI
-    window.selectedEntity = null;
-    const ctxMenu = document.getElementById('asset-context-menu');
-    const bbox = document.getElementById('asset-bounding-box');
-    if (ctxMenu) ctxMenu.style.display = 'none';
-    if (bbox) bbox.style.display = 'none';
-
-    if (typeof claw !== 'undefined') {
-        claw.mode = 'idle';
-        claw.target = null;
-        if (typeof chain !== 'undefined' && chain.clear) chain.clear();
-    }
-
-    const itemsToDelete = [];
-
-    // 🔥 THE NUCLEAR FILTER
-    entityLayer.children.forEach(c => {
-        const isClaw = (typeof claw !== 'undefined' && c === claw) || c.id === 'claw';
-        const isChain = (typeof chain !== 'undefined' && c === chain) || c.id === 'chain';
-
-        // 1. Is this literally ME? (The local player)
-        const isMe = (window.myLocalWorker && c === window.myLocalWorker);
-
-        // 2. Is this the banner?
-        const isBanner = (c.id === 'banner' || c.type === 'banner');
-
-        // IF IT IS NOT ME, NOT THE BANNER, AND NOT THE CRANE... DELETE IT.
-        if (!isMe && !isBanner && !isClaw && !isChain) {
-            itemsToDelete.push(c);
-        }
-    });
-
-    // Execute deletion
-    itemsToDelete.forEach(c => {
-        if (c && !c.destroyed) {
-            try {
-                c.interactive = false;
-                c.removeAllListeners();
-                c.destroy({ children: true });
-            } catch (e) {
-                c.visible = false;
-            }
-        }
-    });
-
-    // 🔥 IMPORTANT: Wipe the ghost tracking list
-    // This removes the "memory" of other players so they don't become ghosts.
-    // They will pop back in the moment they move again.
-    window.networkPlayers = {};
-}
-
-// ==========================================
-// VISUAL EFFECTS ENGINE
-// ==========================================
-function triggerBuildEffect() {
-    // 1. Trigger the CSS Flash
-    const flash = document.getElementById('build-flash');
-    if (flash) {
-        flash.classList.add('flash-active');
-
-        void flash.offsetWidth;
-
-        flash.classList.remove('flash-active');
-    }
-
-    let shakeFrames = 20;
-    let shakeIntensity = 12;
-
-    const shakeTicker = () => {
-        if (shakeFrames > 0) {
-            app.stage.x = (Math.random() - 0.5) * shakeIntensity;
-            app.stage.y = (Math.random() - 0.5) * shakeIntensity;
-
-            shakeFrames--;
-            shakeIntensity *= 0.85; // Smoothly decay the shake
-        } else {
-            // Reset to perfect zero and remove the effect
-            app.stage.x = 0;
-            app.stage.y = 0;
-            app.ticker.remove(shakeTicker);
-        }
-    };
-
-    app.ticker.add(shakeTicker);
-}
-
-window.generateRandomFactory = function () {
-    clearFactory();
-
-    triggerBuildEffect();
-
-    if (entityLayer) entityLayer.sortableChildren = true;
-
-    const spawn = (id, gx, gy, lock = false) => {
-        const data = BUILD_CATALOG.find(i => i.id === id);
-        if (!data) return null;
-
-        try {
-            let texInput;
-            if (data.type === 'human' || data.type === 'robot') {
-                const targetDir = data.animatedDirs[0];
-                const searchPath = `${data.animBase}/${targetDir}/`;
-
-                let frames = [];
-                for (let key in PIXI.utils.TextureCache) {
-                    if (key.includes(searchPath)) frames.push(key);
-                }
-                frames.sort();
-                texInput = frames.length > 0 ? frames : [data.thumb];
-            } else {
-                texInput = data.textureData ? data.textureData : data.thumb;
-            }
-
-            const ent = createDraggable(texInput, gx, gy, data.id, data.scale, data.grabOffset, false, data.hitbox);
-
-            if (ent) {
-                if (lock) {
-                    ent.interactive = false;
-                    ent.cursor = 'default';
-                    ent.removeAllListeners();
-
-                    if (data.id === 'banner') {
-                        backgroundLayer.addChild(ent);
-                    }
-                }
-
-                ent.zIndex = gx + gy;
-                ent.gridX = gx;
-                ent.gridY = gy;
-            }
-            return ent;
-        } catch (e) {
-            console.error(`Spawn failed for ${id}`, e); return null;
-        }
-    };
-
-    // --- RULE 1: THE PERMANENT BANNER ---
-    let bannerExists = entityLayer.children.some(c => c.type === 'banner');
-    if (!bannerExists) {
-        let b = spawn('banner', -2, -8, true);
-        if (b) b.zIndex = -100;
-    }
-
-    // ==========================================
-    // 🔥 THE MEGA PARKING LOT (36 Slots)
-    // ==========================================
-    const slots = [];
-
-    // Expanded the grid in every direction so we have plenty of room 
-    // even after the belt destroys a massive chunk of the parking lot!
-    for (let x = -8; x <= 12; x += 4) {
-        for (let y = -8; y <= 12; y += 4) {
-            slots.push({ x: x, y: y });
-        }
-    }
-
-    // Shuffle the parking spaces
-    slots.sort(() => Math.random() - 0.5);
-
-    // ==========================================
-    // 🔥 THE INVENTORY 
-    // ==========================================
-    const inventoryToSpawn = [
-        // MUST BE FIRST: The belt spawns first so it can claim its massive territory
-        'conveyor_belt',
-        'robotic-arm',
-        'server-rack', 'server-rack',
-        'computer', 'computer',
-        'computer-on-wheels', 'computer-on-wheels',
-        'human_worker', 'human_worker',
-        'robot_base', 'robot_base',
-        'robot_v1', 'robot_v1'
-    ];
-
-    // ==========================================
-    // 🔥 EXECUTE SPAWNS (With Quarantine Zone)
-    // ==========================================
-    inventoryToSpawn.forEach(assetId => {
-        if (slots.length > 0) {
-            const plot = slots.pop();
-            spawn(assetId, plot.x, plot.y);
-
-            if (assetId === 'conveyor_belt') {
-                // Loop backward through the remaining available slots
-                for (let i = slots.length - 1; i >= 0; i--) {
-                    let dx = Math.abs(slots[i].x - plot.x);
-                    let dy = Math.abs(slots[i].y - plot.y);
-
-                    if (dx <= 3 && dy <= 3) {
-                        slots.splice(i, 1);
-                    }
-                }
-            }
-        }
-    });
-
-    // Failsafe visual depth sort
-    setTimeout(() => {
-        if (entityLayer && entityLayer.children) {
-            entityLayer.children.sort((a, b) => (a.y || 0) - (b.y || 0));
-        }
-    }, 150);
-};
 
 
 PIXI.Assets.load(allAssetsToLoad).then((textures) => {
@@ -837,7 +635,7 @@ PIXI.Assets.load(allAssetsToLoad).then((textures) => {
         const catalogData = BUILD_CATALOG.find(i => i.id === catalogId);
         const pHeight = catalogData ? (catalogData.physicalHeight || 0) : 0;
 
-       if (Array.isArray(textureData)) {
+        if (Array.isArray(textureData)) {
             // 🔥 THE FIX: Safely pull textures and filter out any that are undefined!
             const safeTextures = textureData
                 .map(p => PIXI.utils.TextureCache[p] || (typeof textures !== 'undefined' ? textures[p] : undefined))
@@ -897,7 +695,7 @@ PIXI.Assets.load(allAssetsToLoad).then((textures) => {
             }
 
             if (entity.isPlayableCharacter) {
-               return; 
+                return;
             }
 
             if (demolishMode) {
@@ -976,7 +774,6 @@ PIXI.Assets.load(allAssetsToLoad).then((textures) => {
                     }
                 });
 
-                // ... (Keep the rest of your Logic Projection and Visual Updates exactly the same) ... 
 
                 // Link the object to its new parent
                 entity.supportedBy = bestSupport;
@@ -1246,57 +1043,54 @@ window.addEventListener('load', () => {
     function connectToServer(charId, playerName) {
         window.ws = new WebSocket(`ws://${window.location.host}/ws`);
 
-    window.ws.onopen = () => {
-        // 🔥 1. Tell the server our name and character choice!
-        window.ws.send(JSON.stringify({
-            type: 'join',
-            payload: { name: playerName, avatar: charId }
-        }));
+        window.ws.onopen = () => {
+            // 🔥 1. Tell the server our name and character choice!
+            window.ws.send(JSON.stringify({
+                type: 'join',
+                payload: { name: playerName, avatar: charId }
+            }));
 
-        window.myLocalWorker = spawnMultiplayerWorker(0, 0, false, charId, playerName);
-    };
+            window.myLocalWorker = spawnMultiplayerWorker(0, 0, false, charId, playerName);
+        };
 
         window.ws.onmessage = (event) => {
             const msg = JSON.parse(event.data);
 
-            // Note: Right now, we spawn ghosts as 'male_char' by default. 
-            // In the next step, we'll need the server to tell us what character THEY picked!
-
-        if (msg.type === 'currentPlayers') {
-            for (let id in msg.payload) {
-                const p = msg.payload[id];
-                if (!window.networkPlayers[id] && id !== window.ws.url) {
-                    // 🔥 2. Spawn ghosts with THEIR chosen avatar and name
-                    window.networkPlayers[id] = spawnMultiplayerWorker(p.gridX, p.gridY, true, p.avatar, p.name);
+            if (msg.type === 'currentPlayers') {
+                for (let id in msg.payload) {
+                    const p = msg.payload[id];
+                    if (!window.networkPlayers[id] && id !== window.ws.url) {
+                        // 🔥 2. Spawn ghosts with THEIR chosen avatar and name
+                        window.networkPlayers[id] = spawnMultiplayerWorker(p.gridX, p.gridY, true, p.avatar, p.name);
+                    }
                 }
             }
-        }
-        else if (msg.type === 'playerJoined') {
-            const p = msg.payload;
-            if (!window.networkPlayers[p.id]) {
-                window.networkPlayers[p.id] = spawnMultiplayerWorker(p.gridX, p.gridY, true, p.avatar, p.name);
+            else if (msg.type === 'playerJoined') {
+                const p = msg.payload;
+                if (!window.networkPlayers[p.id]) {
+                    window.networkPlayers[p.id] = spawnMultiplayerWorker(p.gridX, p.gridY, true, p.avatar, p.name);
+                }
             }
-        }
-        else if (msg.type === 'playerMoved') {
-            const p = msg.payload;
-            let ghost = window.networkPlayers[p.id];
-            if (ghost) {
-                const newPos = toIso(p.gridX, p.gridY);
-                ghost.gridX = p.gridX;
-                ghost.gridY = p.gridY;
-                ghost.x = newPos.x;
-                ghost.y = newPos.y - (ghost.elevation || 0);
+            else if (msg.type === 'playerMoved') {
+                const p = msg.payload;
+                let ghost = window.networkPlayers[p.id];
+                if (ghost) {
+                    const newPos = toIso(p.gridX, p.gridY);
+                    ghost.gridX = p.gridX;
+                    ghost.gridY = p.gridY;
+                    ghost.x = newPos.x;
+                    ghost.y = newPos.y - (ghost.elevation || 0);
 
-                // 🔥 3. Trigger the ghost's animation and rotation!
-                updateWorkerAnimation(ghost, p.dir || 'south-east', 'walking');
+                    // 🔥 3. Trigger the ghost's animation and rotation!
+                    updateWorkerAnimation(ghost, p.dir || 'south-east', 'walking');
 
-                // Reset the idle timer for the ghost
-                if (ghost.idleTimer) clearTimeout(ghost.idleTimer);
-                ghost.idleTimer = setTimeout(() => {
-                    if (!ghost.destroyed) updateWorkerAnimation(ghost, p.dir || 'south-east', 'idle');
-                }, 300); // If no move for 300ms, they go idle
+                    // Reset the idle timer for the ghost
+                    if (ghost.idleTimer) clearTimeout(ghost.idleTimer);
+                    ghost.idleTimer = setTimeout(() => {
+                        if (!ghost.destroyed) updateWorkerAnimation(ghost, p.dir || 'south-east', 'idle');
+                    }, 300); // If no move for 300ms, they go idle
+                }
             }
-        }
             else if (msg.type === 'playerLeft') {
                 if (window.networkPlayers[msg.payload]) {
                     window.networkPlayers[msg.payload].destroy({ children: true });
@@ -1309,7 +1103,7 @@ window.addEventListener('load', () => {
     // 🔥 THE DEFINITIVE ANIMATION SWAPPER (With Smart Direction Mapping)
     function updateWorkerAnimation(worker, direction, state) {
         if (!worker || worker.destroyed) return;
-        
+
         const item = BUILD_CATALOG.find(i => i.id === (worker.type || worker.id));
         if (!item || !item.animBase) return;
 
@@ -1317,17 +1111,17 @@ window.addEventListener('load', () => {
         // Check if the requested direction actually exists for this character
         let safeDirection = direction;
         const availableDirs = item.animatedDirs || [];
-        
+
         if (availableDirs.length > 0 && !availableDirs.includes(safeDirection)) {
             // Map straight directions to the closest available diagonal
             if (safeDirection === 'north') safeDirection = 'north-west';
             else if (safeDirection === 'south') safeDirection = 'south-west';
             else if (safeDirection === 'east') safeDirection = 'south-east';
             else if (safeDirection === 'west') safeDirection = 'south-west';
-            
+
             // Failsafe: if it somehow STILL doesn't exist, just use their default first direction
             if (!availableDirs.includes(safeDirection)) {
-                safeDirection = availableDirs[0]; 
+                safeDirection = availableDirs[0];
             }
         }
 
@@ -1344,7 +1138,7 @@ window.addEventListener('load', () => {
             `${item.animBase}/${state}/${safeDirection}/frame_003.png`
         ];
 
-        let newTextures = frames.map(p => 
+        let newTextures = frames.map(p =>
             PIXI.utils.TextureCache[p] || (typeof textures !== 'undefined' ? textures[p] : undefined)
         ).filter(t => t !== undefined);
 
@@ -1357,7 +1151,7 @@ window.addEventListener('load', () => {
                 `${item.animBase}/${safeDirection}/frame_002.png`,
                 `${item.animBase}/${safeDirection}/frame_003.png`
             ];
-            newTextures = fallbackFrames.map(p => 
+            newTextures = fallbackFrames.map(p =>
                 PIXI.utils.TextureCache[p] || (typeof textures !== 'undefined' ? textures[p] : undefined)
             ).filter(t => t !== undefined);
             usedFallback = true;
@@ -1366,15 +1160,15 @@ window.addEventListener('load', () => {
         if (newTextures.length > 0) {
             worker.textures = newTextures;
             worker.animationSpeed = 0.1;
-            
+
             if (state === 'idle' && usedFallback) {
-                worker.gotoAndStop(0); 
+                worker.gotoAndStop(0);
             } else {
-                worker.play(); 
+                worker.play();
             }
         }
     }
-   
+
     // 🔥 3. THE MASTER GAME LOOP (Movement, Camera, Animation, Network)
     let lastNetworkBroadcast = 0;
     const NETWORK_TICK_RATE = 100; // Broadcast coordinates every 100ms
@@ -1382,7 +1176,7 @@ window.addEventListener('load', () => {
 
     app.ticker.add(() => {
 
-        // ==========================================
+    // ==========================================
         // A. SMOOTH 8-WAY LOCAL MOVEMENT
         // ==========================================
         if (window.myLocalWorker && !window.myLocalWorker.destroyed && !window.myLocalWorker.isDemolishing) {
@@ -1404,8 +1198,23 @@ window.addEventListener('load', () => {
             let newDir = window.myLocalWorker.currentDir || 'south-east';
 
             if (isMoving) {
-                window.myLocalWorker.gridX += dx;
-                window.myLocalWorker.gridY += dy;
+                // 1. Calculate where they WANT to go
+                let nextX = window.myLocalWorker.gridX + dx;
+                let nextY = window.myLocalWorker.gridY + dy;
+
+                // 2. 🔥 THE WALLS: Clamp the coordinates! 
+                // CHANGE THESE MAX NUMBERS to match how big your factory grid actually is (e.g., 20, 30, 50)
+                const MAX_GRID_X = 70; 
+                const MAX_GRID_Y = 70;
+
+                if (nextX < 0) nextX = 0;
+                if (nextX > MAX_GRID_X) nextX = MAX_GRID_X;
+                if (nextY < 0) nextY = 0;
+                if (nextY > MAX_GRID_Y) nextY = MAX_GRID_Y;
+
+                // 3. Apply the approved, safe coordinates
+                window.myLocalWorker.gridX = nextX;
+                window.myLocalWorker.gridY = nextY;
 
                 const pos = toIso(window.myLocalWorker.gridX, window.myLocalWorker.gridY);
                 window.myLocalWorker.x = pos.x;
@@ -1437,7 +1246,7 @@ window.addEventListener('load', () => {
             } else {
                 // Play idle animation facing the last direction they moved
                 updateWorkerAnimation(window.myLocalWorker, newDir, 'idle');
-            }
+            } 
 
 
             // ==========================================
