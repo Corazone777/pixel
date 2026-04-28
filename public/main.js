@@ -84,7 +84,19 @@ function spawnMultiplayerWorker(gridX, gridY, isGhost, characterId = 'male_char'
 
     if (worker && worker.play) worker.play();
 
+    worker.isPlayableCharacter = true;
     return worker;
+}
+
+function generateRandomFactoryName() {
+    const adjectives = ['Rusty', 'Sparky', 'Oily', 'Copper', 'Iron', 'Steel', 'Greasy', 'Volt', 'Scrap', 'Heavy'];
+    const nouns = ['Wrench', 'Cog', 'Bolt', 'Piston', 'Gear', 'Engine', 'Wire', 'Rivet', 'Motor', 'Valve'];
+    
+    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    const num = Math.floor(Math.random() * 1000); // Adds a number from 0 to 999
+    
+    return `${adj}${noun}${num}`;
 }
 
 // 🔥 1. KEYBOARD STATE TRACKER
@@ -884,6 +896,10 @@ PIXI.Assets.load(allAssetsToLoad).then((textures) => {
                 return;
             }
 
+            if (entity.isPlayableCharacter) {
+               return; 
+            }
+
             if (demolishMode) {
                 if (isUndeletable || entity.isDemolishing) return;
                 entity.isDemolishing = true; entity.interactive = false;
@@ -1215,8 +1231,8 @@ window.addEventListener('load', () => {
     const joinBtn = document.getElementById('join-game-btn');
     if (joinBtn) {
         joinBtn.addEventListener('click', () => {
-            const nameInput = document.getElementById('player-name-input').value.trim();
-            const finalName = nameInput !== '' ? nameInput : 'Operator';
+            // 🔥 Automatically generate the name instead of looking for an input
+            const finalName = generateRandomFactoryName();
 
             // Hide the screen
             document.getElementById('character-selection').style.display = 'none';
