@@ -196,7 +196,15 @@ const BUILD_CATALOG = [
         id: 'wall-right', name: 'WALL RIGHT', type: 'structure', scale: 1, grabOffset: 80, physicalHeight: 120,
         hasRotation: false, thumb: 'static_assets/wall_right.png', textureData: 'static_assets/wall_right.png',
         hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
-    }
+    },
+    {
+        id: 'office_floor',
+        name: 'Office Grid Canvas',
+        textureData: 'static_assets/floor_office.png',
+        isEnvironmentLayer: true,
+        visibleGridSize: 30,
+        hasRotation: false
+    },
 ];
 
 let isAnimating = true;
@@ -211,6 +219,8 @@ const app = new PIXI.Application({
     resolution: 0.35,
     autoDensity: true
 });
+
+PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
 
 document.getElementById('app-wrapper').appendChild(app.view);
 
@@ -262,15 +272,52 @@ function toCart(screenX, screenY) {
     return { x: (adjX / (TILE_W / 2) + adjY / (TILE_H / 2)) / 2, y: (adjY / (TILE_H / 2) - adjX / (TILE_W / 2)) / 2 };
 }
 
+// A dedicated container for the background image, underneath everything else
+const environmentLayer = new PIXI.Container();
+// Make sure this container is added BEFORE the entityLayer for depth sorting!
+app.stage.addChildAt(environmentLayer, 0);
+
 function drawGrid() {
+    environmentLayer.removeChildren();
     gridGraphics.clear();
-    gridGraphics.lineStyle(2, 0x222226, 1);
-    const GRID_SIZE = 25;
-    for (let i = -15; i <= GRID_SIZE; i++) {
-        let p1 = toIso(i, -15); let p2 = toIso(i, GRID_SIZE);
-        gridGraphics.moveTo(p1.x, p1.y); gridGraphics.lineTo(p2.x, p2.y);
-        p1 = toIso(-15, i); p2 = toIso(GRID_SIZE, i);
-        gridGraphics.moveTo(p1.x, p1.y); gridGraphics.lineTo(p2.x, p2.y);
+
+    gridGraphics.lineStyle(2, 0x000000, 0);
+
+    const assetPath = 'static_assets/floor_office.png'; 
+
+    if (window.textures && window.textures[assetPath]) {
+        const bg = new PIXI.Sprite(window.textures[assetPath]);
+        
+        // 1. Anchor it slightly higher
+        bg.anchor.set(0.5, 0.7); 
+
+        // Position at game origin (0,0 center)
+        const origin = getOrigin();
+        bg.x = origin.x;
+        bg.y = origin.y;
+
+        const customScale = 1.5; 
+        bg.scale.set(customScale);
+
+        // Add to the dedicated layer
+        environmentLayer.addChild(bg);
+    }
+
+    // 3. Keep invisible dynamic lines for collision/clicking accuracy
+    const GRID_SIZE = 10; // This makes a grid from -5 to +5
+    
+    for (let i = -GRID_SIZE; i <= GRID_SIZE; i++) {
+        // Draw Y lines
+        let p1 = toIso(i, -GRID_SIZE); 
+        let p2 = toIso(i, GRID_SIZE);
+        gridGraphics.moveTo(p1.x, p1.y); 
+        gridGraphics.lineTo(p2.x, p2.y);
+        
+        // Draw X lines
+        p1 = toIso(-GRID_SIZE, i); 
+        p2 = toIso(GRID_SIZE, i);
+        gridGraphics.moveTo(p1.x, p1.y); 
+        gridGraphics.lineTo(p2.x, p2.y);
     }
 }
 
@@ -613,6 +660,7 @@ allAssetsToLoad = [...new Set(allAssetsToLoad)];
 
 
 PIXI.Assets.load(allAssetsToLoad).then((textures) => {
+    window.textures = textures;
     const hookTex = textures['static_assets/hook-remove.png'];
     const frameW = hookTex.width / 4; const frameH = hookTex.height / 2;
     const openClawTex = new PIXI.Texture(hookTex.baseTexture, new PIXI.Rectangle(0, 0, frameW, frameH));
@@ -805,7 +853,7 @@ PIXI.Assets.load(allAssetsToLoad).then((textures) => {
     // --- INITIAL SCENE SETUP ---
     const bannerItem = BUILD_CATALOG.find(i => i.id === 'banner');
 
-    window.createDraggable(bannerItem.textureData, 4.5, 6.5, bannerItem.id, bannerItem.scale, bannerItem.grabOffset, true, bannerItem.hitbox);
+    window.createDraggable(bannerItem.textureData, 2.5, 2.5, bannerItem.id, bannerItem.scale, bannerItem.grabOffset, true, bannerItem.hitbox);
 
     // --- 10. GLOBAL TICKER FOR TRUE Z-SORTING & CLAW PHYSICS ---
     app.ticker.add(() => {
@@ -892,7 +940,6 @@ PIXI.Assets.load(allAssetsToLoad).then((textures) => {
             }
         }
     });
-    //generateRandomFactory();
     resizeApp();
 });
 
@@ -1176,7 +1223,7 @@ window.addEventListener('load', () => {
 
     app.ticker.add(() => {
 
-    // ==========================================
+        // ==========================================
         // A. SMOOTH 8-WAY LOCAL MOVEMENT
         // ==========================================
         if (window.myLocalWorker && !window.myLocalWorker.destroyed && !window.myLocalWorker.isDemolishing) {
@@ -1202,14 +1249,15 @@ window.addEventListener('load', () => {
                 let nextX = window.myLocalWorker.gridX + dx;
                 let nextY = window.myLocalWorker.gridY + dy;
 
-                // 2. 🔥 THE WALLS: Clamp the coordinates! 
-                // CHANGE THESE MAX NUMBERS to match how big your factory grid actually is (e.g., 20, 30, 50)
-                const MAX_GRID_X = 70; 
-                const MAX_GRID_Y = 70;
+                // 2. 🔥 THE WALLS: 0,0 is the center, so boundaries go into the negatives!
+                const MIN_GRID_X = -14;
+                const MAX_GRID_X = 10;
+                const MIN_GRID_Y = -14;
+                const MAX_GRID_Y = 12;
 
-                if (nextX < 0) nextX = 0;
+                if (nextX < MIN_GRID_X) nextX = MIN_GRID_X;
                 if (nextX > MAX_GRID_X) nextX = MAX_GRID_X;
-                if (nextY < 0) nextY = 0;
+                if (nextY < MIN_GRID_Y) nextY = MIN_GRID_Y;
                 if (nextY > MAX_GRID_Y) nextY = MAX_GRID_Y;
 
                 // 3. Apply the approved, safe coordinates
@@ -1246,7 +1294,7 @@ window.addEventListener('load', () => {
             } else {
                 // Play idle animation facing the last direction they moved
                 updateWorkerAnimation(window.myLocalWorker, newDir, 'idle');
-            } 
+            }
 
 
             // ==========================================
