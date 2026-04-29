@@ -88,6 +88,29 @@ function spawnMultiplayerWorker(gridX, gridY, isGhost, characterId = 'male_char'
     return worker;
 }
 
+window.checkCollision = function(nextX, nextY) {
+    if (!entityLayer || !entityLayer.children) return false;
+
+    for (let i = 0; i < entityLayer.children.length; i++) {
+        const entity = entityLayer.children[i];
+
+        // Skip player, objects without the hitbox we just saved, or dragging items
+        if (entity === window.myLocalWorker || !entity.hitbox || entity.isDragging) continue;
+
+        // Calculate grid boundaries
+        const left = entity.gridX + entity.hitbox.x;
+        const right = left + entity.hitbox.w;
+        const top = entity.gridY + entity.hitbox.y;
+        const bottom = top + entity.hitbox.h;
+
+        // If player's next step is inside the box, block movement
+        if (nextX >= left && nextX <= right && nextY >= top && nextY <= bottom) {
+            return true; 
+        }
+    }
+    return false;
+};
+
 function generateRandomFactoryName() {
     const adjectives = ['Rusty', 'Sparky', 'Oily', 'Copper', 'Iron', 'Steel', 'Greasy', 'Volt', 'Scrap', 'Heavy'];
     const nouns = ['Wrench', 'Cog', 'Bolt', 'Piston', 'Gear', 'Engine', 'Wire', 'Rivet', 'Motor', 'Valve'];
@@ -161,18 +184,6 @@ const BUILD_CATALOG = [
         hitbox: { x: -0.5, y: -1, w: 1, h: 1 }
     },
     {
-        id: 'conveyor_belt', name: 'CONVEYOR BELT', type: 'structure', scale: 0.3, grabOffset: 120, physicalHeight: 195,
-        hasRotation: false, thumb: 'static_assets/conveyor-belt.png', textureData: 'static_assets/conveyor-belt.png',
-        hitbox: [
-            { x: -0.44, y: -0.71 }, { x: -0.17, y: -0.93 }, { x: 0.40, y: -0.46 }, { x: 0.17, y: -0.14 }
-        ]
-    },
-    {
-        id: 'robotic-arm', name: 'ROBOTIC ARM', type: 'structure', scale: 1, grabOffset: 180, physicalHeight: 120,
-        hasRotation: false, thumb: 'static_assets/robotic.png', textureData: 'static_assets/robotic.png',
-        hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
-    },
-    {
         id: 'server-rack', name: 'SERVER RACK', type: 'structure', scale: 0.5, grabOffset: 180, physicalHeight: 100,
         hasRotation: false, thumb: 'static_assets/server.png', textureData: 'static_assets/server.png',
         hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
@@ -183,18 +194,13 @@ const BUILD_CATALOG = [
         hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
     },
     {
+        id: 'computer1', name: 'COMPUTER DESK', type: 'structure', scale: 0.5, grabOffset: 80, physicalHeight: 40,
+        hasRotation: false, thumb: 'static_assets/computer_station1.png', textureData: 'static_assets/computer_station1.png',
+        hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
+    },
+    {
         id: 'computer-on-wheels', name: 'COMPUTER ON WHEELS', type: 'structure', scale: 0.4, grabOffset: 80, physicalHeight: 45,
         hasRotation: false, thumb: 'static_assets/computer_wheels.png', textureData: 'static_assets/computer_wheels.png',
-        hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
-    },
-    {
-        id: 'wall-left', name: 'WALL LEFT', type: 'structure', scale: 1, grabOffset: 80, physicalHeight: 120,
-        hasRotation: false, thumb: 'static_assets/wall_left.png', textureData: 'static_assets/wall_left.png',
-        hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
-    },
-    {
-        id: 'wall-right', name: 'WALL RIGHT', type: 'structure', scale: 1, grabOffset: 80, physicalHeight: 120,
-        hasRotation: false, thumb: 'static_assets/wall_right.png', textureData: 'static_assets/wall_right.png',
         hitbox: { x: -0.5, y: -1, w: 0.9, h: 1 }
     },
     {
@@ -205,6 +211,44 @@ const BUILD_CATALOG = [
         visibleGridSize: 30,
         hasRotation: false
     },
+    {
+        id: 'chill_area', name: 'CHILL AREA', type: 'decor', scale: 0.5, grabOffset: 40, physicalHeight: 30,
+        hasRotation: false, thumb: 'static_assets/chill_area.png', textureData: 'static_assets/chill_area.png',
+        hitbox: { x: -0.3, y: -0.8, w: 0.6, h: 0.8 }
+    },
+    {
+        id: 'arcade', name: 'ARCADE', type: 'decor', scale: 0.5, grabOffset: 40, physicalHeight: 30,
+        hasRotation: false, thumb: 'static_assets/arcade.png', textureData: 'static_assets/arcade.png',
+        hitbox: { x: -0.3, y: -0.8, w: 0.6, h: 0.8 }
+    },
+    {
+        id: 'coffee', name: 'COFFEE TABLE', type: 'decor', scale: 0.5, grabOffset: 40, physicalHeight: 30,
+        hasRotation: false, thumb: 'static_assets/coffee.png', textureData: 'static_assets/coffee.png',
+        hitbox: { x: -0.3, y: -0.8, w: 0.6, h: 0.8 }
+    },
+    {
+        id: 'ping-pong', name: 'PING PONG TABLE', type: 'decor', scale: 0.5, grabOffset: 40, physicalHeight: 30,
+        hasRotation: false, thumb: 'static_assets/ping-pong.png', textureData: 'static_assets/ping-pong.png',
+        hitbox: { x: -0.3, y: -0.8, w: 0.6, h: 0.8 }
+    },
+    {
+        id: 'water', name: 'WATER', type: 'decor', scale: 0.5, grabOffset: 40, physicalHeight: 30,
+        hasRotation: false, thumb: 'static_assets/water.png', textureData: 'static_assets/water.png',
+        hitbox: { x: -0.3, y: -0.8, w: 0.6, h: 0.8 }
+    },
+    {
+        id: 'plants', name: 'PLANTS', type: 'decor', scale: 0.5, grabOffset: 40, physicalHeight: 30,
+        hasRotation: false, thumb: 'static_assets/plants.png', textureData: 'static_assets/plants.png',
+        hitbox: { x: -0.3, y: -0.8, w: 0.6, h: 0.8 }
+    },
+    {
+        id: 'conference', name: 'CONFERENCE TABLE', type: 'decor', scale: 0.3, grabOffset: 40, physicalHeight: 30,
+        hasRotation: false, thumb: 'static_assets/conference.png', textureData: 'static_assets/conference.png',
+        hitbox: { x: -0.3, y: -0.8, w: 0.6, h: 0.8 }
+    },
+
+
+
 ];
 
 let isAnimating = true;
@@ -283,20 +327,20 @@ function drawGrid() {
 
     gridGraphics.lineStyle(2, 0x000000, 0);
 
-    const assetPath = 'static_assets/floor_office.png'; 
+    const assetPath = 'static_assets/floor_office.png';
 
     if (window.textures && window.textures[assetPath]) {
         const bg = new PIXI.Sprite(window.textures[assetPath]);
-        
+
         // 1. Anchor it slightly higher
-        bg.anchor.set(0.5, 0.7); 
+        bg.anchor.set(0.5, 0.7);
 
         // Position at game origin (0,0 center)
         const origin = getOrigin();
         bg.x = origin.x;
         bg.y = origin.y;
 
-        const customScale = 1.5; 
+        const customScale = 1.5;
         bg.scale.set(customScale);
 
         // Add to the dedicated layer
@@ -305,18 +349,18 @@ function drawGrid() {
 
     // 3. Keep invisible dynamic lines for collision/clicking accuracy
     const GRID_SIZE = 10; // This makes a grid from -5 to +5
-    
+
     for (let i = -GRID_SIZE; i <= GRID_SIZE; i++) {
         // Draw Y lines
-        let p1 = toIso(i, -GRID_SIZE); 
+        let p1 = toIso(i, -GRID_SIZE);
         let p2 = toIso(i, GRID_SIZE);
-        gridGraphics.moveTo(p1.x, p1.y); 
+        gridGraphics.moveTo(p1.x, p1.y);
         gridGraphics.lineTo(p2.x, p2.y);
-        
+
         // Draw X lines
-        p1 = toIso(-GRID_SIZE, i); 
+        p1 = toIso(-GRID_SIZE, i);
         p2 = toIso(GRID_SIZE, i);
-        gridGraphics.moveTo(p1.x, p1.y); 
+        gridGraphics.moveTo(p1.x, p1.y);
         gridGraphics.lineTo(p2.x, p2.y);
     }
 }
@@ -470,7 +514,6 @@ window.deployItem = function () {
 
     document.getElementById('fabrication-status').innerText = `STATUS: DEPLOYED SECURELY.`;
     document.getElementById('deploy-btn').classList.add('disabled');
-    window.createDraggable(textureToSpawn, 0, 0, item.id, item.scale, item.grabOffset, false, item.hitbox);
 
     const randomX = Math.floor(Math.random() * 15) + 1;
     const randomY = Math.floor(Math.random() * 15) + 1;
@@ -715,6 +758,8 @@ PIXI.Assets.load(allAssetsToLoad).then((textures) => {
             entity.hitArea = new PIXI.Rectangle(-tex.width / 2, -tex.height, tex.width, tex.height);
         }
 
+        entity.hitbox = customHitbox;
+
         // Isometric Properties
         entity.initialGridX = gridX; entity.initialGridY = gridY;
         entity.gridX = gridX; entity.gridY = gridY;
@@ -852,8 +897,94 @@ PIXI.Assets.load(allAssetsToLoad).then((textures) => {
 
     // --- INITIAL SCENE SETUP ---
     const bannerItem = BUILD_CATALOG.find(i => i.id === 'banner');
-
     window.createDraggable(bannerItem.textureData, 2.5, 2.5, bannerItem.id, bannerItem.scale, bannerItem.grabOffset, true, bannerItem.hitbox);
+
+    const arcade = BUILD_CATALOG.find(i => i.id === 'arcade');
+    window.createDraggable(arcade.textureData, -1.8, 9.5, arcade.id, arcade.scale, arcade.grabOffset, false, arcade.hitbox);
+    window.createDraggable(arcade.textureData, 1.1, -18.7, arcade.id, arcade.scale, arcade.grabOffset, false, arcade.hitbox);
+
+    const chill_area = BUILD_CATALOG.find(i => i.id === 'chill_area');
+    window.createDraggable(chill_area.textureData, 3.4, 14, chill_area.id, chill_area.scale, chill_area.grabOffset, false, chill_area.hitbox);
+    window.createDraggable(chill_area.textureData, 1.2, -11.3, chill_area.id, chill_area.scale, chill_area.grabOffset, false, chill_area.hitbox);
+
+
+    const ping_pong = BUILD_CATALOG.find(i => i.id === 'ping-pong');
+    window.createDraggable(ping_pong.textureData, 6.2, -8.1, ping_pong.id, ping_pong.scale, ping_pong.grabOffset, false, ping_pong.hitbox);
+    window.createDraggable(ping_pong.textureData, 12.1, -8.1, ping_pong.id, ping_pong.scale, ping_pong.grabOffset, false, ping_pong.hitbox);
+
+    const coffee = BUILD_CATALOG.find(i => i.id === 'coffee');
+    window.createDraggable(coffee.textureData, -7.1, -19.2, coffee.id, coffee.scale, coffee.grabOffset, false, coffee.hitbox);
+    window.createDraggable(coffee.textureData, 5.8, -19.3, coffee.id, coffee.scale, coffee.grabOffset, false, coffee.hitbox);
+
+    const water = BUILD_CATALOG.find(i => i.id === 'water');
+    window.createDraggable(water.textureData, -11.1, -21.0, water.id, water.scale, water.grabOffset, false, water.hitbox);
+    window.createDraggable(water.textureData, -3.7, 14.9, water.id, water.scale, water.grabOffset, false, water.hitbox);
+
+
+    const plants = BUILD_CATALOG.find(i => i.id === 'plants');
+    window.createDraggable(plants.textureData, -18.1, -20.3, plants.id, plants.scale, plants.grabOffset, false, plants.hitbox);
+    window.createDraggable(plants.textureData, 9.5, -20.2, plants.id, plants.scale, plants.grabOffset, false, plants.hitbox);
+
+
+    const conference = BUILD_CATALOG.find(i => i.id === 'conference');
+    window.createDraggable(conference.textureData, -14.1, -13.7, conference.id, conference.scale, conference.grabOffset, false, conference.hitbox);
+
+    const compEast = BUILD_CATALOG.find(i => i.id === 'computer');
+    const maleChar = BUILD_CATALOG.find(i => i.id === 'male_char');
+    const femaleChar = BUILD_CATALOG.find(i => i.id === 'female_char');
+
+    if (compEast && maleChar && femaleChar) {
+        const startX = -18.5;
+        const startY = 9.6;
+        const ySpacing = 5.5; // Distance between computers going UP
+
+        const numRows = 3;    // Number of aisles
+        const xSpacing = 4.0; // Distance between the aisles
+
+        // Adjust these to perfectly seat the new 3.0 scale humans
+        const humanOffsetX = 0.5;
+        const humanOffsetY = 0;
+
+        for (let row = 0; row < numRows; row++) {
+            const currentX = startX + (row * xSpacing);
+
+            for (let i = 0; i < 4; i++) {
+                const currentY = startY - (i * ySpacing);
+
+                // 1. Spawn the Computer
+                window.createDraggable(
+                    compEast.textureData,
+                    currentX,
+                    currentY,
+                    compEast.id,
+                    compEast.scale,
+                    compEast.grabOffset,
+                    false,
+                    compEast.hitbox
+                );
+
+                // 2. 🔥 Randomly choose between Male and Female!
+                const selectedChar = Math.random() > 0.5 ? maleChar : femaleChar;
+
+                // 3. 🔥 Generate the array of 4 animation frames for the North-West Idle state
+                const nwAnimTextures = [0, 1, 2, 3].map(frameNum =>
+                    `${selectedChar.animBase}/idle/north-west/frame_00${frameNum}.png`
+                );
+
+                // 4. Spawn the Animated Human
+                window.createDraggable(
+                    nwAnimTextures,
+                    currentX + humanOffsetX,
+                    currentY + humanOffsetY,
+                    selectedChar.id,
+                    selectedChar.scale,
+                    selectedChar.grabOffset || 30,
+                    false,
+                    selectedChar.hitbox
+                );
+            }
+        }
+    }
 
     // --- 10. GLOBAL TICKER FOR TRUE Z-SORTING & CLAW PHYSICS ---
     app.ticker.add(() => {
@@ -942,7 +1073,6 @@ PIXI.Assets.load(allAssetsToLoad).then((textures) => {
     });
     resizeApp();
 });
-
 
 // ==========================================
 // 🔥 ASYNC TRUE-RETRO SCREENSHOT ENGINE
@@ -1248,6 +1378,15 @@ window.addEventListener('load', () => {
                 // 1. Calculate where they WANT to go
                 let nextX = window.myLocalWorker.gridX + dx;
                 let nextY = window.myLocalWorker.gridY + dy;
+
+                // Only update position if the new spot is NOT blocked
+                if (!window.checkCollision(nextX, nextY)) {
+                    window.myLocalWorker.baseX = nextX;
+                    window.myLocalWorker.baseY = nextY;
+                } else {
+                    // Optional: Do nothing (stops the player)
+                    console.log("Collision detected!");
+                }
 
                 // 2. 🔥 THE WALLS: 0,0 is the center, so boundaries go into the negatives!
                 const MIN_GRID_X = -14;
