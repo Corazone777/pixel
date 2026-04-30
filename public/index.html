@@ -45,6 +45,54 @@
     </div>
 
     <div id="app-wrapper">
+
+        <div class="holo-panel" id="holo-panel">
+            <div class="holo-title">What is your corporate landscape?</div>
+            <img src="static_assets/IBEX.svg" alt="IBEX Logo" class="holo-logo">
+            <div class="disabled-item">
+                <div class="disabled-checkbox"></div>
+                <div class="disabled-item-text">Forward-Thinking Organization Looking for a Modern Workforce</div>
+            </div>
+            <div class="fte-section">
+                <div class="fte-row">
+                    <div class="fte-col">
+                        <div class="fte-label">FTEs to add</div>
+                        <input type="number" class="fte-input" id="fte-input" min="0" max="100" placeholder="FTEs...">
+                    </div>
+                    <div class="fte-col">
+                        <div class="fte-label">Avg hiring budget / FTE</div>
+                        <div class="budget-wrap">
+                            <span class="currency-prefix">$</span>
+                            <input type="text" class="fte-input" id="budget-input" placeholder="25,000" value="25,000"
+                                inputmode="numeric">
+                            <span class="currency-suffix">USD</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="roi-panel" id="roi-panel">
+                <div class="roi-title">Your Potential Saving with <span
+                        style="color: #ffffff; text-shadow: 0 0 12px rgba(255,255,255,0.5);">IBEX</span></div>
+                <div class="roi-grid">
+                    <div class="roi-stat">
+                        <div class="roi-stat-value" id="roi-savings">$0</div>
+                        <div class="roi-stat-label">Budget Savings</div>
+                        <div class="roi-stat-note">Up to 70% per FTE*</div>
+                    </div>
+                    <div class="roi-stat">
+                        <div class="roi-stat-value" id="roi-hires">0</div>
+                        <div class="roi-stat-label">Additional Hires</div>
+                        <div class="roi-stat-note">From total savings**</div>
+                    </div>
+                    <div class="roi-stat">
+                        <div class="roi-stat-value" id="roi-hours">0</div>
+                        <div class="roi-stat-label">Labor Hours / Mo</div>
+                        <div class="roi-stat-note">~174 hrs/FTE/month***</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="asset-bounding-box"></div>
         <div id="asset-context-menu">
             <div class="asset-context-header">IBEX ASSET N0-<span id="ctx-id">000</span></div>

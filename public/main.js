@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const loadingInterval = setInterval(() => {
         // Cap the fake load at 90% so it waits for the real assets
         if (progress < 90) {
-            progress += Math.floor(Math.random() * 5) + 1; 
+            progress += Math.floor(Math.random() * 5) + 1;
             if (progress > 90) progress = 90;
             updateLoader(progress);
         }
@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // The browser fires this ONLY when all images/assets are 100% downloaded
     window.addEventListener("load", () => {
         clearInterval(loadingInterval);
-        
+
         // Snap to 100%
         updateLoader(100);
         document.getElementById("loading-status").innerText = "SYSTEMS ONLINE";
@@ -525,7 +525,7 @@ window.toggleMonitor = function (targetId) {
 
         // 🔥 THE FIX: Removed "window." so it doesn't crash the hacking game!
         if (targetId === 'mon-security' && !document.getElementById('hack-container-id')) {
-            startHackingGame(); 
+            startHackingGame();
         }
 
         if (targetId === 'mon-terminal') {
@@ -1010,7 +1010,7 @@ PIXI.Assets.load(allAssetsToLoad).then((textures) => {
     if (compEast && maleChar && femaleChar) {
         const startX = -18.5;
         const startY = 9.6;
-        const ySpacing = 5.5; // Distance between computers going UP
+        const ySpacing = 4.5; // Distance between computers going UP
 
         const numRows = 3;    // Number of aisles
         const xSpacing = 4.0; // Distance between the aisles
@@ -1277,6 +1277,21 @@ window.myLocalWorker = null;
 window.networkPlayers = {};
 window.ws = null; // <-- ADD THIS
 
+window.isWalkable = function (x, y) {
+    // 1. Main Rectangular Box
+    if (x < -22 || x > 15 || y < -22 || y > 18) return false;
+
+    // 2. The Slanted Cutoffs (Geometry rules)
+    if (y > x + 32.5) return false;      // Left Slant
+    if (x + y > 22.5) return false;      // Right Slant
+    if (x - y > 32.5) return false;      // Top-Right Slant
+
+    // 3. Physical Object Collision
+    if (window.checkCollision && window.checkCollision(x, y)) return false;
+
+    return true;
+};
+
 // 🔥 DELAY NETWORK UNTIL ENGINE IS BUILT AND PLAYER IS SELECTED
 window.addEventListener('load', () => {
 
@@ -1508,10 +1523,10 @@ window.addEventListener('load', () => {
                 if (!canMoveX) nextX = window.myLocalWorker.gridX;
                 if (!canMoveY) nextY = window.myLocalWorker.gridY;
 
-                const MIN_GRID_X = -14;
-                const MAX_GRID_X = 10;
-                const MIN_GRID_Y = -14;
-                const MAX_GRID_Y = 12;
+                const MIN_GRID_X = -22;
+                const MAX_GRID_X = 15;
+                const MIN_GRID_Y = -22;
+                const MAX_GRID_Y = 18;
 
                 if (nextX < MIN_GRID_X) nextX = MIN_GRID_X;
                 if (nextX > MAX_GRID_X) nextX = MAX_GRID_X;
@@ -1584,6 +1599,146 @@ window.addEventListener('load', () => {
                 c.nameTag.style.left = (screenPos.x + canvasBounds.left) + 'px';
                 c.nameTag.style.top = (screenPos.y + canvasBounds.top - 180) + 'px';
             }
+        });
+    });
+});
+
+let activeWorkforce = [];
+let activeTimeouts = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+    const fteInput = document.getElementById('fte-input');
+    const budgetInput = document.getElementById('budget-input');
+    const roiPanel = document.getElementById('roi-panel');
+
+    // Elements to update
+    const roiSavings = document.getElementById('roi-savings');
+    const roiHires = document.getElementById('roi-hires');
+    const roiHours = document.getElementById('roi-hours');
+
+    function calculateROI() {
+        const fteCount = parseFloat(fteInput.value) || 0;
+        // Strip commas for math
+        const avgBudget = parseFloat(budgetInput.value.replace(/,/g, '')) || 0;
+
+        if (fteCount > 0) {
+            // Show the panel
+            roiPanel.classList.add('visible');
+
+            // --- THE MATH ---
+            // Savings (70% based on your HTML note)
+            const totalSavings = fteCount * avgBudget * 0.70;
+            // Additional Hires (Total Savings / Original Budget)
+            const extraHires = Math.floor(totalSavings / avgBudget);
+            // Labor Hours (174 per month)
+            const totalHours = fteCount * 174;
+
+            // Update UI
+            roiSavings.innerText = `$${totalSavings.toLocaleString()}`;
+            roiHires.innerText = extraHires;
+            roiHours.innerText = totalHours.toLocaleString();
+        } else {
+            roiPanel.classList.remove('visible');
+        }
+    }
+
+    fteInput.addEventListener('input', function (e) {
+        const realCount = parseInt(e.target.value) || 0;
+        const spawnCount = Math.min(realCount, 30);
+
+        // --- PART 1: INSTANT ROI MATH ---
+        const budgetVal = document.getElementById('budget-input').value || "25,000";
+        const avgBudget = parseFloat(budgetVal.replace(/,/g, '')) || 0;
+
+        if (realCount > 0) {
+            roiPanel.classList.add('visible');
+            document.getElementById('roi-savings').innerText = `$${(realCount * avgBudget * 0.70).toLocaleString()}`;
+            document.getElementById('roi-hires').innerText = Math.floor((realCount * avgBudget * 0.70) / avgBudget);
+            document.getElementById('roi-hours').innerText = (realCount * 174).toLocaleString();
+        } else {
+            roiPanel.classList.remove('visible');
+        }
+
+        // --- PART 2: THE WAVE SPAWNING ---
+
+        // A. CLEAR EVERYTHING: Old workers and pending timeouts
+        activeWorkforce.forEach(obj => {
+            if (obj && obj.destroy) obj.destroy({ children: true });
+        });
+        activeWorkforce = [];
+
+        activeTimeouts.forEach(t => clearTimeout(t));
+        activeTimeouts = [];
+
+        const cObj = BUILD_CATALOG.find(i => i.id === 'computer');
+        const mChar = BUILD_CATALOG.find(i => i.id === 'male_char');
+        const fChar = BUILD_CATALOG.find(i => i.id === 'female_char');
+
+        if (cObj && mChar && fChar && spawnCount > 0) {
+            const startX = -18.5;
+            const startY = 9.6;
+            const ySpacing = 5.5;
+            const xSpacing = 4.0;
+            const maxItemsPerRow = 4;
+            const humanOffsetX = 0.5;
+
+            for (let i = 0; i < spawnCount; i++) {
+                // We wrap the spawning in a Timeout to create the "Wave"
+                const tId = setTimeout(() => {
+                    const row = Math.floor(i / maxItemsPerRow);
+                    const col = i % maxItemsPerRow;
+                    const currentX = startX + (row * xSpacing);
+                    const currentY = startY - (col * ySpacing);
+
+                    // 1. Create Computer
+                    const computer = window.createDraggable(
+                        cObj.textureData, currentX, currentY, cObj.id, cObj.scale, cObj.grabOffset, false, cObj.hitbox
+                    );
+
+                    // 2. Setup Human
+                    const selectedChar = Math.random() > 0.5 ? mChar : fChar;
+                    const nwAnimTextures = [0, 1, 2, 3].map(f =>
+                        `${selectedChar.animBase}/idle/north-west/frame_00${f}.png`
+                    );
+
+                    // 3. Create Human
+                    const human = window.createDraggable(
+                        nwAnimTextures, currentX + humanOffsetX, currentY, selectedChar.id, selectedChar.scale, selectedChar.grabOffset || 30, false, selectedChar.hitbox
+                    );
+
+                    // 4. Initial Alpha for Fade
+                    computer.alpha = 0;
+                    human.alpha = 0;
+
+                    // 5. Run Fade Animation
+                    const fadeSpeed = 0.08;
+                    const animateFade = () => {
+                        if (computer.alpha < 1) {
+                            computer.alpha += fadeSpeed;
+                            human.alpha += fadeSpeed;
+                            requestAnimationFrame(animateFade);
+                        } else {
+                            computer.alpha = 1;
+                            human.alpha = 1;
+                        }
+                    };
+                    animateFade();
+
+                    activeWorkforce.push(computer, human);
+
+                }, i * 80);
+
+                activeTimeouts.push(tId);
+            }
+        }
+    });
+    budgetInput.addEventListener('input', calculateROI);
+
+    // Simple Slider Logic
+    document.querySelectorAll('.slider-option').forEach(option => {
+        option.addEventListener('click', () => {
+            document.querySelectorAll('.slider-option').forEach(opt => opt.classList.remove('active'));
+            option.classList.add('active');
         });
     });
 });

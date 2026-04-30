@@ -10,75 +10,88 @@
    }
 
    /* --- MODERN LOADING SCREEN --- */
-#loading-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: #050505; /* Deep, absolute black */
-    z-index: 99999; /* Stays above absolutely everything */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.8s ease, visibility 0.8s ease;
-}
+   #loading-screen {
+       position: fixed;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       background: #050505;
+       /* Deep, absolute black */
+       z-index: 99999;
+       /* Stays above absolutely everything */
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       transition: opacity 0.8s ease, visibility 0.8s ease;
+   }
 
-.loading-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 80%;
-    max-width: 400px;
-}
+   .loading-content {
+       display: flex;
+       flex-direction: column;
+       align-items: center;
+       width: 80%;
+       max-width: 400px;
+   }
 
-#loading-logo {
-    width: 150px;
-    margin-bottom: 40px;
-    animation: pulse-logo 2s infinite ease-in-out;
-}
+   #loading-logo {
+       width: 150px;
+       margin-bottom: 40px;
+       animation: pulse-logo 2s infinite ease-in-out;
+   }
 
-/* Smooth breathing effect for the logo */
-@keyframes pulse-logo {
-    0%, 100% { opacity: 0.7; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.05); }
-}
+   /* Smooth breathing effect for the logo */
+   @keyframes pulse-logo {
 
-.loading-bar-wrapper {
-    width: 100%;
-    height: 2px; /* Super thin, modern progress bar */
-    background: #222;
-    border-radius: 2px;
-    overflow: hidden;
-    position: relative;
-    margin-bottom: 15px;
-}
+       0%,
+       100% {
+           opacity: 0.7;
+           transform: scale(1);
+       }
 
-#loading-bar-fill {
-    height: 100%;
-    width: 0%; /* Starts at 0, JS handles the rest */
-    background: #1cf843;
-    box-shadow: 0 0 10px rgba(28, 248, 67, 0.8);
-    transition: width 0.2s ease;
-}
+       50% {
+           opacity: 1;
+           transform: scale(1.05);
+       }
+   }
 
-.loading-text-row {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    color: #666;
-    text-transform: uppercase;
-}
+   .loading-bar-wrapper {
+       width: 100%;
+       height: 2px;
+       /* Super thin, modern progress bar */
+       background: #222;
+       border-radius: 2px;
+       overflow: hidden;
+       position: relative;
+       margin-bottom: 15px;
+   }
 
-/* Class added by JS to fade the screen away */
-.fade-out-loader {
-    opacity: 0;
-    visibility: hidden;
-}
+   #loading-bar-fill {
+       height: 100%;
+       width: 0%;
+       /* Starts at 0, JS handles the rest */
+       background: #1cf843;
+       box-shadow: 0 0 10px rgba(28, 248, 67, 0.8);
+       transition: width 0.2s ease;
+   }
+
+   .loading-text-row {
+       display: flex;
+       justify-content: space-between;
+       width: 100%;
+       font-family: 'Helvetica Neue', Arial, sans-serif;
+       font-size: 11px;
+       font-weight: 600;
+       letter-spacing: 2px;
+       color: #666;
+       text-transform: uppercase;
+   }
+
+   /* Class added by JS to fade the screen away */
+   .fade-out-loader {
+       opacity: 0;
+       visibility: hidden;
+   }
 
    #app-wrapper {
        width: 100vw;
@@ -1366,3 +1379,248 @@
        z-index: 8499;
        border-radius: 4px;
    }
+
+/* --- HOLO PANEL: MAIN CONTAINER --- */
+.holo-panel {
+    /* Positioned 20px above your 80px control desk */
+    position: absolute;
+    bottom: 100px; 
+    left: 20px;
+    z-index: 9001;
+
+    width: 400px;
+    padding: 24px;
+    background: rgba(10, 10, 10, 0.8);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    
+    border: 1px solid rgba(28, 248, 67, 0.2); /* Subtle IBEX Green border */
+    border-radius: 16px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 
+                inset 0 0 15px rgba(28, 248, 67, 0.05);
+    
+    color: #ffffff;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    user-select: none;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+/* --- TITLE STYLING --- */
+.holo-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #f0f0f0;
+    letter-spacing: -0.2px;
+}
+
+.holo-logo {
+    display: block;          /* Allows margin auto to work */
+    margin-left: auto;       /* Push from left */
+    margin-right: auto;      /* Push from right (perfectly centered) */
+    
+    /* Optional: Add spacing above and below the logo */
+    margin-top: 15px;
+    margin-bottom: 25px;
+    
+    /* Optional: Ensure it doesn't get too big */
+    max-width: 150px; 
+    height: auto;
+}
+
+/* --- LANDSCAPE SLIDER (Small/Medium/Large) --- */
+.landscape-slider {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 20px;
+    position: relative;
+    gap: 4px;
+}
+
+.slider-option {
+    flex: 1;
+    text-align: center;
+    padding: 8px 0;
+    font-size: 13px;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.slider-option:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.slider-option.active {
+    background: #1cf843;
+    color: #000;
+    font-weight: 700;
+    box-shadow: 0 2px 10px rgba(28, 248, 67, 0.4);
+}
+
+/* --- DISABLED CHECKBOX ITEM --- */
+.disabled-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    opacity: 0.5;
+}
+
+.disabled-checkbox {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #666;
+    border-radius: 3px;
+    position: relative;
+}
+
+/* Add a fake checkmark */
+.disabled-checkbox::after {
+    content: '✓';
+    position: absolute;
+    top: -4px;
+    left: 1px;
+    font-size: 14px;
+    color: #666;
+}
+
+.disabled-item-text {
+    font-size: 12px;
+    line-height: 1.4;
+    color: #aaa;
+}
+
+/* --- INPUT SECTION (FTEs & Budget) --- */
+.fte-section {
+    margin-bottom: 5px;
+}
+
+.fte-row {
+    display: flex;
+    gap: 15px;
+}
+
+.fte-col {
+    flex: 1;
+}
+
+.fte-label {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #1cf843;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    opacity: 0.8;
+}
+
+.fte-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+}
+
+.fte-input:focus {
+    border-color: #1cf843;
+}
+
+/* Budget Input Wrapper (USD prefix/suffix) */
+.budget-wrap {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 0 10px;
+}
+
+.budget-wrap .fte-input {
+    border: none;
+    padding: 12px 5px;
+}
+
+.currency-prefix, .currency-suffix {
+    font-size: 12px;
+    font-weight: 700;
+    color: #555;
+}
+
+/* --- ROI PANEL (Dynamic Reveal) --- */
+.roi-panel {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity 0.4s ease, 
+                margin-top 0.4s ease;
+}
+
+.roi-panel.visible {
+    max-height: 500px; /* Large enough for content */
+    opacity: 1;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.roi-title {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 15px;
+}
+
+.roi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+.roi-stat {
+    text-align: left;
+}
+
+.roi-stat-value {
+    font-size: 18px;
+    font-weight: 800;
+    color: #1cf843;
+    text-shadow: 0 0 10px rgba(28, 248, 67, 0.3);
+    margin-bottom: 2px;
+}
+
+.roi-stat-label {
+    font-size: 10px;
+    color: #ccc;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.roi-stat-note {
+    font-size: 8px;
+    color: #666;
+    line-height: 1.2;
+}
+
+/* --- SCROLLBAR STYLING (For Number Inputs) --- */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
