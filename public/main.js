@@ -131,7 +131,6 @@ window.checkCollision = function (nextX, nextY) {
     for (let i = 0; i < entityLayer.children.length; i++) {
         const entity = entityLayer.children[i];
 
-        // 🛑 THE ULTIMATE IGNORE LIST (Banner & multiplayer ghosts)
         if (
             entity === window.myLocalWorker ||
             !entity.hitbox ||
@@ -1344,8 +1343,8 @@ window.addEventListener('load', () => {
 
     // 3. The Deferred Network Engine
     function connectToServer(charId, playerName) {
-        window.ws = new WebSocket(`ws://${window.location.host}/ws`);
-
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        window.ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
         window.ws.onopen = () => {
             // 🔥 1. Tell the server our name and character choice!
             window.ws.send(JSON.stringify({
