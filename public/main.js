@@ -1754,10 +1754,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // ==========================================
-// VIRTUAL JOYSTICK CONTROLLER
+// VIRTUAL JOYSTICK CONTROLLER (MOBILE SAFE)
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Check for touch capabilities
     const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
     if (isTouchDevice) {
@@ -1765,18 +1764,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const base = document.getElementById('joystick-base');
         const knob = document.getElementById('joystick-knob');
         
-        zone.style.display = 'block'; // Reveal joystick
+        zone.style.display = 'block'; 
 
         let stickActive = false;
         let originX = 0;
         let originY = 0;
-        const maxDist = 40; // How far the knob can travel
-        const deadzone = 15; // How far you have to push before character walks
+        const maxDist = 40; 
+        const deadzone = 15; 
 
-        // 2. Start Touch
+        // 1. START: Must click the actual joystick base
         base.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // 🔥 Stops iOS from trying to highlight or zoom
             stickActive = true;
-            knob.style.transition = 'none'; // Remove snap-back transition while dragging
+            knob.style.transition = 'none'; 
             
             const rect = base.getBoundingClientRect();
             originX = rect.left + rect.width / 2;
@@ -1785,15 +1785,21 @@ document.addEventListener('DOMContentLoaded', () => {
             handleMove(e.touches[0]);
         }, { passive: false });
 
-        // 3. Dragging
-        zone.addEventListener('touchmove', (e) => {
+        // 2. DRAG: Tracked on the DOCUMENT so your thumb can go anywhere
+        document.addEventListener('touchmove', (e) => {
             if (!stickActive) return;
-            e.preventDefault(); // Stops the browser from refreshing/scrolling
+            e.preventDefault(); // 🔥 Stops the whole website from scrolling/panning
             handleMove(e.touches[0]);
         }, { passive: false });
 
-        // 4. Release Touch
-        zone.addEventListener('touchend', () => {
+        // 3. RELEASE: Tracked on the DOCUMENT
+        document.addEventListener('touchend', resetJoystick);
+        
+        // 4. CANCEL: Tracked in case a system alert or phone call interrupts the touch
+        document.addEventListener('touchcancel', resetJoystick);
+
+        function resetJoystick() {
+            if (!stickActive) return;
             stickActive = false;
             knob.style.transition = 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
             knob.style.transform = `translate(0px, 0px)`;
@@ -1803,10 +1809,11 @@ document.addEventListener('DOMContentLoaded', () => {
             window.keys.a = false;
             window.keys.s = false;
             window.keys.d = false;
-        });
+        }
 
-        // 5. The Math: Translating Touch to WASD
         function handleMove(touch) {
+            if (!touch) return; // Safety check
+            
             let dx = touch.clientX - originX;
             let dy = touch.clientY - originY;
             
@@ -1819,7 +1826,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             knob.style.transform = `translate(${dx}px, ${dy}px)`;
 
-            // 🔥 The Magic: Map joystick angle to your existing WASD keys
+            // Map joystick angle to your existing WASD keys
             window.keys.w = dy < -deadzone;
             window.keys.s = dy > deadzone;
             window.keys.a = dx < -deadzone;
