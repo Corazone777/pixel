@@ -12,33 +12,36 @@
 </head>
 
 <body>
-
     <script type="module" src="main.js"></script>
 
-    <div id="character-selection"
-        style="display:none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; font-family: monospace;">
+    <div id="loading-screen">
+        <div class="loading-content">
 
-        <h1 style="letter-spacing: 4px; font-size: 3rem; margin-bottom: 40px;">SELECT YOUR OPERATOR</h1>
-
-        <div style="display: flex; gap: 60px; margin-bottom: 50px;">
-            <div class="char-card" id="card-male_char"
-                style="border: 5px solid #00ff00; padding: 40px; cursor: pointer; text-align: center; border-radius: 12px; background: rgba(255,255,255,0.1);">
-                <img id="preview-male" src="humanoid/male_char/animations/anim_walking/south-east/frame_000.png"
-                    height="250" style="image-rendering: pixelated;">
+            <div class="loading-bar-wrapper">
+                <div id="loading-bar-fill"></div>
             </div>
 
-            <div class="char-card" id="card-female_char"
-                style="border: 5px solid gray; padding: 40px; cursor: pointer; text-align: center; border-radius: 12px; background: rgba(255,255,255,0.1);">
-
-                <img id="preview-female" src="humanoid/female_char/animations/anim_walking/south-east/frame_000.png"
-                    height="250" style="image-rendering: pixelated;">
+            <div class="loading-text-row">
+                <span id="loading-status">INITIALIZING ASSETS...</span>
+                <span id="loading-percentage">0%</span>
             </div>
         </div>
+    </div>
 
+    <div id="character-selection">
+        <h1 class="char-select-title">SELECT YOUR OPERATOR</h1>
 
-        <button id="join-game-btn"
-            style="padding: 20px 80px; font-size: 28px; font-weight: bold; cursor: pointer; background: #00ff00; color: black; border: none; border-radius: 8px; letter-spacing: 2px;">ENTER
-            FACTORY</button>
+        <div class="char-card-container">
+            <div class="char-card" id="card-male_char" style="border-color: #00ff00;">
+                <img id="preview-male" class="char-img" src="humanoid/male/animations/walking/south-east/frame_000.png">
+            </div>
+
+            <div class="char-card" id="card-female_char" style="border-color: gray;">
+                <img id="preview-female" class="char-img"
+                    src="humanoid/female/animations/walking/south-east/frame_000.png">
+            </div>
+        </div>
+        <button id="join-game-btn" class="desk-btn btn-warning">ENTER FACTORY</button>
     </div>
 
     <div id="app-wrapper">
@@ -65,10 +68,6 @@
             </div>
         </div>
 
-        <div id="easter-egg-overlay">
-            <div class="warning-text">ROBOTS HAVE ASSUMED CONTROL.<br><br>SHUTTING THE SYSTEMS DOWN<br>AND REBOOTING...
-            </div>
-        </div>
         <button id="btn-export" onclick="captureFactoryScreenshot()">BLUEPRINT</button>
     </div>
 
@@ -95,9 +94,6 @@
         <div class="hardware-controls" style="position: relative; height: 4rem;">
 
             <div class="hw-logo">IBEX // FACTORY BLUEPRINT</div>
-
-            <img src="static_assets/ibex_logo_pixel.png" alt="IBEX Logo"
-                style="position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%); height: 80px; image-rendering: pixelated; z-index: 10;">
 
             <div style="display: flex; align-items: center; gap: 15px; margin-left: auto;">
                 <div class="led-indicator"></div>

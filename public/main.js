@@ -1,3 +1,40 @@
+document.addEventListener("DOMContentLoaded", () => {
+    let progress = 0;
+    const loadingBar = document.getElementById("loading-bar-fill");
+    const loadingPercentage = document.getElementById("loading-percentage");
+    const loadingScreen = document.getElementById("loading-screen");
+
+    // Artificial progression to keep the screen looking active
+    const loadingInterval = setInterval(() => {
+        // Cap the fake load at 90% so it waits for the real assets
+        if (progress < 90) {
+            progress += Math.floor(Math.random() * 5) + 1; 
+            if (progress > 90) progress = 90;
+            updateLoader(progress);
+        }
+    }, 150);
+
+    function updateLoader(value) {
+        if (loadingBar) loadingBar.style.width = value + "%";
+        if (loadingPercentage) loadingPercentage.innerText = value + "%";
+    }
+
+    // The browser fires this ONLY when all images/assets are 100% downloaded
+    window.addEventListener("load", () => {
+        clearInterval(loadingInterval);
+        
+        // Snap to 100%
+        updateLoader(100);
+        document.getElementById("loading-status").innerText = "SYSTEMS ONLINE";
+        document.getElementById("loading-status").style.color = "#1cf843";
+
+        // Wait half a second so the user registers the 100%, then fade out
+        setTimeout(() => {
+            loadingScreen.classList.add("fade-out-loader");
+        }, 500);
+    });
+});
+
 // 🔥 UI ANIMATION ENGINE (Makes the menu characters walk!)
 let menuFrame = 0;
 setInterval(() => {
@@ -434,8 +471,10 @@ function createMonitor(id, label, contentHTML) {
             </div>
             <div class="hardware-controls">
                 <div class="hw-logo">IBEX // ${label}</div>
+                <div style="display: flex; align-items: center; gap: 15px; margin-left: auto;">
                 <div class="led-indicator"></div>
                 <button class="desk-btn btn-red" onclick="closeAllMonitors()">PWR</button>
+            </div>
             </div>
         `;
     document.getElementById('app-wrapper').appendChild(div);
@@ -471,25 +510,48 @@ createMonitor("mon-web", "WEBSITE", `<iframe src="https://goibex.it" style="widt
 createMonitor("mon-security", "SECURITY", `<div class="retro-wrapper"><div class="retro-title">RESTRICTED AREA // PASSWORD REQUIRED</div><div id="security-content" style="flex-grow: 1; position: relative;"></div></div>`);
 
 window.toggleMonitor = function (targetId) {
-    document.querySelectorAll('.monitor-overlay').forEach(m => m.classList.remove('is-centered'));
-
     const target = document.getElementById(targetId);
-    if (target) target.classList.add('is-centered');
 
-    if (targetId === 'mon-security' && !document.getElementById('hack-container-id')) startHackingGame();
+    // Check if the monitor we just clicked is ALREADY open
+    const isAlreadyOpen = target && target.classList.contains('is-centered');
 
-    if (targetId === 'mon-terminal') {
-        if (document.getElementById('build-grid-container').innerHTML.trim() === '') window.populateBuildGrid();
-        if (currentBuildIndex !== -1) {
-            document.getElementById('deploy-btn').classList.remove('disabled');
-            document.getElementById('fabrication-status').innerText = `STATUS: READY TO DEPLOY`;
+    // 1. Close all monitors & turn off all button lights
+    document.querySelectorAll('.monitor-overlay').forEach(m => m.classList.remove('is-centered'));
+    document.querySelectorAll('.desk-btn').forEach(btn => btn.classList.remove('active-monitor'));
+
+    // 2. If it wasn't already open, open it and run its logic!
+    if (target && !isAlreadyOpen) {
+        target.classList.add('is-centered');
+
+        // 🔥 THE FIX: Removed "window." so it doesn't crash the hacking game!
+        if (targetId === 'mon-security' && !document.getElementById('hack-container-id')) {
+            startHackingGame(); 
+        }
+
+        if (targetId === 'mon-terminal') {
+            if (document.getElementById('build-grid-container').innerHTML.trim() === '') window.populateBuildGrid();
+            if (typeof currentBuildIndex !== 'undefined' && currentBuildIndex !== -1) {
+                const deployBtn = document.getElementById('deploy-btn');
+                if (deployBtn) deployBtn.classList.remove('disabled');
+                const statusLabel = document.getElementById('fabrication-status');
+                if (statusLabel) statusLabel.innerText = `STATUS: READY TO DEPLOY`;
+            }
+        }
+
+        // 3. Light up the specific button safely
+        try {
+            const activeBtn = document.querySelector(`.desk-btn[onclick*="${targetId}"]`);
+            if (activeBtn) activeBtn.classList.add('active-monitor');
+        } catch (error) {
+            // Fails silently without breaking the rest of your game if a button isn't found
+            console.warn("Could not find button for " + targetId);
         }
     }
 };
-
 window.closeAllMonitors = function () {
     document.querySelectorAll('.monitor-overlay').forEach(m => m.classList.remove('is-centered'));
     document.querySelectorAll('.hack-row').forEach(row => { row.style.visibility = 'visible'; row.style.pointerEvents = 'auto'; });
+    document.querySelectorAll('.desk-btn').forEach(btn => btn.classList.remove('active-monitor'));
 };
 
 // --- 6. SANDBOX BUILDER ---
