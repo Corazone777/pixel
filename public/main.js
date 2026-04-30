@@ -88,24 +88,36 @@ function spawnMultiplayerWorker(gridX, gridY, isGhost, characterId = 'male_char'
     return worker;
 }
 
-window.checkCollision = function(nextX, nextY) {
+window.checkCollision = function (nextX, nextY) {
     if (!entityLayer || !entityLayer.children) return false;
 
     for (let i = 0; i < entityLayer.children.length; i++) {
         const entity = entityLayer.children[i];
 
-        // Skip player, objects without the hitbox we just saved, or dragging items
-        if (entity === window.myLocalWorker || !entity.hitbox || entity.isDragging) continue;
+        // 🛑 THE ULTIMATE IGNORE LIST (Banner & multiplayer ghosts)
+        if (
+            entity === window.myLocalWorker ||
+            !entity.hitbox ||
+            entity.isDragging ||
+            entity.type === 'banner' ||
+            entity.id === 'banner' ||
+            entity.isPlayableCharacter
+        ) {
+            continue;
+        }
 
-        // Calculate grid boundaries
+        // 🔥 YOUR ORIGINAL BOX MATH (Perfectly aligned with your catalog)
         const left = entity.gridX + entity.hitbox.x;
         const right = left + entity.hitbox.w;
         const top = entity.gridY + entity.hitbox.y;
         const bottom = top + entity.hitbox.h;
 
-        // If player's next step is inside the box, block movement
-        if (nextX >= left && nextX <= right && nextY >= top && nextY <= bottom) {
-            return true; 
+        // We give the player's coordinate a tiny 0.2 "thickness" on the floor
+        const padding = 0.2;
+
+        if (nextX + padding >= left && nextX - padding <= right &&
+            nextY + padding >= top && nextY - padding <= bottom) {
+            return true;
         }
     }
     return false;
@@ -996,20 +1008,45 @@ PIXI.Assets.load(allAssetsToLoad).then((textures) => {
         if (window.selectedEntity && !window.selectedEntity.destroyed) {
 
             window.selectedEntity.updateTransform();
-            const b = window.selectedEntity.getBounds();
+
+            let bx, by, bw, bh;
+
+            // 🔥 THE FIX: Use the precise hitArea to calculate the box size instead of visual bounds
+            if (window.selectedEntity.hitArea && window.selectedEntity.hitArea instanceof PIXI.Rectangle) {
+                const ha = window.selectedEntity.hitArea;
+                const wt = window.selectedEntity.worldTransform;
+
+                // Map the local hitArea corners to global screen coordinates
+                const tlX = wt.a * ha.x + wt.c * ha.y + wt.tx;
+                const tlY = wt.b * ha.x + wt.d * ha.y + wt.ty;
+                const brX = wt.a * (ha.x + ha.width) + wt.c * (ha.y + ha.height) + wt.tx;
+                const brY = wt.b * (ha.x + ha.width) + wt.d * (ha.y + ha.height) + wt.ty;
+
+                bx = Math.min(tlX, brX);
+                by = Math.min(tlY, brY);
+                bw = Math.abs(brX - tlX);
+                bh = Math.abs(brY - tlY);
+            } else {
+                // Fallback to standard visual bounds if no custom rectangular hitbox exists
+                const b = window.selectedEntity.getBounds();
+                bx = b.x;
+                by = b.y;
+                bw = b.width;
+                bh = b.height;
+            }
 
             // Prevent the "0-size glitch" when dropping items
-            if (b.width < 10 || b.height < 10) {
+            if (bw < 10 || bh < 10) {
                 htmlBox.style.display = 'none';
                 htmlMenu.style.display = 'none';
                 return;
             }
 
             const pad = 10;
-            const bx = b.x - pad;
-            const by = b.y - pad;
-            const bw = b.width + (pad * 2);
-            const bh = b.height + (pad * 2);
+            bx = bx - pad;
+            by = by - pad;
+            bw = bw + (pad * 2);
+            bh = bh + (pad * 2);
 
             // 🟩 MAP THE HTML BOX
             htmlBox.style.display = 'block';
@@ -1205,16 +1242,28 @@ window.addEventListener('load', () => {
     const joinBtn = document.getElementById('join-game-btn');
     if (joinBtn) {
         joinBtn.addEventListener('click', () => {
-            // 🔥 Automatically generate the name instead of looking for an input
-            const finalName = generateRandomFactoryName();
+
+            // 🔥 THE FIX: Remember our name across page refreshes!
+            let finalName = sessionStorage.getItem('ibex_playerName');
+            if (!finalName) {
+                finalName = generateRandomFactoryName();
+                sessionStorage.setItem('ibex_playerName', finalName);
+            }
 
             // Hide the screen
             document.getElementById('character-selection').style.display = 'none';
 
-            // 🔥 NOW WE CONNECT TO THE SERVER
+            // NOW WE CONNECT TO THE SERVER
             connectToServer(chosenCharId, finalName);
         });
     }
+
+    // 🔥 THE FIX: Instantly kill the connection when you hit the refresh button
+    window.addEventListener('beforeunload', () => {
+        if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+            window.ws.close();
+        }
+    });
 
     // 3. The Deferred Network Engine
     function connectToServer(charId, playerName) {
@@ -1236,21 +1285,24 @@ window.addEventListener('load', () => {
             if (msg.type === 'currentPlayers') {
                 for (let id in msg.payload) {
                     const p = msg.payload[id];
-                    if (!window.networkPlayers[id] && id !== window.ws.url) {
-                        // 🔥 2. Spawn ghosts with THEIR chosen avatar and name
+                    // 🔥 THE FIX: Don't spawn a ghost if the incoming name is OUR name!
+                    if (!window.networkPlayers[id] && p.name !== playerName) {
                         window.networkPlayers[id] = spawnMultiplayerWorker(p.gridX, p.gridY, true, p.avatar, p.name);
                     }
                 }
             }
             else if (msg.type === 'playerJoined') {
                 const p = msg.payload;
-                if (!window.networkPlayers[p.id]) {
+                // 🔥 THE FIX: Ignore the server echoing our own join event!
+                if (!window.networkPlayers[p.id] && p.name !== playerName) {
                     window.networkPlayers[p.id] = spawnMultiplayerWorker(p.gridX, p.gridY, true, p.avatar, p.name);
                 }
             }
             else if (msg.type === 'playerMoved') {
                 const p = msg.payload;
                 let ghost = window.networkPlayers[p.id];
+
+                // If it's us, "ghost" will be undefined, and it will safely do nothing!
                 if (ghost) {
                     const newPos = toIso(p.gridX, p.gridY);
                     ghost.gridX = p.gridX;
@@ -1258,14 +1310,14 @@ window.addEventListener('load', () => {
                     ghost.x = newPos.x;
                     ghost.y = newPos.y - (ghost.elevation || 0);
 
-                    // 🔥 3. Trigger the ghost's animation and rotation!
+                    // Trigger the ghost's animation and rotation
                     updateWorkerAnimation(ghost, p.dir || 'south-east', 'walking');
 
                     // Reset the idle timer for the ghost
                     if (ghost.idleTimer) clearTimeout(ghost.idleTimer);
                     ghost.idleTimer = setTimeout(() => {
                         if (!ghost.destroyed) updateWorkerAnimation(ghost, p.dir || 'south-east', 'idle');
-                    }, 300); // If no move for 300ms, they go idle
+                    }, 300);
                 }
             }
             else if (msg.type === 'playerLeft') {
@@ -1379,16 +1431,21 @@ window.addEventListener('load', () => {
                 let nextX = window.myLocalWorker.gridX + dx;
                 let nextY = window.myLocalWorker.gridY + dy;
 
-                // Only update position if the new spot is NOT blocked
-                if (!window.checkCollision(nextX, nextY)) {
-                    window.myLocalWorker.baseX = nextX;
-                    window.myLocalWorker.baseY = nextY;
-                } else {
-                    // Optional: Do nothing (stops the player)
-                    console.log("Collision detected!");
+                // Test X and Y independently for "wall sliding"
+                let canMoveX = !window.checkCollision(nextX, window.myLocalWorker.gridY);
+                let canMoveY = !window.checkCollision(window.myLocalWorker.gridX, nextY);
+
+                // Diagonal Corner-Clipping Protection
+                if (canMoveX && canMoveY) {
+                    if (window.checkCollision(nextX, nextY)) {
+                        canMoveX = false;
+                        canMoveY = false;
+                    }
                 }
 
-                // 2. 🔥 THE WALLS: 0,0 is the center, so boundaries go into the negatives!
+                if (!canMoveX) nextX = window.myLocalWorker.gridX;
+                if (!canMoveY) nextY = window.myLocalWorker.gridY;
+
                 const MIN_GRID_X = -14;
                 const MAX_GRID_X = 10;
                 const MIN_GRID_Y = -14;
@@ -1399,7 +1456,7 @@ window.addEventListener('load', () => {
                 if (nextY < MIN_GRID_Y) nextY = MIN_GRID_Y;
                 if (nextY > MAX_GRID_Y) nextY = MAX_GRID_Y;
 
-                // 3. Apply the approved, safe coordinates
+                // 3. Apply the approved, safe coordinates to the live character
                 window.myLocalWorker.gridX = nextX;
                 window.myLocalWorker.gridY = nextY;
 
