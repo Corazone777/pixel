@@ -79,6 +79,7 @@ function spawnMultiplayerWorker(gridX, gridY, isGhost, characterId = 'male_char'
     if (worker) {
         worker.isMultiplayer = true;
         worker.playerName = playerName;
+        //worker.interactive = false; 
 
         // 🔥 1. Build the sleek HTML Name Tag
         const nameTag = document.createElement('div');
@@ -113,9 +114,16 @@ function spawnMultiplayerWorker(gridX, gridY, isGhost, characterId = 'male_char'
     if (!isGhost && worker) {
         worker.isRealPlayer = true;
         worker.id = 'multiplayer-human';
+        
+        // 🔥 BRUTE FORCE INTERACTIVITY OFF
+        worker.interactive = false; 
+        worker.interactiveChildren = false; // Prevents hitboxes inside the worker from blocking
+        worker.hitArea = new PIXI.Rectangle(0, 0, 0, 0); // Shrinks hitbox to nothing
+        
     } else if (isGhost && worker) {
         worker.alpha = 0.5;
         worker.interactive = false;
+        worker.interactiveChildren = false;
         worker.removeAllListeners();
     }
 
@@ -1832,5 +1840,148 @@ document.addEventListener('DOMContentLoaded', () => {
             window.keys.a = dx < -deadzone;
             window.keys.d = dx > deadzone;
         }
+    }
+});
+
+
+
+// ==========================================
+// PURE PIXI ISOMETRIC FLOOR D-PAD
+// ==========================================
+window.isoDpadContainer = null;
+
+function setupIsometricDpad(baseStage, playerReference) {
+    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (!isTouchDevice) return;
+
+    const floorUiLayer = new PIXI.Container();
+    if (typeof entityLayer !== 'undefined') {
+        baseStage.addChildAt(floorUiLayer, baseStage.getChildIndex(entityLayer));
+    } else {
+        baseStage.addChild(floorUiLayer);
+    }
+
+    window.isoDpadContainer = new PIXI.Container();
+    floorUiLayer.addChild(window.isoDpadContainer);
+
+    window.isoDpadContainer.scale.y = 0.5;
+
+    // 🔥 1. INCREASED RADIUS: Pushes the arrows further away from the character's feet
+    const radius = 160; 
+
+    const directions = [
+        { id: 'n',  angle: 0 },   
+        { id: 'ne', angle: 45 },  
+        { id: 'e',  angle: 90 },  
+        { id: 'se', angle: 135 }, 
+        { id: 's',  angle: 180 }, 
+        { id: 'sw', angle: 225 }, 
+        { id: 'w',  angle: 270 }, 
+        { id: 'nw', angle: 315 }  
+    ];
+
+    directions.forEach(dir => {
+        const arrowGroup = new PIXI.Container();
+
+        const arrow = new PIXI.Graphics();
+        
+        // 🔥 2. THICKER, BRIGHTER ARROWS
+        arrow.beginFill(0x1cf843, 0.4); 
+        arrow.lineStyle(3, 0x1cf843, 1.0); // Thicker outline
+        
+        // Redesigned chunky coordinates
+        arrow.moveTo(0, -30);   // Tip
+        arrow.lineTo(25, -5);   // Right wing
+        arrow.lineTo(12, -5);   // Inner right corner
+        arrow.lineTo(12, 25);   // Bottom right stem
+        arrow.lineTo(-12, 25);  // Bottom left stem
+        arrow.lineTo(-12, -5);  // Inner left corner
+        arrow.lineTo(-25, -5);  // Left wing
+        arrow.closePath();
+        arrow.endFill();
+
+        // 🔥 3. MASSIVE FAT-FINGER HITBOX
+        const hitArea = new PIXI.Graphics();
+        hitArea.beginFill(0xFF0000, 0.001); // Invisible
+        // Made the clickable circle 65px wide, and offset it slightly outward
+        hitArea.drawCircle(0, -10, 65); 
+        hitArea.endFill();
+
+        arrowGroup.addChild(hitArea);
+        arrowGroup.addChild(arrow);
+
+        const rad = dir.angle * (Math.PI / 180);
+        arrowGroup.x = Math.sin(rad) * radius;
+        arrowGroup.y = -Math.cos(rad) * radius; 
+        
+        arrowGroup.rotation = rad;
+
+        arrowGroup.interactive = true;
+        arrowGroup.buttonMode = true;
+        arrowGroup.dirId = dir.id;
+        
+        arrowGroup.pressDown = () => {
+            arrow.alpha = 1;
+            arrow.tint = 0xFFFFFF; 
+        };
+        arrowGroup.pressUp = () => {
+            arrow.alpha = 1;
+            arrow.tint = 0xFFFFFF; 
+        };
+
+        arrowGroup.on('touchstart', onArrowDown);
+        arrowGroup.on('touchend', onArrowUp);
+        arrowGroup.on('touchendoutside', onArrowUp);
+        arrowGroup.on('touchcancel', onArrowUp);
+
+        window.isoDpadContainer.addChild(arrowGroup);
+    });
+}
+
+// ==========================================
+// Interaction Logic (Connects Floor to character)
+// ==========================================
+function onArrowDown(e) {
+    this.pressDown();
+    const dir = this.dirId;
+    
+    window.keys = window.keys || {};
+    window.keys.w = false; window.keys.s = false; window.keys.a = false; window.keys.d = false;
+
+    // 🔥 Translating Visual Direction to your Isometric WASD Engine 🔥
+    if (dir === 'n') { window.keys.w = true; window.keys.a = true; } // UP
+    else if (dir === 's') { window.keys.s = true; window.keys.d = true; } // DOWN
+    else if (dir === 'e') { window.keys.w = true; window.keys.d = true; } // RIGHT
+    else if (dir === 'w') { window.keys.s = true; window.keys.a = true; } // LEFT
+    else if (dir === 'nw') { window.keys.a = true; } // UP-LEFT
+    else if (dir === 'ne') { window.keys.w = true; } // UP-RIGHT
+    else if (dir === 'sw') { window.keys.s = true; } // DOWN-LEFT
+    else if (dir === 'se') { window.keys.d = true; } // DOWN-RIGHT
+}
+
+function onArrowUp(e) {
+    this.pressUp();
+    if (!window.keys) return;
+    
+    // Stop all movement when lifting finger
+    window.keys.w = false;
+    window.keys.s = false;
+    window.keys.a = false;
+    window.keys.d = false;
+}
+
+// ==========================================
+// Initialize and Update
+// ==========================================
+// 1. Call this immediately after app initialization
+setupIsometricDpad(app.stage, window.myLocalWorker);
+
+// 2. Add to your Game Loop (app.ticker.add)
+app.ticker.add(() => {
+    if (window.myLocalWorker && window.isoDpadContainer) {
+        // Snap the container to the player's feet
+        window.isoDpadContainer.x = window.myLocalWorker.x;
+        // Ignore the elevation so the arrows stay glued to the floor when bouncing
+        window.isoDpadContainer.y = window.myLocalWorker.y + (window.myLocalWorker.elevation || 0); 
     }
 });
