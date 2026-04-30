@@ -46,6 +46,13 @@
 
     <div id="app-wrapper">
 
+        <div id="joystick-zone">
+            <div id="joystick-base">
+                <div id="joystick-knob"></div>
+            </div>
+        </div>
+
+        <button class="holo-toggle-btn" id="holo-toggle-btn">?</button>
         <div class="holo-panel" id="holo-panel">
             <div class="holo-title">What is your corporate landscape?</div>
             <img src="static_assets/IBEX.svg" alt="IBEX Logo" class="holo-logo">
@@ -100,7 +107,7 @@
             <button class="ctx-btn btn-red" onclick="deleteSelectedAsset()">[X] DELETE</button>
         </div>
         <div id="build-flash"></div>
-        <div id="ui-panel">
+        <div id="ui-panel" style="display: none;">
             <div class="panel-title">Active Entity Position</div>
             <div class="panel-data" id="coords-display">X: -- | Y: --</div>
         </div>
@@ -116,7 +123,15 @@
             </div>
         </div>
 
-        <button id="btn-export" onclick="captureFactoryScreenshot()">BLUEPRINT</button>
+        <button id="btn-export" onclick="captureFactoryScreenshot()" aria-label="Take Blueprint Screenshot">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="camera-icon">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z">
+                </path>
+                <circle cx="12" cy="13" r="3"></circle>
+            </svg>
+        </button>
     </div>
 
 

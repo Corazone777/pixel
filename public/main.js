@@ -47,7 +47,7 @@ setInterval(() => {
     }
 }, 150); // 150ms per frame
 
-// 🔥 UPDATED MULTIPLAYER SPAWNER (WITH HTML NAME TAGS)
+//UPDATED MULTIPLAYER SPAWNER (WITH HTML NAME TAGS)
 function spawnMultiplayerWorker(gridX, gridY, isGhost, characterId = 'male_char', playerName = 'Unknown') {
     const item = BUILD_CATALOG.find(i => i.id === characterId);
     if (!item) return null;
@@ -294,9 +294,6 @@ const BUILD_CATALOG = [
         hasRotation: false, thumb: 'static_assets/conference.png', textureData: 'static_assets/conference.png',
         hitbox: { x: -0.3, y: -0.8, w: 0.6, h: 0.8 }
     },
-
-
-
 ];
 
 let isAnimating = true;
@@ -1352,7 +1349,7 @@ window.addEventListener('load', () => {
                 payload: { name: playerName, avatar: charId }
             }));
 
-            window.myLocalWorker = spawnMultiplayerWorker(0, 0, false, charId, playerName);
+            window.myLocalWorker = spawnMultiplayerWorker(-1, 3, false, charId, playerName);
         };
 
         window.ws.onmessage = (event) => {
@@ -1488,6 +1485,7 @@ window.addEventListener('load', () => {
             let dx = 0;
             let dy = 0;
 
+            // Capture input exactly as you originally had it
             if (window.keys.w) dy -= MOVEMENT_SPEED;
             if (window.keys.s) dy += MOVEMENT_SPEED;
             if (window.keys.a) dx -= MOVEMENT_SPEED;
@@ -1507,32 +1505,23 @@ window.addEventListener('load', () => {
                 let nextX = window.myLocalWorker.gridX + dx;
                 let nextY = window.myLocalWorker.gridY + dy;
 
-                // Test X and Y independently for "wall sliding"
-                let canMoveX = !window.checkCollision(nextX, window.myLocalWorker.gridY);
-                let canMoveY = !window.checkCollision(window.myLocalWorker.gridX, nextY);
+                // 2. Test X and Y independently using the NEW boundary function
+                let canMoveX = window.isWalkable(nextX, window.myLocalWorker.gridY);
+                let canMoveY = window.isWalkable(window.myLocalWorker.gridX, nextY);
 
-                // Diagonal Corner-Clipping Protection
+                // 3. Diagonal Corner-Clipping Protection (Exactly as you originally had it)
                 if (canMoveX && canMoveY) {
-                    if (window.checkCollision(nextX, nextY)) {
+                    if (!window.isWalkable(nextX, nextY)) {
                         canMoveX = false;
                         canMoveY = false;
                     }
                 }
 
+                // 4. Hold coordinates if blocked
                 if (!canMoveX) nextX = window.myLocalWorker.gridX;
                 if (!canMoveY) nextY = window.myLocalWorker.gridY;
 
-                const MIN_GRID_X = -22;
-                const MAX_GRID_X = 15;
-                const MIN_GRID_Y = -22;
-                const MAX_GRID_Y = 18;
-
-                if (nextX < MIN_GRID_X) nextX = MIN_GRID_X;
-                if (nextX > MAX_GRID_X) nextX = MAX_GRID_X;
-                if (nextY < MIN_GRID_Y) nextY = MIN_GRID_Y;
-                if (nextY > MAX_GRID_Y) nextY = MAX_GRID_Y;
-
-                // 3. Apply the approved, safe coordinates to the live character
+                // 5. Apply the approved, safe coordinates to the live character
                 window.myLocalWorker.gridX = nextX;
                 window.myLocalWorker.gridY = nextY;
 
@@ -1541,6 +1530,7 @@ window.addEventListener('load', () => {
                 window.myLocalWorker.y = pos.y - (window.myLocalWorker.elevation || 0);
 
                 // 🔥 THE 8-WAY ISOMETRIC COMPASS
+                // Exactly as it was in your working commit!
                 if (dx < 0 && dy < 0) newDir = 'north';               // W + A (Up)
                 else if (dx > 0 && dy > 0) newDir = 'south';          // S + D (Down)
                 else if (dx > 0 && dy < 0) newDir = 'east';           // W + D (Right)
@@ -1550,7 +1540,7 @@ window.addEventListener('load', () => {
                 else if (dx < 0) newDir = 'north-west';               // A Only
                 else if (dx > 0) newDir = 'south-east';               // D Only
 
-                // Play walking animation
+                // Play walking animation (Letting THIS function handle the state!)
                 updateWorkerAnimation(window.myLocalWorker, newDir, 'walking');
 
                 // Throttle Network Broadcasts
@@ -1567,7 +1557,6 @@ window.addEventListener('load', () => {
                 // Play idle animation facing the last direction they moved
                 updateWorkerAnimation(window.myLocalWorker, newDir, 'idle');
             }
-
 
             // ==========================================
             // B. CAMERA FOLLOW
@@ -1614,6 +1603,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const roiSavings = document.getElementById('roi-savings');
     const roiHires = document.getElementById('roi-hires');
     const roiHours = document.getElementById('roi-hours');
+
+    // --- TOGGLE BUTTON LOGIC ---
+    const toggleBtn = document.getElementById('holo-toggle-btn');
+    const holoPanel = document.getElementById('holo-panel');
+
+    toggleBtn.addEventListener('click', () => {
+        // Toggle the active class on the panel
+        const isActive = holoPanel.classList.toggle('panel-active');
+
+        // Switch the text between '?' and '×' (a clean multiplication sign for close)
+        if (isActive) {
+            toggleBtn.innerHTML = '&times;';
+            toggleBtn.style.color = '#ff4444'; // Optional: turn red when open
+            toggleBtn.style.borderColor = '#ff4444';
+        } else {
+            toggleBtn.innerHTML = '?';
+            toggleBtn.style.color = '#1cf843'; // Back to IBEX green
+            toggleBtn.style.borderColor = 'rgba(28, 248, 67, 0.4)';
+        }
+    });
 
     function calculateROI() {
         const fteCount = parseFloat(fteInput.value) || 0;
@@ -1740,4 +1749,81 @@ document.addEventListener('DOMContentLoaded', () => {
             option.classList.add('active');
         });
     });
+});
+
+
+
+// ==========================================
+// VIRTUAL JOYSTICK CONTROLLER
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Check for touch capabilities
+    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+    if (isTouchDevice) {
+        const zone = document.getElementById('joystick-zone');
+        const base = document.getElementById('joystick-base');
+        const knob = document.getElementById('joystick-knob');
+        
+        zone.style.display = 'block'; // Reveal joystick
+
+        let stickActive = false;
+        let originX = 0;
+        let originY = 0;
+        const maxDist = 40; // How far the knob can travel
+        const deadzone = 15; // How far you have to push before character walks
+
+        // 2. Start Touch
+        base.addEventListener('touchstart', (e) => {
+            stickActive = true;
+            knob.style.transition = 'none'; // Remove snap-back transition while dragging
+            
+            const rect = base.getBoundingClientRect();
+            originX = rect.left + rect.width / 2;
+            originY = rect.top + rect.height / 2;
+            
+            handleMove(e.touches[0]);
+        }, { passive: false });
+
+        // 3. Dragging
+        zone.addEventListener('touchmove', (e) => {
+            if (!stickActive) return;
+            e.preventDefault(); // Stops the browser from refreshing/scrolling
+            handleMove(e.touches[0]);
+        }, { passive: false });
+
+        // 4. Release Touch
+        zone.addEventListener('touchend', () => {
+            stickActive = false;
+            knob.style.transition = 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            knob.style.transform = `translate(0px, 0px)`;
+            
+            // Instantly stop all movement
+            window.keys.w = false;
+            window.keys.a = false;
+            window.keys.s = false;
+            window.keys.d = false;
+        });
+
+        // 5. The Math: Translating Touch to WASD
+        function handleMove(touch) {
+            let dx = touch.clientX - originX;
+            let dy = touch.clientY - originY;
+            
+            // Constrain knob inside the base
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > maxDist) {
+                dx = (dx / dist) * maxDist;
+                dy = (dy / dist) * maxDist;
+            }
+            
+            knob.style.transform = `translate(${dx}px, ${dy}px)`;
+
+            // 🔥 The Magic: Map joystick angle to your existing WASD keys
+            window.keys.w = dy < -deadzone;
+            window.keys.s = dy > deadzone;
+            window.keys.a = dx < -deadzone;
+            window.keys.d = dx > deadzone;
+        }
+    }
 });

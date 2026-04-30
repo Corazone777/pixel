@@ -1205,21 +1205,17 @@
       ========================================== */
 
    #monitor-screen-capture {
-       flex-grow: 1;
-       position: relative;
-       background-color: #000;
-       overflow: hidden;
        display: flex;
-       align-items: center;
        justify-content: center;
+       align-items: center;
+       overflow: hidden;
+       position: relative;
    }
 
    .capture-result {
-       position: absolute;
-       width: 100%;
-       height: 100%;
+       max-width: 100%;
+       max-height: 100%;
        object-fit: contain;
-       z-index: 1;
    }
 
    .monitor-screen-ui {
@@ -1286,8 +1282,6 @@
        background: rgba(11, 12, 16, 0.85);
        color: #e0e0e0;
        border: 1px solid rgba(28, 248, 67, 0.3);
-       border-radius: 4px;
-       padding: 10px 24px;
        font-family: 'Courier New', Courier, monospace;
        font-size: 13px;
        letter-spacing: 1.5px;
@@ -1297,6 +1291,24 @@
        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
        backdrop-filter: blur(10px);
        -webkit-backdrop-filter: blur(10px);
+
+       display: flex;
+       justify-content: center;
+       align-items: center;
+
+       width: 50px;
+       /* Adjust this to make the button bigger or smaller */
+       height: 50px;
+       /* Must exactly match the width! */
+       border-radius: 50%;
+       /* The magic line that makes it round */
+       padding: 0;
+
+   }
+
+   #btn-export:hover .camera-icon {
+       transform: scale(1.1);
+       transition: transform 0.2s ease;
    }
 
    #btn-export:hover {
@@ -1380,247 +1392,377 @@
        border-radius: 4px;
    }
 
-/* --- HOLO PANEL: MAIN CONTAINER --- */
-.holo-panel {
-    /* Positioned 20px above your 80px control desk */
-    position: absolute;
-    bottom: 100px; 
-    left: 20px;
-    z-index: 9001;
+   /* --- THE TOGGLE BUTTON --- */
+   .holo-toggle-btn {
+       position: absolute;
+       bottom: 100px;
+       /* Same base height as the panel was */
+       right: 20px;
+       z-index: 9002;
+       /* Must be higher than the panel */
 
-    width: 400px;
-    padding: 24px;
-    background: rgba(10, 10, 10, 0.8);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    
-    border: 1px solid rgba(28, 248, 67, 0.2); /* Subtle IBEX Green border */
-    border-radius: 16px;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 
-                inset 0 0 15px rgba(28, 248, 67, 0.05);
-    
-    color: #ffffff;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    user-select: none;
-    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-}
+       width: 44px;
+       height: 44px;
+       border-radius: 50%;
 
-/* --- TITLE STYLING --- */
-.holo-title {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 20px;
-    color: #f0f0f0;
-    letter-spacing: -0.2px;
-}
+       /* Glassmorphism to match */
+       background: rgba(10, 10, 10, 0.8);
+       backdrop-filter: blur(10px);
+       border: 1px solid rgba(28, 248, 67, 0.4);
 
-.holo-logo {
-    display: block;          /* Allows margin auto to work */
-    margin-left: auto;       /* Push from left */
-    margin-right: auto;      /* Push from right (perfectly centered) */
-    
-    /* Optional: Add spacing above and below the logo */
-    margin-top: 15px;
-    margin-bottom: 25px;
-    
-    /* Optional: Ensure it doesn't get too big */
-    max-width: 150px; 
-    height: auto;
-}
+       color: #1cf843;
+       font-size: 20px;
+       font-weight: bold;
+       font-family: 'Inter', sans-serif;
+       cursor: pointer;
 
-/* --- LANDSCAPE SLIDER (Small/Medium/Large) --- */
-.landscape-slider {
-    display: flex;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    padding: 4px;
-    margin-bottom: 20px;
-    position: relative;
-    gap: 4px;
-}
+       display: flex;
+       justify-content: center;
+       align-items: center;
 
-.slider-option {
-    flex: 1;
-    text-align: center;
-    padding: 8px 0;
-    font-size: 13px;
-    color: #888;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-radius: 6px;
-    font-weight: 500;
-}
+       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5),
+           inset 0 0 10px rgba(28, 248, 67, 0.1);
+       transition: all 0.3s ease;
+   }
 
-.slider-option:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.05);
-}
+   .holo-toggle-btn:hover {
+       background: rgba(28, 248, 67, 0.15);
+       box-shadow: 0 4px 20px rgba(28, 248, 67, 0.4);
+       transform: scale(1.05);
+   }
 
-.slider-option.active {
-    background: #1cf843;
-    color: #000;
-    font-weight: 700;
-    box-shadow: 0 2px 10px rgba(28, 248, 67, 0.4);
-}
+   .holo-panel {
+       position: fixed;
+       bottom: 155px;
+       right: 20px;
+       /* 🔥 Moved to the right */
+       z-index: 9001;
 
-/* --- DISABLED CHECKBOX ITEM --- */
-.disabled-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 8px;
-    border: 1px dashed rgba(255, 255, 255, 0.1);
-    opacity: 0.5;
-}
+       width: 400px;
+       padding: 24px;
+       background: rgba(10, 10, 10, 0.8);
+       backdrop-filter: blur(15px);
+       -webkit-backdrop-filter: blur(15px);
 
-.disabled-checkbox {
-    width: 16px;
-    height: 16px;
-    border: 2px solid #666;
-    border-radius: 3px;
-    position: relative;
-}
+       border: 1px solid rgba(28, 248, 67, 0.2);
+       border-radius: 16px;
+       box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6),
+           inset 0 0 15px rgba(28, 248, 67, 0.05);
 
-/* Add a fake checkmark */
-.disabled-checkbox::after {
-    content: '✓';
-    position: absolute;
-    top: -4px;
-    left: 1px;
-    font-size: 14px;
-    color: #666;
-}
+       color: #ffffff;
+       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+       user-select: none;
 
-.disabled-item-text {
-    font-size: 12px;
-    line-height: 1.4;
-    color: #aaa;
-}
+       /* Animation & Visibility Setup */
+       opacity: 0;
+       pointer-events: none;
 
-/* --- INPUT SECTION (FTEs & Budget) --- */
-.fte-section {
-    margin-bottom: 5px;
-}
+       /* 🔥 Changed origin to bottom right so it grows out of the button */
+       transform: translateY(20px) scale(0.9);
+       transform-origin: bottom right;
+       transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
 
-.fte-row {
-    display: flex;
-    gap: 15px;
-}
+       /* CRT Overlay masking */
+       overflow: hidden;
+   }
 
-.fte-col {
-    flex: 1;
-}
+   /* Ensure the active state is still working */
+   .holo-panel.panel-active {
+       opacity: 1;
+       pointer-events: auto;
+       transform: translateY(0) scale(1);
+   }
 
-.fte-label {
-    font-size: 10px;
-    font-weight: 800;
-    text-transform: uppercase;
-    color: #1cf843;
-    letter-spacing: 1px;
-    margin-bottom: 8px;
-    opacity: 0.8;
-}
+   .holo-panel::after {
+       content: '';
+       position: absolute;
+       top: 0;
+       left: 0;
+       right: 0;
+       bottom: 0;
+       z-index: 9999;
+       /* Keeps it on top of the text/inputs */
+       pointer-events: none;
+       /* CRITICAL: Lets you click the inputs through the overlay */
 
-.fte-input {
-    width: 100%;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 12px;
-    color: #fff;
-    font-size: 14px;
-    outline: none;
-    box-sizing: border-box;
-    transition: border-color 0.3s;
-}
+       /* Your brilliant RGB Phosphor & Scanline Gradients */
+       background:
+           linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%),
+           linear-gradient(90deg, rgba(255, 0, 0, 0.08), rgba(0, 255, 0, 0.04), rgba(0, 0, 255, 0.08));
+       background-size: 100% 4px, 6px 100%;
 
-.fte-input:focus {
-    border-color: #1cf843;
-}
+       /* A slightly smaller vignette for a UI card so the text stays readable */
+       box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
 
-/* Budget Input Wrapper (USD prefix/suffix) */
-.budget-wrap {
-    display: flex;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 0 10px;
-}
+       /* Add a tiny border radius fix so the overlay perfectly hugs the card corners */
+       border-radius: inherit;
+   }
 
-.budget-wrap .fte-input {
-    border: none;
-    padding: 12px 5px;
-}
+   /* --- TITLE STYLING --- */
+   .holo-title {
+       font-size: 16px;
+       font-weight: 600;
+       margin-bottom: 20px;
+       color: #f0f0f0;
+       letter-spacing: -0.2px;
+   }
 
-.currency-prefix, .currency-suffix {
-    font-size: 12px;
-    font-weight: 700;
-    color: #555;
-}
+   .holo-logo {
+       display: block;
+       /* Allows margin auto to work */
+       margin-left: auto;
+       /* Push from left */
+       margin-right: auto;
+       /* Push from right (perfectly centered) */
 
-/* --- ROI PANEL (Dynamic Reveal) --- */
-.roi-panel {
-    max-height: 0;
-    opacity: 0;
-    overflow: hidden;
-    transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1), 
-                opacity 0.4s ease, 
-                margin-top 0.4s ease;
-}
+       /* Optional: Add spacing above and below the logo */
+       margin-top: 15px;
+       margin-bottom: 25px;
 
-.roi-panel.visible {
-    max-height: 500px; /* Large enough for content */
-    opacity: 1;
-    margin-top: 25px;
-    padding-top: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
+       /* Optional: Ensure it doesn't get too big */
+       max-width: 150px;
+       height: auto;
+   }
 
-.roi-title {
-    font-size: 12px;
-    color: #888;
-    margin-bottom: 15px;
-}
+   /* --- LANDSCAPE SLIDER (Small/Medium/Large) --- */
+   .landscape-slider {
+       display: flex;
+       background: rgba(255, 255, 255, 0.05);
+       border: 1px solid rgba(255, 255, 255, 0.1);
+       border-radius: 10px;
+       padding: 4px;
+       margin-bottom: 20px;
+       position: relative;
+       gap: 4px;
+   }
 
-.roi-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 12px;
-}
+   .slider-option {
+       flex: 1;
+       text-align: center;
+       padding: 8px 0;
+       font-size: 13px;
+       color: #888;
+       cursor: pointer;
+       transition: all 0.2s ease;
+       border-radius: 6px;
+       font-weight: 500;
+   }
 
-.roi-stat {
-    text-align: left;
-}
+   .slider-option:hover {
+       color: #fff;
+       background: rgba(255, 255, 255, 0.05);
+   }
 
-.roi-stat-value {
-    font-size: 18px;
-    font-weight: 800;
-    color: #1cf843;
-    text-shadow: 0 0 10px rgba(28, 248, 67, 0.3);
-    margin-bottom: 2px;
-}
+   .slider-option.active {
+       background: #1cf843;
+       color: #000;
+       font-weight: 700;
+       box-shadow: 0 2px 10px rgba(28, 248, 67, 0.4);
+   }
 
-.roi-stat-label {
-    font-size: 10px;
-    color: #ccc;
-    font-weight: 600;
-    margin-bottom: 4px;
-}
+   /* --- DISABLED CHECKBOX ITEM --- */
+   .disabled-item {
+       display: flex;
+       align-items: center;
+       gap: 12px;
+       margin-bottom: 20px;
+       padding: 10px;
+       background: rgba(255, 255, 255, 0.03);
+       border-radius: 8px;
+       border: 1px dashed rgba(255, 255, 255, 0.1);
+       opacity: 0.5;
+   }
 
-.roi-stat-note {
-    font-size: 8px;
-    color: #666;
-    line-height: 1.2;
-}
+   .disabled-checkbox {
+       width: 16px;
+       height: 16px;
+       border: 2px solid #666;
+       border-radius: 3px;
+       position: relative;
+   }
 
-/* --- SCROLLBAR STYLING (For Number Inputs) --- */
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
+   /* Add a fake checkmark */
+   .disabled-checkbox::after {
+       content: '✓';
+       position: absolute;
+       top: -4px;
+       left: 1px;
+       font-size: 14px;
+       color: #666;
+   }
+
+   .disabled-item-text {
+       font-size: 12px;
+       line-height: 1.4;
+       color: #aaa;
+   }
+
+   /* --- INPUT SECTION (FTEs & Budget) --- */
+   .fte-section {
+       margin-bottom: 5px;
+   }
+
+   .fte-row {
+       display: flex;
+       gap: 15px;
+   }
+
+   .fte-col {
+       flex: 1;
+   }
+
+   .fte-label {
+       font-size: 10px;
+       font-weight: 800;
+       text-transform: uppercase;
+       color: #1ea737;
+       letter-spacing: 1px;
+       margin-bottom: 8px;
+       opacity: 0.8;
+   }
+
+   .fte-input {
+       width: 100%;
+       background: rgba(0, 0, 0, 0.3);
+       border: 1px solid rgba(255, 255, 255, 0.1);
+       border-radius: 8px;
+       padding: 12px;
+       color: #fff;
+       font-size: 14px;
+       outline: none;
+       box-sizing: border-box;
+       transition: border-color 0.3s;
+   }
+
+   .fte-input:focus {
+       border-color: #177b2a;
+   }
+
+   /* Budget Input Wrapper (USD prefix/suffix) */
+   .budget-wrap {
+       display: flex;
+       align-items: center;
+       background: rgba(0, 0, 0, 0.3);
+       border: 1px solid rgba(255, 255, 255, 0.1);
+       border-radius: 8px;
+       padding: 0 10px;
+   }
+
+   .budget-wrap .fte-input {
+       border: none;
+       padding: 12px 5px;
+   }
+
+   .currency-prefix,
+   .currency-suffix {
+       font-size: 12px;
+       font-weight: 700;
+       color: #555;
+   }
+
+   /* --- ROI PANEL (Dynamic Reveal) --- */
+   .roi-panel {
+       max-height: 0;
+       opacity: 0;
+       overflow: hidden;
+       transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+           opacity 0.4s ease,
+           margin-top 0.4s ease;
+   }
+
+   .roi-panel.visible {
+       max-height: 500px;
+       /* Large enough for content */
+       opacity: 1;
+       margin-top: 25px;
+       padding-top: 20px;
+       border-top: 1px solid rgba(255, 255, 255, 0.1);
+   }
+
+   .roi-title {
+       font-size: 12px;
+       color: #888;
+       margin-bottom: 15px;
+   }
+
+   .roi-grid {
+       display: grid;
+       grid-template-columns: 1fr 1fr 1fr;
+       gap: 12px;
+   }
+
+   .roi-stat {
+       text-align: left;
+   }
+
+   .roi-stat-value {
+       font-size: 18px;
+       font-weight: 800;
+       color: #109d29;
+       text-shadow: 0 0 10px rgba(28, 248, 67, 0.3);
+       margin-bottom: 2px;
+   }
+
+   .roi-stat-label {
+       font-size: 10px;
+       color: #ccc;
+       font-weight: 600;
+       margin-bottom: 4px;
+   }
+
+   .roi-stat-note {
+       font-size: 8px;
+       color: #666;
+       line-height: 1.2;
+   }
+
+   /* --- SCROLLBAR STYLING (For Number Inputs) --- */
+   input::-webkit-outer-spin-button,
+   input::-webkit-inner-spin-button {
+       -webkit-appearance: none;
+       margin: 0;
+   }
+
+
+   /* --- VIRTUAL JOYSTICK --- */
+   #joystick-zone {
+       display: none;
+       /* Hidden by default, JS will reveal if touch is supported */
+       position: absolute;
+       bottom: 100px;
+       left: 20px;
+       width: 120px;
+       height: 120px;
+       z-index: 9000;
+       user-select: none;
+       -webkit-user-select: none;
+       touch-action: none;
+       /* Prevents the whole screen from scrolling when swiping */
+   }
+
+   #joystick-base {
+       width: 100%;
+       height: 100%;
+       border-radius: 50%;
+       background: rgba(28, 248, 67, 0.1);
+       border: 2px solid rgba(28, 248, 67, 0.4);
+       position: relative;
+       box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+   }
+
+   #joystick-knob {
+       width: 50px;
+       height: 50px;
+       border-radius: 50%;
+       background: rgba(28, 248, 67, 0.8);
+       position: absolute;
+       top: 50%;
+       left: 50%;
+       margin-top: -25px;
+       /* Half of height to perfectly center */
+       margin-left: -25px;
+       /* Half of width to perfectly center */
+       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+       transition: transform 0.1s ease-out;
+       /* Smooth snapping when let go */
+   }
